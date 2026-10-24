@@ -1,0 +1,373 @@
+{
+  "calls": [
+    {
+      "callee_text": "empty",
+      "caller_id": "19829e474b19",
+      "candidates": [],
+      "col": 13,
+      "confidence": "externa",
+      "context": [],
+      "id": "21b8e823d277",
+      "io_kind": null,
+      "line": 27,
+      "receiver_text": "factura.items",
+      "resolved_id": null
+    },
+    {
+      "callee_text": "cobrar",
+      "caller_id": "19829e474b19",
+      "candidates": [],
+      "col": 27,
+      "confidence": "probable",
+      "context": [
+        {
+          "kind": "loop",
+          "label": "intentos < 3 && !cobrado",
+          "line": 55
+        },
+        {
+          "kind": "try",
+          "label": "intentar",
+          "line": 57
+        }
+      ],
+      "id": "55b115f86b3b",
+      "io_kind": null,
+      "line": 58,
+      "receiver_text": "pago",
+      "resolved_id": "c80ddb6d958c"
+    },
+    {
+      "callee_text": "what",
+      "caller_id": "19829e474b19",
+      "candidates": [],
+      "col": 53,
+      "confidence": "externa",
+      "context": [
+        {
+          "kind": "loop",
+          "label": "intentos < 3 && !cobrado",
+          "line": 55
+        },
+        {
+          "kind": "catch",
+          "label": "std::invalid_argument",
+          "line": 59
+        }
+      ],
+      "id": "98a6a66fd8e5",
+      "io_kind": null,
+      "line": 60,
+      "receiver_text": "e",
+      "resolved_id": null
+    },
+    {
+      "callee_text": "push_back",
+      "caller_id": "39b763281c4f",
+      "candidates": [],
+      "col": 5,
+      "confidence": "externa",
+      "context": [],
+      "id": "aa23c84dd0b7",
+      "io_kind": null,
+      "line": 79,
+      "receiver_text": "factura.items",
+      "resolved_id": null
+    },
+    {
+      "callee_text": "emitir",
+      "caller_id": "39b763281c4f",
+      "candidates": [],
+      "col": 9,
+      "confidence": "probable",
+      "context": [],
+      "id": "ee54b07d4792",
+      "io_kind": null,
+      "line": 83,
+      "receiver_text": "servicio",
+      "resolved_id": "19829e474b19"
+    },
+    {
+      "callee_text": "invalid_argument",
+      "caller_id": "c80ddb6d958c",
+      "candidates": [],
+      "col": 15,
+      "confidence": "externa",
+      "context": [
+        {
+          "kind": "if",
+          "label": "monto <= 0",
+          "line": 8
+        }
+      ],
+      "id": "a1b5b03ad3aa",
+      "io_kind": null,
+      "line": 9,
+      "receiver_text": "std",
+      "resolved_id": null
+    }
+  ],
+  "files": [
+    {
+      "errors": 0,
+      "lang": "cpp",
+      "lines": 89,
+      "parsed_ok": true,
+      "path": "facturacion.cpp",
+      "sha1": "845bf6c14a45c591cc2926182f4ae0ac452fc530",
+      "skipped_reason": null
+    },
+    {
+      "errors": 0,
+      "lang": "cpp",
+      "lines": 13,
+      "parsed_ok": true,
+      "path": "pago.cpp",
+      "sha1": "3c6daeab3f6e577b05745dfa39555b1235e25059",
+      "skipped_reason": null
+    },
+    {
+      "errors": 0,
+      "lang": "cpp",
+      "lines": 7,
+      "parsed_ok": true,
+      "path": "pago.hpp",
+      "sha1": "6364d8e9efef3808ed8c52d978825ce815fdf4ed",
+      "skipped_reason": null
+    }
+  ],
+  "fks": [],
+  "flows": [],
+  "imports": [
+    {
+      "alias": null,
+      "file": "facturacion.cpp",
+      "line": 1,
+      "module_text": "<fstream>",
+      "name": null
+    },
+    {
+      "alias": null,
+      "file": "facturacion.cpp",
+      "line": 2,
+      "module_text": "<iostream>",
+      "name": null
+    },
+    {
+      "alias": null,
+      "file": "facturacion.cpp",
+      "line": 3,
+      "module_text": "<stdexcept>",
+      "name": null
+    },
+    {
+      "alias": null,
+      "file": "facturacion.cpp",
+      "line": 4,
+      "module_text": "<string>",
+      "name": null
+    },
+    {
+      "alias": null,
+      "file": "facturacion.cpp",
+      "line": 5,
+      "module_text": "<vector>",
+      "name": null
+    },
+    {
+      "alias": null,
+      "file": "facturacion.cpp",
+      "line": 6,
+      "module_text": "pago.hpp",
+      "name": null
+    },
+    {
+      "alias": null,
+      "file": "pago.cpp",
+      "line": 1,
+      "module_text": "<iostream>",
+      "name": null
+    },
+    {
+      "alias": null,
+      "file": "pago.cpp",
+      "line": 2,
+      "module_text": "<stdexcept>",
+      "name": null
+    },
+    {
+      "alias": null,
+      "file": "pago.cpp",
+      "line": 3,
+      "module_text": "pago.hpp",
+      "name": null
+    },
+    {
+      "alias": null,
+      "file": "pago.hpp",
+      "line": 2,
+      "module_text": "<string>",
+      "name": null
+    }
+  ],
+  "root_name": "cpp",
+  "symbols": [
+    {
+      "doc": null,
+      "file": "facturacion.cpp",
+      "id": "986333543a07",
+      "is_entry": false,
+      "kind": "module",
+      "lang": "cpp",
+      "line_end": 89,
+      "line_start": 1,
+      "name": "facturacion.cpp",
+      "parent_id": null,
+      "qualname": "facturacion.cpp",
+      "signature": "facturacion.cpp"
+    },
+    {
+      "doc": null,
+      "file": "facturacion.cpp",
+      "id": "fb4afbebfac7",
+      "is_entry": false,
+      "kind": "class",
+      "lang": "cpp",
+      "line_end": 11,
+      "line_start": 8,
+      "name": "Item",
+      "parent_id": "986333543a07",
+      "qualname": "Item",
+      "signature": "struct Item"
+    },
+    {
+      "doc": null,
+      "file": "facturacion.cpp",
+      "id": "cae77f51a2f1",
+      "is_entry": false,
+      "kind": "class",
+      "lang": "cpp",
+      "line_end": 18,
+      "line_start": 13,
+      "name": "Factura",
+      "parent_id": "986333543a07",
+      "qualname": "Factura",
+      "signature": "class Factura"
+    },
+    {
+      "doc": null,
+      "file": "facturacion.cpp",
+      "id": "6d9c69dcb576",
+      "is_entry": false,
+      "kind": "class",
+      "lang": "cpp",
+      "line_end": 73,
+      "line_start": 20,
+      "name": "FacturacionService",
+      "parent_id": "986333543a07",
+      "qualname": "FacturacionService",
+      "signature": "class FacturacionService"
+    },
+    {
+      "doc": null,
+      "file": "facturacion.cpp",
+      "id": "80cbf541a855",
+      "is_entry": false,
+      "kind": "method",
+      "lang": "cpp",
+      "line_end": 22,
+      "line_start": 22,
+      "name": "FacturacionService",
+      "parent_id": "6d9c69dcb576",
+      "qualname": "FacturacionService.FacturacionService",
+      "signature": "explicit FacturacionService(PagoService& pago) : pago(pago)"
+    },
+    {
+      "doc": "Calcula el total, cobra y guarda la factura.",
+      "file": "facturacion.cpp",
+      "id": "19829e474b19",
+      "is_entry": false,
+      "kind": "method",
+      "lang": "cpp",
+      "line_end": 69,
+      "line_start": 25,
+      "name": "emitir",
+      "parent_id": "6d9c69dcb576",
+      "qualname": "FacturacionService.emitir",
+      "signature": "bool emitir(const Factura& factura)"
+    },
+    {
+      "doc": null,
+      "file": "facturacion.cpp",
+      "id": "39b763281c4f",
+      "is_entry": true,
+      "kind": "function",
+      "lang": "cpp",
+      "line_end": 89,
+      "line_start": 75,
+      "name": "main",
+      "parent_id": "986333543a07",
+      "qualname": "main",
+      "signature": "int main()"
+    },
+    {
+      "doc": null,
+      "file": "pago.cpp",
+      "id": "4ea4518cedc1",
+      "is_entry": false,
+      "kind": "module",
+      "lang": "cpp",
+      "line_end": 13,
+      "line_start": 1,
+      "name": "pago.cpp",
+      "parent_id": null,
+      "qualname": "pago.cpp",
+      "signature": "pago.cpp"
+    },
+    {
+      "doc": "Cobra el monto con el tipo de pago indicado.",
+      "file": "pago.cpp",
+      "id": "c80ddb6d958c",
+      "is_entry": false,
+      "kind": "method",
+      "lang": "cpp",
+      "line_end": 13,
+      "line_start": 6,
+      "name": "cobrar",
+      "parent_id": "2a2ef4c095e0",
+      "qualname": "PagoService.cobrar",
+      "signature": "bool PagoService::cobrar(double monto, const std::string& tipo)"
+    },
+    {
+      "doc": null,
+      "file": "pago.hpp",
+      "id": "cdb4fa73fc0f",
+      "is_entry": false,
+      "kind": "module",
+      "lang": "cpp",
+      "line_end": 7,
+      "line_start": 1,
+      "name": "pago.hpp",
+      "parent_id": null,
+      "qualname": "pago.hpp",
+      "signature": "pago.hpp"
+    },
+    {
+      "doc": null,
+      "file": "pago.hpp",
+      "id": "2a2ef4c095e0",
+      "is_entry": false,
+      "kind": "class",
+      "lang": "cpp",
+      "line_end": 7,
+      "line_start": 4,
+      "name": "PagoService",
+      "parent_id": "cdb4fa73fc0f",
+      "qualname": "PagoService",
+      "signature": "class PagoService"
+    }
+  ],
+  "table_access": [],
+  "tables": [],
+  "warnings": []
+}

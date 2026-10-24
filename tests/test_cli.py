@@ -42,6 +42,23 @@ def test_debug_ast_python(tmp_path, capsys):
     assert 'name: identifier L1  "suma"' in out
 
 
+def test_export_ir_matches_golden(tmp_path, capsys):
+    from tests.conftest import FIXTURES, GOLDEN, have_grammars
+
+    if not have_grammars("php"):
+        pytest.skip("falta la gramática php")
+    out = tmp_path / "ir.json"
+    assert cli.main(["export-ir", str(FIXTURES / "php"), "-o", str(out)]) == cli.EXIT_OK
+    assert out.read_text(encoding="utf-8") == (GOLDEN / "ir" / "php.json").read_text(
+        encoding="utf-8"
+    )
+    assert "Llamadas:" in capsys.readouterr().out
+
+
+def test_export_ir_missing_path():
+    assert cli.main(["export-ir", "no/existe/nada"]) == cli.EXIT_USAGE
+
+
 def test_debug_ast_unknown_extension(tmp_path):
     src = tmp_path / "a.xyz"
     src.write_text("hola", encoding="utf-8")

@@ -1,0 +1,460 @@
+{
+  "calls": [
+    {
+      "callee_text": "trim",
+      "caller_id": "79acf1c23b6c",
+      "candidates": [],
+      "col": 16,
+      "confidence": "externa",
+      "context": [],
+      "id": "b589ac59376b",
+      "io_kind": null,
+      "line": 13,
+      "receiver_text": null,
+      "resolved_id": null
+    },
+    {
+      "callee_text": "fgets",
+      "caller_id": "79acf1c23b6c",
+      "candidates": [],
+      "col": 21,
+      "confidence": "externa",
+      "context": [],
+      "id": "119f9fc01b32",
+      "io_kind": "teclado",
+      "line": 13,
+      "receiver_text": null,
+      "resolved_id": null
+    },
+    {
+      "callee_text": "Factura",
+      "caller_id": "79acf1c23b6c",
+      "candidates": [],
+      "col": 16,
+      "confidence": "exacta",
+      "context": [],
+      "id": "6ff938fe4252",
+      "io_kind": null,
+      "line": 14,
+      "receiver_text": null,
+      "resolved_id": "dcd81ff27d08"
+    },
+    {
+      "callee_text": "FacturacionService",
+      "caller_id": "79acf1c23b6c",
+      "candidates": [],
+      "col": 17,
+      "confidence": "exacta",
+      "context": [],
+      "id": "bfc4a1df9f81",
+      "io_kind": null,
+      "line": 15,
+      "receiver_text": null,
+      "resolved_id": "93bdf270d10f"
+    },
+    {
+      "callee_text": "PagoService",
+      "caller_id": "79acf1c23b6c",
+      "candidates": [],
+      "col": 40,
+      "confidence": "exacta",
+      "context": [],
+      "id": "c84775f520ca",
+      "io_kind": null,
+      "line": 15,
+      "receiver_text": null,
+      "resolved_id": "13847f64888c"
+    },
+    {
+      "callee_text": "emitir",
+      "caller_id": "79acf1c23b6c",
+      "candidates": [],
+      "col": 9,
+      "confidence": "probable",
+      "context": [],
+      "id": "7d9ecce1d574",
+      "io_kind": null,
+      "line": 16,
+      "receiver_text": "$servicio",
+      "resolved_id": "470fa979f35a"
+    },
+    {
+      "callee_text": "main",
+      "caller_id": "14688134f00e",
+      "candidates": [],
+      "col": 1,
+      "confidence": "exacta",
+      "context": [],
+      "id": "e05b28935f92",
+      "io_kind": null,
+      "line": 23,
+      "receiver_text": null,
+      "resolved_id": "79acf1c23b6c"
+    },
+    {
+      "callee_text": "count",
+      "caller_id": "470fa979f35a",
+      "candidates": [],
+      "col": 13,
+      "confidence": "externa",
+      "context": [],
+      "id": "b431a673c074",
+      "io_kind": null,
+      "line": 14,
+      "receiver_text": null,
+      "resolved_id": null
+    },
+    {
+      "callee_text": "cobrar",
+      "caller_id": "470fa979f35a",
+      "candidates": [],
+      "col": 28,
+      "confidence": "probable",
+      "context": [
+        {
+          "kind": "loop",
+          "label": "$intentos < 3 && !$cobrado",
+          "line": 41
+        },
+        {
+          "kind": "try",
+          "label": "intentar",
+          "line": 43
+        }
+      ],
+      "id": "be965357139a",
+      "io_kind": null,
+      "line": 44,
+      "receiver_text": "$this->pago",
+      "resolved_id": "1d57dd998222"
+    },
+    {
+      "callee_text": "getMessage",
+      "caller_id": "470fa979f35a",
+      "candidates": [],
+      "col": 44,
+      "confidence": "externa",
+      "context": [
+        {
+          "kind": "loop",
+          "label": "$intentos < 3 && !$cobrado",
+          "line": 41
+        },
+        {
+          "kind": "catch",
+          "label": "InvalidArgumentException",
+          "line": 45
+        }
+      ],
+      "id": "2e626b840c1f",
+      "io_kind": null,
+      "line": 46,
+      "receiver_text": "$e",
+      "resolved_id": null
+    },
+    {
+      "callee_text": "file_put_contents",
+      "caller_id": "470fa979f35a",
+      "candidates": [],
+      "col": 9,
+      "confidence": "externa",
+      "context": [],
+      "id": "f975c71a469d",
+      "io_kind": "archivo_escribe",
+      "line": 52,
+      "receiver_text": null,
+      "resolved_id": null
+    },
+    {
+      "callee_text": "InvalidArgumentException",
+      "caller_id": "1d57dd998222",
+      "candidates": [],
+      "col": 19,
+      "confidence": "externa",
+      "context": [
+        {
+          "kind": "if",
+          "label": "$monto <= 0",
+          "line": 10
+        }
+      ],
+      "id": "e6ae373b8897",
+      "io_kind": null,
+      "line": 11,
+      "receiver_text": null,
+      "resolved_id": null
+    }
+  ],
+  "files": [
+    {
+      "errors": 0,
+      "lang": "php",
+      "lines": 23,
+      "parsed_ok": true,
+      "path": "main.php",
+      "sha1": "9148277dfb101827ebf160a0d4e8ff84ceee0d80",
+      "skipped_reason": null
+    },
+    {
+      "errors": 0,
+      "lang": "php",
+      "lines": 19,
+      "parsed_ok": true,
+      "path": "src/Factura.php",
+      "sha1": "a1fbc66f83662e08a523bb70ce4628fa1c96d8c3",
+      "skipped_reason": null
+    },
+    {
+      "errors": 0,
+      "lang": "php",
+      "lines": 55,
+      "parsed_ok": true,
+      "path": "src/FacturacionService.php",
+      "sha1": "0e23d818948ba7522b5806d78ee412030159a2dd",
+      "skipped_reason": null
+    },
+    {
+      "errors": 0,
+      "lang": "php",
+      "lines": 16,
+      "parsed_ok": true,
+      "path": "src/PagoService.php",
+      "sha1": "73f02aa10f192ca83de82ce72edb23bddee7012a",
+      "skipped_reason": null
+    }
+  ],
+  "fks": [],
+  "flows": [],
+  "imports": [
+    {
+      "alias": null,
+      "file": "main.php",
+      "line": 3,
+      "module_text": "__DIR__ . '/src/Factura.php'",
+      "name": null
+    },
+    {
+      "alias": null,
+      "file": "main.php",
+      "line": 4,
+      "module_text": "__DIR__ . '/src/PagoService.php'",
+      "name": null
+    },
+    {
+      "alias": null,
+      "file": "main.php",
+      "line": 5,
+      "module_text": "__DIR__ . '/src/FacturacionService.php'",
+      "name": null
+    },
+    {
+      "alias": null,
+      "file": "main.php",
+      "line": 7,
+      "module_text": "App\\Factura",
+      "name": "Factura"
+    },
+    {
+      "alias": null,
+      "file": "main.php",
+      "line": 8,
+      "module_text": "App\\FacturacionService",
+      "name": "FacturacionService"
+    },
+    {
+      "alias": null,
+      "file": "main.php",
+      "line": 9,
+      "module_text": "App\\PagoService",
+      "name": "PagoService"
+    }
+  ],
+  "root_name": "php",
+  "symbols": [
+    {
+      "doc": null,
+      "file": "main.php",
+      "id": "14688134f00e",
+      "is_entry": false,
+      "kind": "module",
+      "lang": "php",
+      "line_end": 23,
+      "line_start": 1,
+      "name": "main.php",
+      "parent_id": null,
+      "qualname": "main.php",
+      "signature": "main.php"
+    },
+    {
+      "doc": null,
+      "file": "main.php",
+      "id": "79acf1c23b6c",
+      "is_entry": true,
+      "kind": "function",
+      "lang": "php",
+      "line_end": 21,
+      "line_start": 11,
+      "name": "main",
+      "parent_id": "14688134f00e",
+      "qualname": "main",
+      "signature": "function main(): void"
+    },
+    {
+      "doc": null,
+      "file": "src/Factura.php",
+      "id": "aec9e8c6d29d",
+      "is_entry": false,
+      "kind": "module",
+      "lang": "php",
+      "line_end": 19,
+      "line_start": 1,
+      "name": "Factura.php",
+      "parent_id": null,
+      "qualname": "src/Factura.php",
+      "signature": "src/Factura.php"
+    },
+    {
+      "doc": "Una factura con ítems y un tipo de pago.",
+      "file": "src/Factura.php",
+      "id": "776bc8400443",
+      "is_entry": false,
+      "kind": "class",
+      "lang": "php",
+      "line_end": 19,
+      "line_start": 6,
+      "name": "Factura",
+      "parent_id": "aec9e8c6d29d",
+      "qualname": "Factura",
+      "signature": "class Factura"
+    },
+    {
+      "doc": null,
+      "file": "src/Factura.php",
+      "id": "dcd81ff27d08",
+      "is_entry": false,
+      "kind": "method",
+      "lang": "php",
+      "line_end": 13,
+      "line_start": 8,
+      "name": "__construct",
+      "parent_id": "776bc8400443",
+      "qualname": "Factura.__construct",
+      "signature": "public function __construct( public string $cliente, public array $items, public string $tipoPago, )"
+    },
+    {
+      "doc": null,
+      "file": "src/Factura.php",
+      "id": "8c59c2bf3803",
+      "is_entry": false,
+      "kind": "method",
+      "lang": "php",
+      "line_end": 18,
+      "line_start": 15,
+      "name": "agregarItem",
+      "parent_id": "776bc8400443",
+      "qualname": "Factura.agregarItem",
+      "signature": "public function agregarItem(array $item): void"
+    },
+    {
+      "doc": null,
+      "file": "src/FacturacionService.php",
+      "id": "32c0a008653f",
+      "is_entry": false,
+      "kind": "module",
+      "lang": "php",
+      "line_end": 55,
+      "line_start": 1,
+      "name": "FacturacionService.php",
+      "parent_id": null,
+      "qualname": "src/FacturacionService.php",
+      "signature": "src/FacturacionService.php"
+    },
+    {
+      "doc": null,
+      "file": "src/FacturacionService.php",
+      "id": "585301583e93",
+      "is_entry": false,
+      "kind": "class",
+      "lang": "php",
+      "line_end": 55,
+      "line_start": 5,
+      "name": "FacturacionService",
+      "parent_id": "32c0a008653f",
+      "qualname": "FacturacionService",
+      "signature": "class FacturacionService"
+    },
+    {
+      "doc": null,
+      "file": "src/FacturacionService.php",
+      "id": "93bdf270d10f",
+      "is_entry": false,
+      "kind": "method",
+      "lang": "php",
+      "line_end": 9,
+      "line_start": 7,
+      "name": "__construct",
+      "parent_id": "585301583e93",
+      "qualname": "FacturacionService.__construct",
+      "signature": "public function __construct(private PagoService $pago)"
+    },
+    {
+      "doc": "Calcula el total, cobra y guarda la factura.",
+      "file": "src/FacturacionService.php",
+      "id": "470fa979f35a",
+      "is_entry": false,
+      "kind": "method",
+      "lang": "php",
+      "line_end": 54,
+      "line_start": 12,
+      "name": "emitir",
+      "parent_id": "585301583e93",
+      "qualname": "FacturacionService.emitir",
+      "signature": "public function emitir(Factura $factura): bool"
+    },
+    {
+      "doc": null,
+      "file": "src/PagoService.php",
+      "id": "3d02a6ee0e8e",
+      "is_entry": false,
+      "kind": "module",
+      "lang": "php",
+      "line_end": 16,
+      "line_start": 1,
+      "name": "PagoService.php",
+      "parent_id": null,
+      "qualname": "src/PagoService.php",
+      "signature": "src/PagoService.php"
+    },
+    {
+      "doc": null,
+      "file": "src/PagoService.php",
+      "id": "13847f64888c",
+      "is_entry": false,
+      "kind": "class",
+      "lang": "php",
+      "line_end": 16,
+      "line_start": 5,
+      "name": "PagoService",
+      "parent_id": "3d02a6ee0e8e",
+      "qualname": "PagoService",
+      "signature": "class PagoService"
+    },
+    {
+      "doc": "Cobra el monto con el tipo de pago indicado.",
+      "file": "src/PagoService.php",
+      "id": "1d57dd998222",
+      "is_entry": false,
+      "kind": "method",
+      "lang": "php",
+      "line_end": 15,
+      "line_start": 8,
+      "name": "cobrar",
+      "parent_id": "13847f64888c",
+      "qualname": "PagoService.cobrar",
+      "signature": "public function cobrar(float $monto, string $tipo): bool"
+    }
+  ],
+  "table_access": [],
+  "tables": [],
+  "warnings": []
+}

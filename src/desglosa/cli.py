@@ -117,6 +117,78 @@ def cmd_debug_ast(args: argparse.Namespace) -> int:
     return EXIT_OK
 
 
+# --------------------------------------------------------------------------- análisis
+
+
+def _analysis_options(args: argparse.Namespace):
+    from desglosa.pipeline import AnalyzeOptions
+    from desglosa.scan import ScanOptions
+
+    langs_filter = None
+    if getattr(args, "lang", None):
+        langs_filter = tuple(sorted(x.strip() for x in args.lang.split(",") if x.strip()))
+    scan_opts = ScanOptions(
+        ignore=tuple(args.ignore or ()),
+        max_file_kb=args.max_file_kb,
+        h_as=args.h_as,
+        langs=langs_filter,
+    )
+    return AnalyzeOptions(
+        scan=scan_opts,
+        jobs=args.jobs,
+        max_flow_nodes=getattr(args, "max_flow_nodes", 120),
+    )
+
+
+def _run_analysis(args: argparse.Namespace):
+    """Ejecuta el pipeline; devuelve (Analysis, None) o (None, código de salida)."""
+    from desglosa.pipeline import analyze
+
+    target = Path(args.path)
+    if not target.exists():
+        print(f"No existe la ruta: {target}", file=sys.stderr)
+        return None, EXIT_USAGE
+    try:
+        return analyze(target, _analysis_options(args)), None
+    except grammars.MissingGrammarError as exc:
+        print(str(exc), file=sys.stderr)
+        return None, EXIT_GRAMMARS
+
+
+def _write_text(path: str, text: str) -> None:
+    if path == "-":
+        sys.stdout.write(text)
+        return
+    Path(path).write_text(text, encoding="utf-8", newline="\n")
+
+
+def cmd_export_ir(args: argparse.Namespace) -> int:
+    from desglosa.ir import dumps
+    from desglosa.pipeline import summary
+
+    analysis, code = _run_analysis(args)
+    if analysis is None:
+        return code
+    _write_text(args.output, dumps(analysis.project))
+    if args.output != "-":
+        print(summary(analysis))
+        print(f"IR escrito en {args.output}")
+    return EXIT_OK
+
+
+def _add_analysis_args(p: argparse.ArgumentParser) -> None:
+    p.add_argument("path", help="carpeta o archivo a analizar")
+    p.add_argument("--lang", help="limitar a estos lenguajes (ej. php,python)")
+    p.add_argument(
+        "--ignore", action="append", metavar="PATRON", help="patrón extra a ignorar (repetible)"
+    )
+    p.add_argument("--h-as", choices=("c", "cpp"), default="c", help="lenguaje para archivos .h")
+    p.add_argument("--jobs", type=int, help="procesos en paralelo (por defecto: automático)")
+    p.add_argument(
+        "--max-file-kb", type=int, default=1024, help="tamaño máximo por archivo (KB, def. 1024)"
+    )
+
+
 # --------------------------------------------------------------------------- parser
 
 
@@ -150,6 +222,11 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--h-as", choices=("c", "cpp"), default="c", help="lenguaje para archivos .h")
     p.add_argument("--all", action="store_true", help="incluir nodos anónimos (puntuación)")
     p.set_defaults(func=cmd_debug_ast)
+
+    p = sub.add_parser("export-ir", help="exporta el modelo intermedio en JSON")
+    _add_analysis_args(p)
+    p.add_argument("-o", "--output", default="ir.json", help="archivo de salida ('-' = pantalla)")
+    p.set_defaults(func=cmd_export_ir)
 
     return parser
 

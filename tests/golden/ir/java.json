@@ -1,0 +1,594 @@
+{
+  "calls": [
+    {
+      "callee_text": "add",
+      "caller_id": "7f6b91582911",
+      "candidates": [],
+      "col": 9,
+      "confidence": "externa",
+      "context": [],
+      "id": "e2cbed64fd3c",
+      "io_kind": null,
+      "line": 18,
+      "receiver_text": "this.items",
+      "resolved_id": null
+    },
+    {
+      "callee_text": "isEmpty",
+      "caller_id": "e2135a254db6",
+      "candidates": [],
+      "col": 13,
+      "confidence": "externa",
+      "context": [],
+      "id": "ff97bb5f4970",
+      "io_kind": null,
+      "line": 19,
+      "receiver_text": "factura.items",
+      "resolved_id": null
+    },
+    {
+      "callee_text": "println",
+      "caller_id": "e2135a254db6",
+      "candidates": [],
+      "col": 13,
+      "confidence": "externa",
+      "context": [
+        {
+          "kind": "if",
+          "label": "factura.items.isEmpty()",
+          "line": 19
+        }
+      ],
+      "id": "5ef9ac982e05",
+      "io_kind": "pantalla",
+      "line": 20,
+      "receiver_text": "System.out",
+      "resolved_id": null
+    },
+    {
+      "callee_text": "cobrar",
+      "caller_id": "e2135a254db6",
+      "candidates": [
+        "7dcbf5c22eb2"
+      ],
+      "col": 27,
+      "confidence": "probable",
+      "context": [
+        {
+          "kind": "loop",
+          "label": "intentos < 3 && !cobrado",
+          "line": 47
+        },
+        {
+          "kind": "try",
+          "label": "intentar",
+          "line": 49
+        }
+      ],
+      "id": "0804bb88dd25",
+      "io_kind": null,
+      "line": 50,
+      "receiver_text": "pago",
+      "resolved_id": "7dcbf5c22eb2"
+    },
+    {
+      "callee_text": "println",
+      "caller_id": "e2135a254db6",
+      "candidates": [],
+      "col": 17,
+      "confidence": "externa",
+      "context": [
+        {
+          "kind": "loop",
+          "label": "intentos < 3 && !cobrado",
+          "line": 47
+        },
+        {
+          "kind": "catch",
+          "label": "IllegalArgumentException",
+          "line": 51
+        }
+      ],
+      "id": "8008e27fa7c8",
+      "io_kind": "pantalla",
+      "line": 52,
+      "receiver_text": "System.out",
+      "resolved_id": null
+    },
+    {
+      "callee_text": "getMessage",
+      "caller_id": "e2135a254db6",
+      "candidates": [],
+      "col": 58,
+      "confidence": "externa",
+      "context": [
+        {
+          "kind": "loop",
+          "label": "intentos < 3 && !cobrado",
+          "line": 47
+        },
+        {
+          "kind": "catch",
+          "label": "IllegalArgumentException",
+          "line": 51
+        }
+      ],
+      "id": "085b47e157bd",
+      "io_kind": null,
+      "line": 52,
+      "receiver_text": "e",
+      "resolved_id": null
+    },
+    {
+      "callee_text": "writeString",
+      "caller_id": "e2135a254db6",
+      "candidates": [],
+      "col": 9,
+      "confidence": "externa",
+      "context": [],
+      "id": "dc39536d06d3",
+      "io_kind": "archivo_escribe",
+      "line": 58,
+      "receiver_text": "Files",
+      "resolved_id": null
+    },
+    {
+      "callee_text": "of",
+      "caller_id": "e2135a254db6",
+      "candidates": [],
+      "col": 27,
+      "confidence": "externa",
+      "context": [],
+      "id": "57eaa0f80fba",
+      "io_kind": null,
+      "line": 58,
+      "receiver_text": "Path",
+      "resolved_id": null
+    },
+    {
+      "callee_text": "Scanner",
+      "caller_id": "4ab6b25d20d6",
+      "candidates": [],
+      "col": 22,
+      "confidence": "externa",
+      "context": [],
+      "id": "01562fab96b1",
+      "io_kind": null,
+      "line": 64,
+      "receiver_text": null,
+      "resolved_id": null
+    },
+    {
+      "callee_text": "nextLine",
+      "caller_id": "4ab6b25d20d6",
+      "candidates": [],
+      "col": 26,
+      "confidence": "externa",
+      "context": [],
+      "id": "1f5091eeb2fa",
+      "io_kind": "teclado",
+      "line": 65,
+      "receiver_text": "sc",
+      "resolved_id": null
+    },
+    {
+      "callee_text": "Factura",
+      "caller_id": "4ab6b25d20d6",
+      "candidates": [],
+      "col": 27,
+      "confidence": "exacta",
+      "context": [],
+      "id": "cb6b5ac1e5c5",
+      "io_kind": null,
+      "line": 66,
+      "receiver_text": null,
+      "resolved_id": "e670051b6a49"
+    },
+    {
+      "callee_text": "of",
+      "caller_id": "4ab6b25d20d6",
+      "candidates": [],
+      "col": 48,
+      "confidence": "externa",
+      "context": [],
+      "id": "e772d0a0c4cf",
+      "io_kind": null,
+      "line": 66,
+      "receiver_text": "List",
+      "resolved_id": null
+    },
+    {
+      "callee_text": "FacturacionService",
+      "caller_id": "4ab6b25d20d6",
+      "candidates": [],
+      "col": 39,
+      "confidence": "exacta",
+      "context": [],
+      "id": "5e8d1baff452",
+      "io_kind": null,
+      "line": 67,
+      "receiver_text": null,
+      "resolved_id": "1d5a56c9a58f"
+    },
+    {
+      "callee_text": "PagoService",
+      "caller_id": "4ab6b25d20d6",
+      "candidates": [],
+      "col": 62,
+      "confidence": "exacta",
+      "context": [],
+      "id": "aefd458fe4ee",
+      "io_kind": null,
+      "line": 67,
+      "receiver_text": null,
+      "resolved_id": "8a6480373ce4"
+    },
+    {
+      "callee_text": "emitir",
+      "caller_id": "4ab6b25d20d6",
+      "candidates": [],
+      "col": 13,
+      "confidence": "probable",
+      "context": [],
+      "id": "c0c3d63e37c3",
+      "io_kind": null,
+      "line": 68,
+      "receiver_text": "servicio",
+      "resolved_id": "e2135a254db6"
+    },
+    {
+      "callee_text": "println",
+      "caller_id": "4ab6b25d20d6",
+      "candidates": [],
+      "col": 13,
+      "confidence": "externa",
+      "context": [
+        {
+          "kind": "if",
+          "label": "servicio.emitir(factura)",
+          "line": 68
+        }
+      ],
+      "id": "33d9b46176dd",
+      "io_kind": "pantalla",
+      "line": 69,
+      "receiver_text": "System.out",
+      "resolved_id": null
+    },
+    {
+      "callee_text": "println",
+      "caller_id": "4ab6b25d20d6",
+      "candidates": [],
+      "col": 13,
+      "confidence": "externa",
+      "context": [
+        {
+          "kind": "else",
+          "label": "else",
+          "line": 70
+        }
+      ],
+      "id": "736a4f64a79d",
+      "io_kind": "pantalla",
+      "line": 71,
+      "receiver_text": "System.out",
+      "resolved_id": null
+    },
+    {
+      "callee_text": "IllegalArgumentException",
+      "caller_id": "7dcbf5c22eb2",
+      "candidates": [],
+      "col": 19,
+      "confidence": "externa",
+      "context": [
+        {
+          "kind": "if",
+          "label": "monto <= 0",
+          "line": 11
+        }
+      ],
+      "id": "4c6b9abd4a45",
+      "io_kind": null,
+      "line": 12,
+      "receiver_text": null,
+      "resolved_id": null
+    },
+    {
+      "callee_text": "println",
+      "caller_id": "7dcbf5c22eb2",
+      "candidates": [],
+      "col": 9,
+      "confidence": "externa",
+      "context": [],
+      "id": "af0858efca18",
+      "io_kind": "pantalla",
+      "line": 14,
+      "receiver_text": "System.out",
+      "resolved_id": null
+    }
+  ],
+  "files": [
+    {
+      "errors": 0,
+      "lang": "java",
+      "lines": 20,
+      "parsed_ok": true,
+      "path": "Factura.java",
+      "sha1": "cbd9544040db682470ef920f3a6d344cc619786b",
+      "skipped_reason": null
+    },
+    {
+      "errors": 0,
+      "lang": "java",
+      "lines": 74,
+      "parsed_ok": true,
+      "path": "FacturacionService.java",
+      "sha1": "7e39636dc0a61e7a9fa9102579dc91ec56788535",
+      "skipped_reason": null
+    },
+    {
+      "errors": 0,
+      "lang": "java",
+      "lines": 17,
+      "parsed_ok": true,
+      "path": "PagoService.java",
+      "sha1": "726ee916c53e722b658c1dd5cf4216f5f394763d",
+      "skipped_reason": null
+    }
+  ],
+  "fks": [],
+  "flows": [],
+  "imports": [
+    {
+      "alias": null,
+      "file": "Factura.java",
+      "line": 3,
+      "module_text": "java.util.List",
+      "name": "List"
+    },
+    {
+      "alias": null,
+      "file": "FacturacionService.java",
+      "line": 3,
+      "module_text": "java.io.IOException",
+      "name": "IOException"
+    },
+    {
+      "alias": null,
+      "file": "FacturacionService.java",
+      "line": 4,
+      "module_text": "java.nio.file.Files",
+      "name": "Files"
+    },
+    {
+      "alias": null,
+      "file": "FacturacionService.java",
+      "line": 5,
+      "module_text": "java.nio.file.Path",
+      "name": "Path"
+    },
+    {
+      "alias": null,
+      "file": "FacturacionService.java",
+      "line": 6,
+      "module_text": "java.nio.file.StandardOpenOption",
+      "name": "StandardOpenOption"
+    },
+    {
+      "alias": null,
+      "file": "FacturacionService.java",
+      "line": 7,
+      "module_text": "java.util.List",
+      "name": "List"
+    },
+    {
+      "alias": null,
+      "file": "FacturacionService.java",
+      "line": 8,
+      "module_text": "java.util.Scanner",
+      "name": "Scanner"
+    }
+  ],
+  "root_name": "java",
+  "symbols": [
+    {
+      "doc": null,
+      "file": "Factura.java",
+      "id": "14e1a9c939d9",
+      "is_entry": false,
+      "kind": "module",
+      "lang": "java",
+      "line_end": 20,
+      "line_start": 1,
+      "name": "Factura.java",
+      "parent_id": null,
+      "qualname": "Factura.java",
+      "signature": "Factura.java"
+    },
+    {
+      "doc": "Una factura con ítems y un tipo de pago.",
+      "file": "Factura.java",
+      "id": "7311b11c960e",
+      "is_entry": false,
+      "kind": "class",
+      "lang": "java",
+      "line_end": 20,
+      "line_start": 6,
+      "name": "Factura",
+      "parent_id": "14e1a9c939d9",
+      "qualname": "Factura",
+      "signature": "public class Factura"
+    },
+    {
+      "doc": null,
+      "file": "Factura.java",
+      "id": "e670051b6a49",
+      "is_entry": false,
+      "kind": "method",
+      "lang": "java",
+      "line_end": 15,
+      "line_start": 11,
+      "name": "Factura",
+      "parent_id": "7311b11c960e",
+      "qualname": "Factura.Factura",
+      "signature": "public Factura(String cliente, List<double[]> items, String tipoPago)"
+    },
+    {
+      "doc": null,
+      "file": "Factura.java",
+      "id": "7f6b91582911",
+      "is_entry": false,
+      "kind": "method",
+      "lang": "java",
+      "line_end": 19,
+      "line_start": 17,
+      "name": "agregarItem",
+      "parent_id": "7311b11c960e",
+      "qualname": "Factura.agregarItem",
+      "signature": "public void agregarItem(double[] item)"
+    },
+    {
+      "doc": null,
+      "file": "FacturacionService.java",
+      "id": "0991db770926",
+      "is_entry": false,
+      "kind": "module",
+      "lang": "java",
+      "line_end": 74,
+      "line_start": 1,
+      "name": "FacturacionService.java",
+      "parent_id": null,
+      "qualname": "FacturacionService.java",
+      "signature": "FacturacionService.java"
+    },
+    {
+      "doc": null,
+      "file": "FacturacionService.java",
+      "id": "d9826c327fbf",
+      "is_entry": false,
+      "kind": "class",
+      "lang": "java",
+      "line_end": 74,
+      "line_start": 10,
+      "name": "FacturacionService",
+      "parent_id": "0991db770926",
+      "qualname": "FacturacionService",
+      "signature": "public class FacturacionService"
+    },
+    {
+      "doc": null,
+      "file": "FacturacionService.java",
+      "id": "1d5a56c9a58f",
+      "is_entry": false,
+      "kind": "method",
+      "lang": "java",
+      "line_end": 15,
+      "line_start": 13,
+      "name": "FacturacionService",
+      "parent_id": "d9826c327fbf",
+      "qualname": "FacturacionService.FacturacionService",
+      "signature": "public FacturacionService(MedioPago pago)"
+    },
+    {
+      "doc": "Calcula el total, cobra y guarda la factura.",
+      "file": "FacturacionService.java",
+      "id": "e2135a254db6",
+      "is_entry": false,
+      "kind": "method",
+      "lang": "java",
+      "line_end": 61,
+      "line_start": 18,
+      "name": "emitir",
+      "parent_id": "d9826c327fbf",
+      "qualname": "FacturacionService.emitir",
+      "signature": "public boolean emitir(Factura factura) throws IOException"
+    },
+    {
+      "doc": null,
+      "file": "FacturacionService.java",
+      "id": "4ab6b25d20d6",
+      "is_entry": true,
+      "kind": "method",
+      "lang": "java",
+      "line_end": 73,
+      "line_start": 63,
+      "name": "main",
+      "parent_id": "d9826c327fbf",
+      "qualname": "FacturacionService.main",
+      "signature": "public static void main(String[] args) throws IOException"
+    },
+    {
+      "doc": null,
+      "file": "PagoService.java",
+      "id": "57c09250cbe5",
+      "is_entry": false,
+      "kind": "module",
+      "lang": "java",
+      "line_end": 17,
+      "line_start": 1,
+      "name": "PagoService.java",
+      "parent_id": null,
+      "qualname": "PagoService.java",
+      "signature": "PagoService.java"
+    },
+    {
+      "doc": null,
+      "file": "PagoService.java",
+      "id": "5887b40fb56e",
+      "is_entry": false,
+      "kind": "interface",
+      "lang": "java",
+      "line_end": 5,
+      "line_start": 3,
+      "name": "MedioPago",
+      "parent_id": "57c09250cbe5",
+      "qualname": "MedioPago",
+      "signature": "interface MedioPago"
+    },
+    {
+      "doc": null,
+      "file": "PagoService.java",
+      "id": "de0959feb79a",
+      "is_entry": false,
+      "kind": "method",
+      "lang": "java",
+      "line_end": 4,
+      "line_start": 4,
+      "name": "cobrar",
+      "parent_id": "5887b40fb56e",
+      "qualname": "MedioPago.cobrar",
+      "signature": "boolean cobrar(double monto, String tipo);"
+    },
+    {
+      "doc": null,
+      "file": "PagoService.java",
+      "id": "8a6480373ce4",
+      "is_entry": false,
+      "kind": "class",
+      "lang": "java",
+      "line_end": 17,
+      "line_start": 7,
+      "name": "PagoService",
+      "parent_id": "57c09250cbe5",
+      "qualname": "PagoService",
+      "signature": "public class PagoService implements MedioPago"
+    },
+    {
+      "doc": "Cobra el monto con el tipo de pago indicado.",
+      "file": "PagoService.java",
+      "id": "7dcbf5c22eb2",
+      "is_entry": false,
+      "kind": "method",
+      "lang": "java",
+      "line_end": 16,
+      "line_start": 9,
+      "name": "cobrar",
+      "parent_id": "8a6480373ce4",
+      "qualname": "PagoService.cobrar",
+      "signature": "public boolean cobrar(double monto, String tipo)"
+    }
+  ],
+  "table_access": [],
+  "tables": [],
+  "warnings": []
+}

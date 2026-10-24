@@ -1,0 +1,473 @@
+{
+  "calls": [
+    {
+      "callee_text": "push",
+      "caller_id": "ca95b2a816e4",
+      "candidates": [],
+      "col": 5,
+      "confidence": "externa",
+      "context": [],
+      "id": "8362e9237976",
+      "io_kind": null,
+      "line": 10,
+      "receiver_text": "this.items",
+      "resolved_id": null
+    },
+    {
+      "callee_text": "PagoService",
+      "caller_id": "f864db1635c5",
+      "candidates": [],
+      "col": 17,
+      "confidence": "exacta",
+      "context": [],
+      "id": "77dc76373b24",
+      "io_kind": null,
+      "line": 7,
+      "receiver_text": null,
+      "resolved_id": "812c3f53e6b6"
+    },
+    {
+      "callee_text": "log",
+      "caller_id": "d7602ec1d211",
+      "candidates": [],
+      "col": 7,
+      "confidence": "externa",
+      "context": [
+        {
+          "kind": "if",
+          "label": "factura.items.length === 0",
+          "line": 12
+        }
+      ],
+      "id": "366243133d9a",
+      "io_kind": "pantalla",
+      "line": 13,
+      "receiver_text": "console",
+      "resolved_id": null
+    },
+    {
+      "callee_text": "cobrar",
+      "caller_id": "d7602ec1d211",
+      "candidates": [],
+      "col": 19,
+      "confidence": "probable",
+      "context": [
+        {
+          "kind": "loop",
+          "label": "intentos < 3 && !cobrado",
+          "line": 40
+        },
+        {
+          "kind": "try",
+          "label": "intentar",
+          "line": 42
+        }
+      ],
+      "id": "12538f3a4b48",
+      "io_kind": null,
+      "line": 43,
+      "receiver_text": "this.pago",
+      "resolved_id": "a163017107b5"
+    },
+    {
+      "callee_text": "log",
+      "caller_id": "d7602ec1d211",
+      "candidates": [],
+      "col": 9,
+      "confidence": "externa",
+      "context": [
+        {
+          "kind": "loop",
+          "label": "intentos < 3 && !cobrado",
+          "line": 40
+        },
+        {
+          "kind": "catch",
+          "label": "error",
+          "line": 44
+        }
+      ],
+      "id": "f0c99910cd19",
+      "io_kind": "pantalla",
+      "line": 45,
+      "receiver_text": "console",
+      "resolved_id": null
+    },
+    {
+      "callee_text": "appendFileSync",
+      "caller_id": "d7602ec1d211",
+      "candidates": [],
+      "col": 5,
+      "confidence": "externa",
+      "context": [],
+      "id": "92982d89a885",
+      "io_kind": "archivo_escribe",
+      "line": 51,
+      "receiver_text": "fs",
+      "resolved_id": null
+    },
+    {
+      "callee_text": "prompt",
+      "caller_id": "b551e1e912f0",
+      "candidates": [],
+      "col": 19,
+      "confidence": "externa",
+      "context": [],
+      "id": "680a498b2c5a",
+      "io_kind": "teclado",
+      "line": 57,
+      "receiver_text": null,
+      "resolved_id": null
+    },
+    {
+      "callee_text": "Factura",
+      "caller_id": "b551e1e912f0",
+      "candidates": [],
+      "col": 19,
+      "confidence": "exacta",
+      "context": [],
+      "id": "70b8d8394f33",
+      "io_kind": null,
+      "line": 58,
+      "receiver_text": null,
+      "resolved_id": "c2411d9d21da"
+    },
+    {
+      "callee_text": "FacturacionService",
+      "caller_id": "b551e1e912f0",
+      "candidates": [],
+      "col": 20,
+      "confidence": "exacta",
+      "context": [],
+      "id": "c0a13815fef6",
+      "io_kind": null,
+      "line": 59,
+      "receiver_text": null,
+      "resolved_id": "f864db1635c5"
+    },
+    {
+      "callee_text": "emitir",
+      "caller_id": "b551e1e912f0",
+      "candidates": [],
+      "col": 7,
+      "confidence": "probable",
+      "context": [],
+      "id": "400009f20f63",
+      "io_kind": null,
+      "line": 60,
+      "receiver_text": "servicio",
+      "resolved_id": "d7602ec1d211"
+    },
+    {
+      "callee_text": "log",
+      "caller_id": "b551e1e912f0",
+      "candidates": [],
+      "col": 5,
+      "confidence": "externa",
+      "context": [
+        {
+          "kind": "if",
+          "label": "servicio.emitir(factura)",
+          "line": 60
+        }
+      ],
+      "id": "73e45ce129df",
+      "io_kind": "pantalla",
+      "line": 61,
+      "receiver_text": "console",
+      "resolved_id": null
+    },
+    {
+      "callee_text": "log",
+      "caller_id": "b551e1e912f0",
+      "candidates": [],
+      "col": 5,
+      "confidence": "externa",
+      "context": [
+        {
+          "kind": "else",
+          "label": "else",
+          "line": 62
+        }
+      ],
+      "id": "bc4d72cd43c1",
+      "io_kind": "pantalla",
+      "line": 63,
+      "receiver_text": "console",
+      "resolved_id": null
+    },
+    {
+      "callee_text": "main",
+      "caller_id": "7f01437a6e05",
+      "candidates": [],
+      "col": 1,
+      "confidence": "exacta",
+      "context": [],
+      "id": "bb83fb40319c",
+      "io_kind": null,
+      "line": 67,
+      "receiver_text": null,
+      "resolved_id": "b551e1e912f0"
+    },
+    {
+      "callee_text": "Error",
+      "caller_id": "a163017107b5",
+      "candidates": [],
+      "col": 13,
+      "confidence": "externa",
+      "context": [
+        {
+          "kind": "if",
+          "label": "monto <= 0",
+          "line": 4
+        }
+      ],
+      "id": "a62abb235f0c",
+      "io_kind": null,
+      "line": 5,
+      "receiver_text": null,
+      "resolved_id": null
+    },
+    {
+      "callee_text": "log",
+      "caller_id": "a163017107b5",
+      "candidates": [],
+      "col": 5,
+      "confidence": "externa",
+      "context": [],
+      "id": "10d202bf872e",
+      "io_kind": "pantalla",
+      "line": 7,
+      "receiver_text": "console",
+      "resolved_id": null
+    }
+  ],
+  "files": [
+    {
+      "errors": 0,
+      "lang": "javascript",
+      "lines": 12,
+      "parsed_ok": true,
+      "path": "factura.js",
+      "sha1": "19f2a164960d7d0f8851ecbb7c5a0e31dbbc8ba1",
+      "skipped_reason": null
+    },
+    {
+      "errors": 0,
+      "lang": "javascript",
+      "lines": 67,
+      "parsed_ok": true,
+      "path": "facturacion.js",
+      "sha1": "0970ea469cd04f77f9f2bc6ff0187cb10e7e3a7b",
+      "skipped_reason": null
+    },
+    {
+      "errors": 0,
+      "lang": "javascript",
+      "lines": 10,
+      "parsed_ok": true,
+      "path": "pago.js",
+      "sha1": "4d400ce09035086b2ba3778f3e7b1fb6aa934d62",
+      "skipped_reason": null
+    }
+  ],
+  "fks": [],
+  "flows": [],
+  "imports": [
+    {
+      "alias": "fs",
+      "file": "facturacion.js",
+      "line": 1,
+      "module_text": "fs",
+      "name": "default"
+    },
+    {
+      "alias": null,
+      "file": "facturacion.js",
+      "line": 2,
+      "module_text": "./factura.js",
+      "name": "Factura"
+    },
+    {
+      "alias": null,
+      "file": "facturacion.js",
+      "line": 3,
+      "module_text": "./pago.js",
+      "name": "PagoService"
+    }
+  ],
+  "root_name": "javascript",
+  "symbols": [
+    {
+      "doc": null,
+      "file": "factura.js",
+      "id": "433c3d101471",
+      "is_entry": false,
+      "kind": "module",
+      "lang": "javascript",
+      "line_end": 12,
+      "line_start": 1,
+      "name": "factura.js",
+      "parent_id": null,
+      "qualname": "factura.js",
+      "signature": "factura.js"
+    },
+    {
+      "doc": "Una factura con ítems y un tipo de pago.",
+      "file": "factura.js",
+      "id": "de4ad874c1d2",
+      "is_entry": false,
+      "kind": "class",
+      "lang": "javascript",
+      "line_end": 12,
+      "line_start": 2,
+      "name": "Factura",
+      "parent_id": "433c3d101471",
+      "qualname": "Factura",
+      "signature": "class Factura"
+    },
+    {
+      "doc": null,
+      "file": "factura.js",
+      "id": "c2411d9d21da",
+      "is_entry": false,
+      "kind": "method",
+      "lang": "javascript",
+      "line_end": 7,
+      "line_start": 3,
+      "name": "constructor",
+      "parent_id": "de4ad874c1d2",
+      "qualname": "Factura.constructor",
+      "signature": "constructor(cliente, items, tipoPago)"
+    },
+    {
+      "doc": null,
+      "file": "factura.js",
+      "id": "ca95b2a816e4",
+      "is_entry": false,
+      "kind": "method",
+      "lang": "javascript",
+      "line_end": 11,
+      "line_start": 9,
+      "name": "agregarItem",
+      "parent_id": "de4ad874c1d2",
+      "qualname": "Factura.agregarItem",
+      "signature": "agregarItem(item)"
+    },
+    {
+      "doc": null,
+      "file": "facturacion.js",
+      "id": "7f01437a6e05",
+      "is_entry": false,
+      "kind": "module",
+      "lang": "javascript",
+      "line_end": 67,
+      "line_start": 1,
+      "name": "facturacion.js",
+      "parent_id": null,
+      "qualname": "facturacion.js",
+      "signature": "facturacion.js"
+    },
+    {
+      "doc": null,
+      "file": "facturacion.js",
+      "id": "c5a8865143a1",
+      "is_entry": false,
+      "kind": "class",
+      "lang": "javascript",
+      "line_end": 54,
+      "line_start": 5,
+      "name": "FacturacionService",
+      "parent_id": "7f01437a6e05",
+      "qualname": "FacturacionService",
+      "signature": "class FacturacionService"
+    },
+    {
+      "doc": null,
+      "file": "facturacion.js",
+      "id": "f864db1635c5",
+      "is_entry": false,
+      "kind": "method",
+      "lang": "javascript",
+      "line_end": 8,
+      "line_start": 6,
+      "name": "constructor",
+      "parent_id": "c5a8865143a1",
+      "qualname": "FacturacionService.constructor",
+      "signature": "constructor()"
+    },
+    {
+      "doc": "Calcula el total, cobra y guarda la factura.",
+      "file": "facturacion.js",
+      "id": "d7602ec1d211",
+      "is_entry": false,
+      "kind": "method",
+      "lang": "javascript",
+      "line_end": 53,
+      "line_start": 11,
+      "name": "emitir",
+      "parent_id": "c5a8865143a1",
+      "qualname": "FacturacionService.emitir",
+      "signature": "emitir(factura)"
+    },
+    {
+      "doc": null,
+      "file": "facturacion.js",
+      "id": "b551e1e912f0",
+      "is_entry": true,
+      "kind": "function",
+      "lang": "javascript",
+      "line_end": 65,
+      "line_start": 56,
+      "name": "main",
+      "parent_id": "7f01437a6e05",
+      "qualname": "main",
+      "signature": "function main()"
+    },
+    {
+      "doc": null,
+      "file": "pago.js",
+      "id": "82dc46e00e79",
+      "is_entry": false,
+      "kind": "module",
+      "lang": "javascript",
+      "line_end": 10,
+      "line_start": 1,
+      "name": "pago.js",
+      "parent_id": null,
+      "qualname": "pago.js",
+      "signature": "pago.js"
+    },
+    {
+      "doc": null,
+      "file": "pago.js",
+      "id": "812c3f53e6b6",
+      "is_entry": false,
+      "kind": "class",
+      "lang": "javascript",
+      "line_end": 10,
+      "line_start": 1,
+      "name": "PagoService",
+      "parent_id": "82dc46e00e79",
+      "qualname": "PagoService",
+      "signature": "class PagoService"
+    },
+    {
+      "doc": "Cobra el monto con el tipo de pago indicado.",
+      "file": "pago.js",
+      "id": "a163017107b5",
+      "is_entry": false,
+      "kind": "method",
+      "lang": "javascript",
+      "line_end": 9,
+      "line_start": 3,
+      "name": "cobrar",
+      "parent_id": "812c3f53e6b6",
+      "qualname": "PagoService.cobrar",
+      "signature": "cobrar(monto, tipo)"
+    }
+  ],
+  "table_access": [],
+  "tables": [],
+  "warnings": []
+}

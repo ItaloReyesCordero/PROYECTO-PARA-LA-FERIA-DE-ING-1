@@ -1,0 +1,485 @@
+{
+  "calls": [
+    {
+      "callee_text": "append",
+      "caller_id": "2e1a14cb7fc0",
+      "candidates": [],
+      "col": 9,
+      "confidence": "externa",
+      "context": [],
+      "id": "ce055f0716e7",
+      "io_kind": null,
+      "line": 13,
+      "receiver_text": "self.items",
+      "resolved_id": null
+    },
+    {
+      "callee_text": "print",
+      "caller_id": "e83a9cf73528",
+      "candidates": [],
+      "col": 13,
+      "confidence": "externa",
+      "context": [
+        {
+          "kind": "if",
+          "label": "not factura.items",
+          "line": 13
+        }
+      ],
+      "id": "2d315ac3223d",
+      "io_kind": "pantalla",
+      "line": 14,
+      "receiver_text": null,
+      "resolved_id": null
+    },
+    {
+      "callee_text": "cobrar",
+      "caller_id": "e83a9cf73528",
+      "candidates": [],
+      "col": 27,
+      "confidence": "probable",
+      "context": [
+        {
+          "kind": "loop",
+          "label": "intentos < 3 and not cobrado",
+          "line": 33
+        },
+        {
+          "kind": "try",
+          "label": "intentar",
+          "line": 35
+        }
+      ],
+      "id": "4f5969eb8e8b",
+      "io_kind": null,
+      "line": 36,
+      "receiver_text": "self.pago",
+      "resolved_id": "6f504d814d44"
+    },
+    {
+      "callee_text": "print",
+      "caller_id": "e83a9cf73528",
+      "candidates": [],
+      "col": 17,
+      "confidence": "externa",
+      "context": [
+        {
+          "kind": "loop",
+          "label": "intentos < 3 and not cobrado",
+          "line": 33
+        },
+        {
+          "kind": "catch",
+          "label": "ValueError",
+          "line": 37
+        }
+      ],
+      "id": "ab63b1f676bf",
+      "io_kind": "pantalla",
+      "line": 38,
+      "receiver_text": null,
+      "resolved_id": null
+    },
+    {
+      "callee_text": "open",
+      "caller_id": "e83a9cf73528",
+      "candidates": [],
+      "col": 14,
+      "confidence": "externa",
+      "context": [],
+      "id": "bab06622c6ad",
+      "io_kind": "archivo_escribe",
+      "line": 41,
+      "receiver_text": null,
+      "resolved_id": null
+    },
+    {
+      "callee_text": "write",
+      "caller_id": "e83a9cf73528",
+      "candidates": [],
+      "col": 13,
+      "confidence": "externa",
+      "context": [],
+      "id": "d2033900b70e",
+      "io_kind": null,
+      "line": 42,
+      "receiver_text": "archivo",
+      "resolved_id": null
+    },
+    {
+      "callee_text": "input",
+      "caller_id": "91a257e01b86",
+      "candidates": [],
+      "col": 15,
+      "confidence": "externa",
+      "context": [],
+      "id": "994edc8841b3",
+      "io_kind": "teclado",
+      "line": 47,
+      "receiver_text": null,
+      "resolved_id": null
+    },
+    {
+      "callee_text": "Factura",
+      "caller_id": "91a257e01b86",
+      "candidates": [],
+      "col": 15,
+      "confidence": "exacta",
+      "context": [],
+      "id": "e1bdf6327fad",
+      "io_kind": null,
+      "line": 48,
+      "receiver_text": null,
+      "resolved_id": "433abb314bde"
+    },
+    {
+      "callee_text": "FacturacionService",
+      "caller_id": "91a257e01b86",
+      "candidates": [],
+      "col": 16,
+      "confidence": "exacta",
+      "context": [],
+      "id": "f9922e7c17de",
+      "io_kind": null,
+      "line": 49,
+      "receiver_text": null,
+      "resolved_id": "c79d78319bdd"
+    },
+    {
+      "callee_text": "PagoService",
+      "caller_id": "91a257e01b86",
+      "candidates": [],
+      "col": 35,
+      "confidence": "exacta",
+      "context": [],
+      "id": "e3efa7ad64e7",
+      "io_kind": null,
+      "line": 49,
+      "receiver_text": null,
+      "resolved_id": "cb8b2967648a"
+    },
+    {
+      "callee_text": "emitir",
+      "caller_id": "91a257e01b86",
+      "candidates": [],
+      "col": 8,
+      "confidence": "probable",
+      "context": [],
+      "id": "2b6c4c3df6b9",
+      "io_kind": null,
+      "line": 50,
+      "receiver_text": "servicio",
+      "resolved_id": "e83a9cf73528"
+    },
+    {
+      "callee_text": "print",
+      "caller_id": "91a257e01b86",
+      "candidates": [],
+      "col": 9,
+      "confidence": "externa",
+      "context": [
+        {
+          "kind": "if",
+          "label": "servicio.emitir(factura)",
+          "line": 50
+        }
+      ],
+      "id": "8b1b34b2d86c",
+      "io_kind": "pantalla",
+      "line": 51,
+      "receiver_text": null,
+      "resolved_id": null
+    },
+    {
+      "callee_text": "print",
+      "caller_id": "91a257e01b86",
+      "candidates": [],
+      "col": 9,
+      "confidence": "externa",
+      "context": [
+        {
+          "kind": "else",
+          "label": "else",
+          "line": 52
+        }
+      ],
+      "id": "416e964768b8",
+      "io_kind": "pantalla",
+      "line": 53,
+      "receiver_text": null,
+      "resolved_id": null
+    },
+    {
+      "callee_text": "main",
+      "caller_id": "240dbb0a62aa",
+      "candidates": [],
+      "col": 5,
+      "confidence": "exacta",
+      "context": [
+        {
+          "kind": "if",
+          "label": "__name__ == \"__main__\"",
+          "line": 56
+        }
+      ],
+      "id": "60f97c7718e5",
+      "io_kind": null,
+      "line": 57,
+      "receiver_text": null,
+      "resolved_id": "91a257e01b86"
+    },
+    {
+      "callee_text": "ValueError",
+      "caller_id": "6f504d814d44",
+      "candidates": [],
+      "col": 19,
+      "confidence": "externa",
+      "context": [
+        {
+          "kind": "if",
+          "label": "monto <= 0",
+          "line": 7
+        }
+      ],
+      "id": "8545dde376d7",
+      "io_kind": null,
+      "line": 8,
+      "receiver_text": null,
+      "resolved_id": null
+    },
+    {
+      "callee_text": "print",
+      "caller_id": "6f504d814d44",
+      "candidates": [],
+      "col": 9,
+      "confidence": "externa",
+      "context": [],
+      "id": "ef64f27172b1",
+      "io_kind": "pantalla",
+      "line": 9,
+      "receiver_text": null,
+      "resolved_id": null
+    }
+  ],
+  "files": [
+    {
+      "errors": 0,
+      "lang": "python",
+      "lines": 13,
+      "parsed_ok": true,
+      "path": "factura.py",
+      "sha1": "5bb5c6d212563fdbebc6f914d8d42cebe398cacc",
+      "skipped_reason": null
+    },
+    {
+      "errors": 0,
+      "lang": "python",
+      "lines": 57,
+      "parsed_ok": true,
+      "path": "facturacion.py",
+      "sha1": "c29a402aacb207564574ef9470175ecc0de03dc4",
+      "skipped_reason": null
+    },
+    {
+      "errors": 0,
+      "lang": "python",
+      "lines": 10,
+      "parsed_ok": true,
+      "path": "pagos.py",
+      "sha1": "65f418292d837b8023b4ae02a98f7498f0a57bcb",
+      "skipped_reason": null
+    }
+  ],
+  "fks": [],
+  "flows": [],
+  "imports": [
+    {
+      "alias": null,
+      "file": "facturacion.py",
+      "line": 3,
+      "module_text": "factura",
+      "name": "Factura"
+    },
+    {
+      "alias": null,
+      "file": "facturacion.py",
+      "line": 4,
+      "module_text": "pagos",
+      "name": "PagoService"
+    }
+  ],
+  "root_name": "python",
+  "symbols": [
+    {
+      "doc": "Modelo de factura.",
+      "file": "factura.py",
+      "id": "4f21b09e265b",
+      "is_entry": false,
+      "kind": "module",
+      "lang": "python",
+      "line_end": 13,
+      "line_start": 1,
+      "name": "factura.py",
+      "parent_id": null,
+      "qualname": "factura.py",
+      "signature": "factura.py"
+    },
+    {
+      "doc": "Una factura con ítems y un tipo de pago.",
+      "file": "factura.py",
+      "id": "0b9987563e72",
+      "is_entry": false,
+      "kind": "class",
+      "lang": "python",
+      "line_end": 13,
+      "line_start": 4,
+      "name": "Factura",
+      "parent_id": "4f21b09e265b",
+      "qualname": "Factura",
+      "signature": "class Factura"
+    },
+    {
+      "doc": null,
+      "file": "factura.py",
+      "id": "433abb314bde",
+      "is_entry": false,
+      "kind": "method",
+      "lang": "python",
+      "line_end": 10,
+      "line_start": 7,
+      "name": "__init__",
+      "parent_id": "0b9987563e72",
+      "qualname": "Factura.__init__",
+      "signature": "def __init__(self, cliente, items, tipo_pago)"
+    },
+    {
+      "doc": null,
+      "file": "factura.py",
+      "id": "2e1a14cb7fc0",
+      "is_entry": false,
+      "kind": "method",
+      "lang": "python",
+      "line_end": 13,
+      "line_start": 12,
+      "name": "agregar_item",
+      "parent_id": "0b9987563e72",
+      "qualname": "Factura.agregar_item",
+      "signature": "def agregar_item(self, item)"
+    },
+    {
+      "doc": "Servicio de facturación.",
+      "file": "facturacion.py",
+      "id": "240dbb0a62aa",
+      "is_entry": true,
+      "kind": "module",
+      "lang": "python",
+      "line_end": 57,
+      "line_start": 1,
+      "name": "facturacion.py",
+      "parent_id": null,
+      "qualname": "facturacion.py",
+      "signature": "facturacion.py"
+    },
+    {
+      "doc": null,
+      "file": "facturacion.py",
+      "id": "596e82dc64cb",
+      "is_entry": false,
+      "kind": "class",
+      "lang": "python",
+      "line_end": 43,
+      "line_start": 7,
+      "name": "FacturacionService",
+      "parent_id": "240dbb0a62aa",
+      "qualname": "FacturacionService",
+      "signature": "class FacturacionService"
+    },
+    {
+      "doc": null,
+      "file": "facturacion.py",
+      "id": "c79d78319bdd",
+      "is_entry": false,
+      "kind": "method",
+      "lang": "python",
+      "line_end": 9,
+      "line_start": 8,
+      "name": "__init__",
+      "parent_id": "596e82dc64cb",
+      "qualname": "FacturacionService.__init__",
+      "signature": "def __init__(self, pago: PagoService)"
+    },
+    {
+      "doc": "Calcula el total, cobra y guarda la factura.",
+      "file": "facturacion.py",
+      "id": "e83a9cf73528",
+      "is_entry": false,
+      "kind": "method",
+      "lang": "python",
+      "line_end": 43,
+      "line_start": 11,
+      "name": "emitir",
+      "parent_id": "596e82dc64cb",
+      "qualname": "FacturacionService.emitir",
+      "signature": "def emitir(self, factura: Factura)"
+    },
+    {
+      "doc": null,
+      "file": "facturacion.py",
+      "id": "91a257e01b86",
+      "is_entry": true,
+      "kind": "function",
+      "lang": "python",
+      "line_end": 53,
+      "line_start": 46,
+      "name": "main",
+      "parent_id": "240dbb0a62aa",
+      "qualname": "main",
+      "signature": "def main()"
+    },
+    {
+      "doc": "Servicio de pagos.",
+      "file": "pagos.py",
+      "id": "9f49326528bb",
+      "is_entry": false,
+      "kind": "module",
+      "lang": "python",
+      "line_end": 10,
+      "line_start": 1,
+      "name": "pagos.py",
+      "parent_id": null,
+      "qualname": "pagos.py",
+      "signature": "pagos.py"
+    },
+    {
+      "doc": null,
+      "file": "pagos.py",
+      "id": "cb8b2967648a",
+      "is_entry": false,
+      "kind": "class",
+      "lang": "python",
+      "line_end": 10,
+      "line_start": 4,
+      "name": "PagoService",
+      "parent_id": "9f49326528bb",
+      "qualname": "PagoService",
+      "signature": "class PagoService"
+    },
+    {
+      "doc": "Cobra el monto con el tipo de pago indicado.",
+      "file": "pagos.py",
+      "id": "6f504d814d44",
+      "is_entry": false,
+      "kind": "method",
+      "lang": "python",
+      "line_end": 10,
+      "line_start": 5,
+      "name": "cobrar",
+      "parent_id": "cb8b2967648a",
+      "qualname": "PagoService.cobrar",
+      "signature": "def cobrar(self, monto, tipo)"
+    }
+  ],
+  "table_access": [],
+  "tables": [],
+  "warnings": []
+}

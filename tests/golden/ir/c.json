@@ -1,0 +1,323 @@
+{
+  "calls": [
+    {
+      "callee_text": "printf",
+      "caller_id": "8d231d2a3e02",
+      "candidates": [],
+      "col": 9,
+      "confidence": "externa",
+      "context": [
+        {
+          "kind": "if",
+          "label": "factura->num_items == 0",
+          "line": 18
+        }
+      ],
+      "id": "f3737bcd00de",
+      "io_kind": "pantalla",
+      "line": 19,
+      "receiver_text": null,
+      "resolved_id": null
+    },
+    {
+      "callee_text": "cobrar",
+      "caller_id": "8d231d2a3e02",
+      "candidates": [],
+      "col": 19,
+      "confidence": "exacta",
+      "context": [
+        {
+          "kind": "loop",
+          "label": "intentos < 3 && !cobrado",
+          "line": 46
+        }
+      ],
+      "id": "29c6c5aa0390",
+      "io_kind": null,
+      "line": 48,
+      "receiver_text": null,
+      "resolved_id": "0116c54f66fb"
+    },
+    {
+      "callee_text": "fopen",
+      "caller_id": "8d231d2a3e02",
+      "candidates": [],
+      "col": 21,
+      "confidence": "externa",
+      "context": [],
+      "id": "17ffc997d5d8",
+      "io_kind": "archivo_escribe",
+      "line": 53,
+      "receiver_text": null,
+      "resolved_id": null
+    },
+    {
+      "callee_text": "fprintf",
+      "caller_id": "8d231d2a3e02",
+      "candidates": [],
+      "col": 5,
+      "confidence": "externa",
+      "context": [],
+      "id": "261d61de0b69",
+      "io_kind": "archivo_escribe",
+      "line": 54,
+      "receiver_text": null,
+      "resolved_id": null
+    },
+    {
+      "callee_text": "fclose",
+      "caller_id": "8d231d2a3e02",
+      "candidates": [],
+      "col": 5,
+      "confidence": "externa",
+      "context": [],
+      "id": "aab08fe71555",
+      "io_kind": null,
+      "line": 55,
+      "receiver_text": null,
+      "resolved_id": null
+    },
+    {
+      "callee_text": "scanf",
+      "caller_id": "11cbe5e23721",
+      "candidates": [],
+      "col": 5,
+      "confidence": "externa",
+      "context": [],
+      "id": "cd7ca6e93f58",
+      "io_kind": "teclado",
+      "line": 62,
+      "receiver_text": null,
+      "resolved_id": null
+    },
+    {
+      "callee_text": "emitir",
+      "caller_id": "11cbe5e23721",
+      "candidates": [],
+      "col": 9,
+      "confidence": "exacta",
+      "context": [],
+      "id": "6e1fc7d2627c",
+      "io_kind": null,
+      "line": 63,
+      "receiver_text": null,
+      "resolved_id": "8d231d2a3e02"
+    },
+    {
+      "callee_text": "printf",
+      "caller_id": "11cbe5e23721",
+      "candidates": [],
+      "col": 9,
+      "confidence": "externa",
+      "context": [
+        {
+          "kind": "if",
+          "label": "emitir(&factura)",
+          "line": 63
+        }
+      ],
+      "id": "09dd9bc8ab42",
+      "io_kind": "pantalla",
+      "line": 64,
+      "receiver_text": null,
+      "resolved_id": null
+    },
+    {
+      "callee_text": "printf",
+      "caller_id": "11cbe5e23721",
+      "candidates": [],
+      "col": 9,
+      "confidence": "externa",
+      "context": [
+        {
+          "kind": "else",
+          "label": "else",
+          "line": 65
+        }
+      ],
+      "id": "fdf3e702fc7b",
+      "io_kind": "pantalla",
+      "line": 66,
+      "receiver_text": null,
+      "resolved_id": null
+    },
+    {
+      "callee_text": "printf",
+      "caller_id": "0116c54f66fb",
+      "candidates": [],
+      "col": 5,
+      "confidence": "externa",
+      "context": [],
+      "id": "d6315a3fb0bb",
+      "io_kind": "pantalla",
+      "line": 10,
+      "receiver_text": null,
+      "resolved_id": null
+    }
+  ],
+  "files": [
+    {
+      "errors": 0,
+      "lang": "c",
+      "lines": 69,
+      "parsed_ok": true,
+      "path": "facturacion.c",
+      "sha1": "fa8ea480f288eb8330e467842dd6297b8619b3cb",
+      "skipped_reason": null
+    },
+    {
+      "errors": 0,
+      "lang": "c",
+      "lines": 12,
+      "parsed_ok": true,
+      "path": "pago.c",
+      "sha1": "6acc62ffb0b22e9aa9e7bdb5bdb56670238a5648",
+      "skipped_reason": null
+    },
+    {
+      "errors": 0,
+      "lang": "c",
+      "lines": 6,
+      "parsed_ok": true,
+      "path": "pago.h",
+      "sha1": "1d5a75193b43b314723950689470c98794ed7369",
+      "skipped_reason": null
+    }
+  ],
+  "fks": [],
+  "flows": [],
+  "imports": [
+    {
+      "alias": null,
+      "file": "facturacion.c",
+      "line": 1,
+      "module_text": "<stdio.h>",
+      "name": null
+    },
+    {
+      "alias": null,
+      "file": "facturacion.c",
+      "line": 2,
+      "module_text": "pago.h",
+      "name": null
+    },
+    {
+      "alias": null,
+      "file": "pago.c",
+      "line": 1,
+      "module_text": "<stdio.h>",
+      "name": null
+    },
+    {
+      "alias": null,
+      "file": "pago.c",
+      "line": 2,
+      "module_text": "pago.h",
+      "name": null
+    }
+  ],
+  "root_name": "c",
+  "symbols": [
+    {
+      "doc": null,
+      "file": "facturacion.c",
+      "id": "2385ac9065ed",
+      "is_entry": false,
+      "kind": "module",
+      "lang": "c",
+      "line_end": 69,
+      "line_start": 1,
+      "name": "facturacion.c",
+      "parent_id": null,
+      "qualname": "facturacion.c",
+      "signature": "facturacion.c"
+    },
+    {
+      "doc": null,
+      "file": "facturacion.c",
+      "id": "6929975a990e",
+      "is_entry": false,
+      "kind": "class",
+      "lang": "c",
+      "line_end": 13,
+      "line_start": 7,
+      "name": "Factura",
+      "parent_id": "2385ac9065ed",
+      "qualname": "Factura",
+      "signature": "struct Factura"
+    },
+    {
+      "doc": "Calcula el total, cobra y guarda la factura.",
+      "file": "facturacion.c",
+      "id": "8d231d2a3e02",
+      "is_entry": false,
+      "kind": "function",
+      "lang": "c",
+      "line_end": 57,
+      "line_start": 16,
+      "name": "emitir",
+      "parent_id": "2385ac9065ed",
+      "qualname": "emitir",
+      "signature": "int emitir(struct Factura *factura)"
+    },
+    {
+      "doc": null,
+      "file": "facturacion.c",
+      "id": "11cbe5e23721",
+      "is_entry": true,
+      "kind": "function",
+      "lang": "c",
+      "line_end": 69,
+      "line_start": 59,
+      "name": "main",
+      "parent_id": "2385ac9065ed",
+      "qualname": "main",
+      "signature": "int main(void)"
+    },
+    {
+      "doc": null,
+      "file": "pago.c",
+      "id": "4e65e89c9773",
+      "is_entry": false,
+      "kind": "module",
+      "lang": "c",
+      "line_end": 12,
+      "line_start": 1,
+      "name": "pago.c",
+      "parent_id": null,
+      "qualname": "pago.c",
+      "signature": "pago.c"
+    },
+    {
+      "doc": "Cobra el monto con el tipo de pago indicado.",
+      "file": "pago.c",
+      "id": "0116c54f66fb",
+      "is_entry": false,
+      "kind": "function",
+      "lang": "c",
+      "line_end": 12,
+      "line_start": 5,
+      "name": "cobrar",
+      "parent_id": "4e65e89c9773",
+      "qualname": "cobrar",
+      "signature": "int cobrar(double monto, int tipo)"
+    },
+    {
+      "doc": null,
+      "file": "pago.h",
+      "id": "f92c922bc8a8",
+      "is_entry": false,
+      "kind": "module",
+      "lang": "c",
+      "line_end": 6,
+      "line_start": 1,
+      "name": "pago.h",
+      "parent_id": null,
+      "qualname": "pago.h",
+      "signature": "pago.h"
+    }
+  ],
+  "table_access": [],
+  "tables": [],
+  "warnings": []
+}

@@ -1,0 +1,524 @@
+{
+  "calls": [
+    {
+      "callee_text": "push",
+      "caller_id": "d0146969cf64",
+      "candidates": [],
+      "col": 5,
+      "confidence": "externa",
+      "context": [],
+      "id": "5458e78f1bcf",
+      "io_kind": null,
+      "line": 15,
+      "receiver_text": "this.items",
+      "resolved_id": null
+    },
+    {
+      "callee_text": "log",
+      "caller_id": "ccfbc4d291df",
+      "candidates": [],
+      "col": 7,
+      "confidence": "externa",
+      "context": [
+        {
+          "kind": "if",
+          "label": "factura.items.length === 0",
+          "line": 10
+        }
+      ],
+      "id": "d6d4ac862c06",
+      "io_kind": "pantalla",
+      "line": 11,
+      "receiver_text": "console",
+      "resolved_id": null
+    },
+    {
+      "callee_text": "cobrar",
+      "caller_id": "ccfbc4d291df",
+      "candidates": [
+        "44b5681a8e6b"
+      ],
+      "col": 19,
+      "confidence": "probable",
+      "context": [
+        {
+          "kind": "loop",
+          "label": "intentos < 3 && !cobrado",
+          "line": 38
+        },
+        {
+          "kind": "try",
+          "label": "intentar",
+          "line": 40
+        }
+      ],
+      "id": "c7f5db6b0855",
+      "io_kind": null,
+      "line": 41,
+      "receiver_text": "this.pago",
+      "resolved_id": "44b5681a8e6b"
+    },
+    {
+      "callee_text": "log",
+      "caller_id": "ccfbc4d291df",
+      "candidates": [],
+      "col": 9,
+      "confidence": "externa",
+      "context": [
+        {
+          "kind": "loop",
+          "label": "intentos < 3 && !cobrado",
+          "line": 38
+        },
+        {
+          "kind": "catch",
+          "label": "error",
+          "line": 42
+        }
+      ],
+      "id": "ff541bca46b0",
+      "io_kind": "pantalla",
+      "line": 43,
+      "receiver_text": "console",
+      "resolved_id": null
+    },
+    {
+      "callee_text": "appendFileSync",
+      "caller_id": "ccfbc4d291df",
+      "candidates": [],
+      "col": 5,
+      "confidence": "externa",
+      "context": [],
+      "id": "5b7e0dbe6bec",
+      "io_kind": "archivo_escribe",
+      "line": 49,
+      "receiver_text": "fs",
+      "resolved_id": null
+    },
+    {
+      "callee_text": "prompt",
+      "caller_id": "a9fea9f785f8",
+      "candidates": [],
+      "col": 19,
+      "confidence": "externa",
+      "context": [],
+      "id": "898d55e93a35",
+      "io_kind": "teclado",
+      "line": 55,
+      "receiver_text": null,
+      "resolved_id": null
+    },
+    {
+      "callee_text": "Factura",
+      "caller_id": "a9fea9f785f8",
+      "candidates": [],
+      "col": 19,
+      "confidence": "exacta",
+      "context": [],
+      "id": "19c1ee516c6d",
+      "io_kind": null,
+      "line": 56,
+      "receiver_text": null,
+      "resolved_id": "4bba70ccee3b"
+    },
+    {
+      "callee_text": "FacturacionService",
+      "caller_id": "a9fea9f785f8",
+      "candidates": [],
+      "col": 20,
+      "confidence": "exacta",
+      "context": [],
+      "id": "9f1fffe7d986",
+      "io_kind": null,
+      "line": 57,
+      "receiver_text": null,
+      "resolved_id": "4e349a881ae9"
+    },
+    {
+      "callee_text": "PagoService",
+      "caller_id": "a9fea9f785f8",
+      "candidates": [],
+      "col": 43,
+      "confidence": "exacta",
+      "context": [],
+      "id": "81ebca3d729b",
+      "io_kind": null,
+      "line": 57,
+      "receiver_text": null,
+      "resolved_id": "c915c56cf93e"
+    },
+    {
+      "callee_text": "emitir",
+      "caller_id": "a9fea9f785f8",
+      "candidates": [],
+      "col": 7,
+      "confidence": "probable",
+      "context": [],
+      "id": "1941c1978c8a",
+      "io_kind": null,
+      "line": 58,
+      "receiver_text": "servicio",
+      "resolved_id": "ccfbc4d291df"
+    },
+    {
+      "callee_text": "log",
+      "caller_id": "a9fea9f785f8",
+      "candidates": [],
+      "col": 5,
+      "confidence": "externa",
+      "context": [
+        {
+          "kind": "if",
+          "label": "servicio.emitir(factura)",
+          "line": 58
+        }
+      ],
+      "id": "b99f10335195",
+      "io_kind": "pantalla",
+      "line": 59,
+      "receiver_text": "console",
+      "resolved_id": null
+    },
+    {
+      "callee_text": "log",
+      "caller_id": "a9fea9f785f8",
+      "candidates": [],
+      "col": 5,
+      "confidence": "externa",
+      "context": [
+        {
+          "kind": "else",
+          "label": "else",
+          "line": 60
+        }
+      ],
+      "id": "bf81796db5c5",
+      "io_kind": "pantalla",
+      "line": 61,
+      "receiver_text": "console",
+      "resolved_id": null
+    },
+    {
+      "callee_text": "main",
+      "caller_id": "ca3627be7b6e",
+      "candidates": [],
+      "col": 1,
+      "confidence": "exacta",
+      "context": [],
+      "id": "da6b0dad2d3a",
+      "io_kind": null,
+      "line": 65,
+      "receiver_text": null,
+      "resolved_id": "a9fea9f785f8"
+    },
+    {
+      "callee_text": "Error",
+      "caller_id": "44b5681a8e6b",
+      "candidates": [],
+      "col": 13,
+      "confidence": "externa",
+      "context": [
+        {
+          "kind": "if",
+          "label": "monto <= 0",
+          "line": 8
+        }
+      ],
+      "id": "c54f65107523",
+      "io_kind": null,
+      "line": 9,
+      "receiver_text": null,
+      "resolved_id": null
+    },
+    {
+      "callee_text": "log",
+      "caller_id": "44b5681a8e6b",
+      "candidates": [],
+      "col": 5,
+      "confidence": "externa",
+      "context": [],
+      "id": "aae50a15d10c",
+      "io_kind": "pantalla",
+      "line": 11,
+      "receiver_text": "console",
+      "resolved_id": null
+    }
+  ],
+  "files": [
+    {
+      "errors": 0,
+      "lang": "typescript",
+      "lines": 17,
+      "parsed_ok": true,
+      "path": "factura.ts",
+      "sha1": "06cb746a7a0e8f57ccca6c3171b9f7d1f2f422fa",
+      "skipped_reason": null
+    },
+    {
+      "errors": 0,
+      "lang": "typescript",
+      "lines": 65,
+      "parsed_ok": true,
+      "path": "facturacion.ts",
+      "sha1": "0f05f3a1508ce4ac2b83fbf0aff5955b96467c15",
+      "skipped_reason": null
+    },
+    {
+      "errors": 0,
+      "lang": "typescript",
+      "lines": 14,
+      "parsed_ok": true,
+      "path": "pago.ts",
+      "sha1": "153d0e0a69d9f5dc1656bdcfe5afeb2d4a32dc0c",
+      "skipped_reason": null
+    }
+  ],
+  "fks": [],
+  "flows": [],
+  "imports": [
+    {
+      "alias": "fs",
+      "file": "facturacion.ts",
+      "line": 1,
+      "module_text": "fs",
+      "name": "*"
+    },
+    {
+      "alias": null,
+      "file": "facturacion.ts",
+      "line": 2,
+      "module_text": "./factura",
+      "name": "Factura"
+    },
+    {
+      "alias": null,
+      "file": "facturacion.ts",
+      "line": 3,
+      "module_text": "./pago",
+      "name": "MedioPago"
+    },
+    {
+      "alias": null,
+      "file": "facturacion.ts",
+      "line": 3,
+      "module_text": "./pago",
+      "name": "PagoService"
+    }
+  ],
+  "root_name": "typescript",
+  "symbols": [
+    {
+      "doc": null,
+      "file": "factura.ts",
+      "id": "afa75b6e0728",
+      "is_entry": false,
+      "kind": "module",
+      "lang": "typescript",
+      "line_end": 17,
+      "line_start": 1,
+      "name": "factura.ts",
+      "parent_id": null,
+      "qualname": "factura.ts",
+      "signature": "factura.ts"
+    },
+    {
+      "doc": null,
+      "file": "factura.ts",
+      "id": "07ecc3399455",
+      "is_entry": false,
+      "kind": "interface",
+      "lang": "typescript",
+      "line_end": 4,
+      "line_start": 1,
+      "name": "Item",
+      "parent_id": "afa75b6e0728",
+      "qualname": "Item",
+      "signature": "interface Item"
+    },
+    {
+      "doc": "Una factura con ítems y un tipo de pago.",
+      "file": "factura.ts",
+      "id": "996fd7a4a6f3",
+      "is_entry": false,
+      "kind": "class",
+      "lang": "typescript",
+      "line_end": 17,
+      "line_start": 7,
+      "name": "Factura",
+      "parent_id": "afa75b6e0728",
+      "qualname": "Factura",
+      "signature": "class Factura"
+    },
+    {
+      "doc": null,
+      "file": "factura.ts",
+      "id": "4bba70ccee3b",
+      "is_entry": false,
+      "kind": "method",
+      "lang": "typescript",
+      "line_end": 12,
+      "line_start": 8,
+      "name": "constructor",
+      "parent_id": "996fd7a4a6f3",
+      "qualname": "Factura.constructor",
+      "signature": "constructor( public cliente: string, public items: Item[], public tipoPago: string, )"
+    },
+    {
+      "doc": null,
+      "file": "factura.ts",
+      "id": "d0146969cf64",
+      "is_entry": false,
+      "kind": "method",
+      "lang": "typescript",
+      "line_end": 16,
+      "line_start": 14,
+      "name": "agregarItem",
+      "parent_id": "996fd7a4a6f3",
+      "qualname": "Factura.agregarItem",
+      "signature": "agregarItem(item: Item): void"
+    },
+    {
+      "doc": null,
+      "file": "facturacion.ts",
+      "id": "ca3627be7b6e",
+      "is_entry": false,
+      "kind": "module",
+      "lang": "typescript",
+      "line_end": 65,
+      "line_start": 1,
+      "name": "facturacion.ts",
+      "parent_id": null,
+      "qualname": "facturacion.ts",
+      "signature": "facturacion.ts"
+    },
+    {
+      "doc": null,
+      "file": "facturacion.ts",
+      "id": "f577b3913ec2",
+      "is_entry": false,
+      "kind": "class",
+      "lang": "typescript",
+      "line_end": 52,
+      "line_start": 5,
+      "name": "FacturacionService",
+      "parent_id": "ca3627be7b6e",
+      "qualname": "FacturacionService",
+      "signature": "class FacturacionService"
+    },
+    {
+      "doc": null,
+      "file": "facturacion.ts",
+      "id": "4e349a881ae9",
+      "is_entry": false,
+      "kind": "method",
+      "lang": "typescript",
+      "line_end": 6,
+      "line_start": 6,
+      "name": "constructor",
+      "parent_id": "f577b3913ec2",
+      "qualname": "FacturacionService.constructor",
+      "signature": "constructor(private pago: MedioPago)"
+    },
+    {
+      "doc": "Calcula el total, cobra y guarda la factura.",
+      "file": "facturacion.ts",
+      "id": "ccfbc4d291df",
+      "is_entry": false,
+      "kind": "method",
+      "lang": "typescript",
+      "line_end": 51,
+      "line_start": 9,
+      "name": "emitir",
+      "parent_id": "f577b3913ec2",
+      "qualname": "FacturacionService.emitir",
+      "signature": "emitir(factura: Factura): boolean"
+    },
+    {
+      "doc": null,
+      "file": "facturacion.ts",
+      "id": "a9fea9f785f8",
+      "is_entry": true,
+      "kind": "function",
+      "lang": "typescript",
+      "line_end": 63,
+      "line_start": 54,
+      "name": "main",
+      "parent_id": "ca3627be7b6e",
+      "qualname": "main",
+      "signature": "function main(): void"
+    },
+    {
+      "doc": null,
+      "file": "pago.ts",
+      "id": "793536cec8bb",
+      "is_entry": false,
+      "kind": "module",
+      "lang": "typescript",
+      "line_end": 14,
+      "line_start": 1,
+      "name": "pago.ts",
+      "parent_id": null,
+      "qualname": "pago.ts",
+      "signature": "pago.ts"
+    },
+    {
+      "doc": null,
+      "file": "pago.ts",
+      "id": "6ed27a6d5b5f",
+      "is_entry": false,
+      "kind": "interface",
+      "lang": "typescript",
+      "line_end": 3,
+      "line_start": 1,
+      "name": "MedioPago",
+      "parent_id": "793536cec8bb",
+      "qualname": "MedioPago",
+      "signature": "interface MedioPago"
+    },
+    {
+      "doc": null,
+      "file": "pago.ts",
+      "id": "4159e4c7e45a",
+      "is_entry": false,
+      "kind": "method",
+      "lang": "typescript",
+      "line_end": 2,
+      "line_start": 2,
+      "name": "cobrar",
+      "parent_id": "6ed27a6d5b5f",
+      "qualname": "MedioPago.cobrar",
+      "signature": "cobrar(monto: number, tipo: string): boolean"
+    },
+    {
+      "doc": null,
+      "file": "pago.ts",
+      "id": "c915c56cf93e",
+      "is_entry": false,
+      "kind": "class",
+      "lang": "typescript",
+      "line_end": 14,
+      "line_start": 5,
+      "name": "PagoService",
+      "parent_id": "793536cec8bb",
+      "qualname": "PagoService",
+      "signature": "class PagoService implements MedioPago"
+    },
+    {
+      "doc": "Cobra el monto con el tipo de pago indicado.",
+      "file": "pago.ts",
+      "id": "44b5681a8e6b",
+      "is_entry": false,
+      "kind": "method",
+      "lang": "typescript",
+      "line_end": 13,
+      "line_start": 7,
+      "name": "cobrar",
+      "parent_id": "c915c56cf93e",
+      "qualname": "PagoService.cobrar",
+      "signature": "cobrar(monto: number, tipo: string): boolean"
+    }
+  ],
+  "table_access": [],
+  "tables": [],
+  "warnings": []
+}
