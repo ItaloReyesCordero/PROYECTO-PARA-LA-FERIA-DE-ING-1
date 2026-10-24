@@ -1,0 +1,1032 @@
+/* Desglosa — visor interactivo. Sin dependencias externas.
+ * Seguridad: todo texto que viene del código analizado se pinta con textContent o
+ * atributos de createElementNS; nunca se interpreta como HTML.
+ */
+(() => {
+  "use strict";
+
+  const SVG_NS = "http://www.w3.org/2000/svg";
+  const DATA = JSON.parse(document.getElementById("desglosa-data").textContent);
+  const SYMBOLS = DATA.symbols || {};
+  const FLOWS = DATA.flows || {};
+  const MAP = DATA.map || null;
+  const LINE_H = 16;
+  const $ = (id) => document.getElementById(id);
+
+  const NODE_NAMES = {
+    terminal: "Inicio / Fin",
+    proceso: "Proceso",
+    subproceso: "Subproceso (clic para abrir)",
+    decision: "Decisión",
+    es: "Entrada / salida (archivo)",
+    teclado: "Lectura de teclado",
+    pantalla: "Salida en pantalla",
+    documento: "Escritura de archivo",
+    externo: "Llamada externa",
+    conector: "Conector",
+    excepcion: "Excepción",
+    modulo: "Módulo / carpeta",
+    clase: "Clase o archivo",
+    interfaz: "Interfaz",
+    funcion: "Función / método",
+    entrada: "Punto de entrada",
+    otros: "Agrupados",
+    tabla: "Tabla",
+  };
+  const CONF_NAMES = {
+    exacta: "Relación exacta",
+    probable: "Relación probable",
+    ambigua: "Relación ambigua",
+    externa: "Externa",
+  };
+
+  const state = {
+    mode: "facil",
+    theme: "oscuro",
+    view: null,
+    id: null,
+    focus: null,
+    trail: [],
+    pendingTrail: null,
+    transform: { k: 1, x: 0, y: 0 },
+    size: { w: 0, h: 0 },
+    keepTransform: false,
+    dragged: false,
+    selectedNode: null,
+  };
+
+  // ------------------------------------------------------------------ utilidades DOM
+
+  function h(tag, attrs, ...children) {
+    const el = document.createElement(tag);
+    setAttrs(el, attrs);
+    appendAll(el, children);
+    return el;
+  }
+
+  function s(tag, attrs, ...children) {
+    const el = document.createElementNS(SVG_NS, tag);
+    setAttrs(el, attrs);
+    appendAll(el, children);
+    return el;
+  }
+
+  function setAttrs(el, attrs) {
+    if (!attrs) return;
+    for (const [k, v] of Object.entries(attrs)) {
+      if (v === null || v === undefined || v === false) continue;
+      if (k.startsWith("on") && typeof v === "function") el.addEventListener(k.slice(2), v);
+      else el.setAttribute(k, v === true ? "" : String(v));
+    }
+  }
+
+  function appendAll(el, children) {
+    for (const c of children.flat()) {
+      if (c === null || c === undefined || c === false) continue;
+      el.appendChild(typeof c === "string" || typeof c === "number" ? document.createTextNode(String(c)) : c);
+    }
+  }
+
+  function clear(el) {
+    while (el.firstChild) el.removeChild(el.firstChild);
+  }
+
+  // ------------------------------------------------------------------ rutas (#/vista/id?param)
+
+  function parseHash() {
+    let raw = location.hash.replace(/^#/, "");
+    try {
+      raw = decodeURIComponent(raw);
+    } catch (_e) {
+      /* hash mal formado: se usa tal cual */
+    }
+    const [path, query] = raw.split("?");
+    const parts = path.split("/").filter(Boolean);
+    return { view: parts[0] || null, id: parts.slice(1).join("/") || null, params: new URLSearchParams(query || "") };
+  }
+
+  function buildHash(view, id, focus) {
+    let out = "#/" + view + (id ? "/" + id : "");
+    const p = new URLSearchParams();
+    if (focus) p.set("focus", focus);
+    if (state.mode !== "facil") p.set("modo", state.mode);
+    if (state.theme !== "oscuro") p.set("tema", state.theme);
+    const q = p.toString();
+    return q ? out + "?" + q : out;
+  }
+
+  function go(view, id, opts) {
+    const target = buildHash(view, id, opts && opts.focus);
+    if (opts && opts.trail) state.pendingTrail = opts.trail;
+    if (location.hash === target) render();
+    else location.hash = target;
+  }
+
+  function syncHash() {
+    history.replaceState(null, "", buildHash(state.view, state.id, state.focus));
+  }
+
+  function startRoute() {
+    const start = (DATA.meta && DATA.meta.start) || "#/mapa";
+    const tmp = start.replace(/^#\//, "").split("/");
+    return { view: tmp[0], id: tmp.slice(1).join("/") || null };
+  }
+
+  // ------------------------------------------------------------------ render principal
+
+  function render() {
+    const r = parseHash();
+    state.mode = r.params.get("modo") === "tecnico" ? "tecnico" : "facil";
+    state.theme = r.params.get("tema") === "claro" ? "claro" : "oscuro";
+    state.focus = r.params.get("focus");
+    document.documentElement.dataset.tema = state.theme;
+    let view = r.view;
+    let id = r.id;
+    if (!view) {
+      const st = startRoute();
+      view = st.view;
+      id = st.id;
+    }
+    const sameView = view === state.view && id === state.id;
+    state.keepTransform = sameView;
+    state.view = view;
+    state.id = id;
+    if (["flujo", "secuencia", "codigo"].includes(view) && id) updateTrail(id);
+    if (!sameView) state.selectedNode = null;
+
+    renderToolbar();
+    if (view === "mapa") renderMap(id);
+    else if (view === "flujo") renderFlow(id);
+    else if (view === "secuencia") renderSequence(id);
+    else if (view === "codigo") renderCodeView(id);
+    else if (view === "er") renderER();
+    else renderMap(null);
+    renderCrumbs();
+  }
+
+  function updateTrail(id) {
+    if (state.pendingTrail) {
+      state.trail = state.pendingTrail;
+      state.pendingTrail = null;
+      return;
+    }
+    const i = state.trail.indexOf(id);
+    if (i >= 0) state.trail = state.trail.slice(0, i + 1);
+    else state.trail = [id];
+  }
+
+  // ------------------------------------------------------------------ barra: herramientas
+
+  let toolbarBuilt = false;
+  const tools = {};
+
+  function renderToolbar() {
+    const bar = $("herramientas");
+    if (!toolbarBuilt) {
+      toolbarBuilt = true;
+      const search = buildSearch();
+      tools.mode = h("button", { class: "boton", type: "button", title: "Modo fácil / técnico (m)", onclick: toggleMode });
+      tools.theme = h("button", { class: "boton", type: "button", title: "Tema claro / oscuro (t)", onclick: toggleTheme });
+      const zoomOut = h("button", { class: "boton", type: "button", title: "Alejar (-)", "aria-label": "Alejar", onclick: () => zoomBy(1 / 1.25) }, "−");
+      const zoomIn = h("button", { class: "boton", type: "button", title: "Acercar (+)", "aria-label": "Acercar", onclick: () => zoomBy(1.25) }, "+");
+      const fitBtn = h("button", { class: "boton", type: "button", title: "Encuadrar (f)", onclick: () => { fit(); apply(); } }, "Encuadrar");
+      tools.exportSvg = h("button", { class: "boton", type: "button", title: "Exportar la vista como SVG", onclick: exportSVG }, "SVG");
+      tools.exportPng = h("button", { class: "boton", type: "button", title: "Exportar la vista como PNG", onclick: exportPNG }, "PNG");
+      appendAll(bar, [search, tools.mode, tools.theme, zoomOut, zoomIn, fitBtn, tools.exportSvg, tools.exportPng]);
+    }
+    tools.mode.textContent = state.mode === "facil" ? "Modo: fácil" : "Modo: técnico";
+    tools.mode.setAttribute("aria-pressed", state.mode === "tecnico" ? "true" : "false");
+    tools.theme.textContent = state.theme === "oscuro" ? "Tema: oscuro" : "Tema: claro";
+  }
+
+  function toggleMode() {
+    state.mode = state.mode === "facil" ? "tecnico" : "facil";
+    syncHash();
+    rerender();
+  }
+
+  function toggleTheme() {
+    state.theme = state.theme === "oscuro" ? "claro" : "oscuro";
+    document.documentElement.dataset.tema = state.theme;
+    syncHash();
+    renderToolbar();
+  }
+
+  function rerender() {
+    state.keepTransform = true;
+    const keep = state.selectedNode;
+    renderToolbar();
+    if (state.view === "flujo") renderFlow(state.id);
+    else if (state.view === "mapa" || !state.view) renderMap(state.id);
+    else if (state.view === "secuencia") renderSequence(state.id);
+    state.selectedNode = keep;
+  }
+
+  // ------------------------------------------------------------------ buscador
+
+  let searchIndex = null;
+
+  function buildIndex() {
+    const out = [];
+    for (const [id, sym] of Object.entries(SYMBOLS)) {
+      if (sym.kind === "module") continue;
+      out.push({ id, label: sym.qualname, name: sym.name.toLowerCase(), q: sym.qualname.toLowerCase(), kind: sym.kind, file: sym.file });
+    }
+    for (const t of (DATA.er && DATA.er.tables) || []) {
+      out.push({ id: t.id, label: t.name, name: t.name.toLowerCase(), q: t.name.toLowerCase(), kind: "tabla", file: t.file });
+    }
+    out.sort((a, b) => a.label.localeCompare(b.label));
+    return out;
+  }
+
+  function buildSearch() {
+    const box = h("div", { class: "buscador" });
+    const input = h("input", { type: "search", id: "buscar", placeholder: "Buscar (/)", "aria-label": "Buscar funciones, clases y tablas", autocomplete: "off" });
+    const list = h("ul", { class: "resultados", role: "listbox", hidden: true });
+    let results = [];
+    let active = 0;
+    const close = () => { list.hidden = true; };
+    const choose = (item) => {
+      close();
+      input.value = "";
+      input.blur();
+      openItem(item);
+    };
+    const paint = () => {
+      clear(list);
+      results.forEach((r, i) => {
+        list.appendChild(h("li", { role: "option", "aria-selected": i === active ? "true" : "false", onmousedown: (e) => { e.preventDefault(); choose(r); } },
+          r.label, h("small", null, kindLabel(r.kind) + " · " + (r.file || ""))));
+      });
+      list.hidden = results.length === 0;
+    };
+    input.addEventListener("input", () => {
+      if (!searchIndex) searchIndex = buildIndex();
+      const q = input.value.trim().toLowerCase();
+      active = 0;
+      if (!q) { results = []; paint(); return; }
+      const starts = searchIndex.filter((r) => r.name.startsWith(q));
+      const contains = searchIndex.filter((r) => !r.name.startsWith(q) && r.q.includes(q));
+      results = starts.concat(contains).slice(0, 12);
+      paint();
+    });
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowDown") { active = Math.min(active + 1, results.length - 1); paint(); e.preventDefault(); }
+      else if (e.key === "ArrowUp") { active = Math.max(active - 1, 0); paint(); e.preventDefault(); }
+      else if (e.key === "Enter" && results[active]) { choose(results[active]); e.preventDefault(); }
+      else if (e.key === "Escape") { close(); input.blur(); e.stopPropagation(); }
+    });
+    input.addEventListener("blur", () => setTimeout(close, 120));
+    appendAll(box, [input, list]);
+    return box;
+  }
+
+  function kindLabel(kind) {
+    return { function: "función", method: "método", class: "clase", interface: "interfaz", module: "archivo", tabla: "tabla" }[kind] || kind;
+  }
+
+  function openItem(item) {
+    if (item.kind === "tabla") { go("er", null, { focus: item.id }); return; }
+    const sym = SYMBOLS[item.id];
+    if (!sym) return;
+    if (sym.kind === "function" || sym.kind === "method") { go("flujo", item.id); return; }
+    const owner = MAP && MAP.owner ? MAP.owner[item.id] : null;
+    const target = MAP && MAP.groups[item.id] ? item.id : owner;
+    go("mapa", target || null, { focus: item.id });
+  }
+
+  // ------------------------------------------------------------------ migas de pan
+
+  function groupChain(gid) {
+    const chain = [];
+    let cur = gid;
+    const seen = new Set();
+    while (MAP && cur && MAP.groups[cur] && !seen.has(cur)) {
+      seen.add(cur);
+      chain.unshift(cur);
+      cur = MAP.groups[cur].parent;
+    }
+    return chain;
+  }
+
+  function renderCrumbs() {
+    const nav = $("migas");
+    clear(nav);
+    const items = [];
+    const rootName = (DATA.meta && DATA.meta.name) || "Proyecto";
+    const rootGid = MAP ? MAP.root : null;
+    items.push({ label: rootName, hash: buildHash("mapa", null) });
+    if (state.view === "mapa" && state.id) {
+      for (const g of groupChain(state.id)) {
+        if (g === rootGid) continue;
+        items.push({ label: MAP.groups[g].name, hash: buildHash("mapa", g) });
+      }
+    } else if (["flujo", "secuencia", "codigo"].includes(state.view) && state.trail.length) {
+      const base = state.trail[0];
+      const owner = MAP && MAP.owner ? MAP.owner[base] : null;
+      for (const g of groupChain(owner)) {
+        if (g === rootGid) continue;
+        items.push({ label: MAP.groups[g].name, hash: buildHash("mapa", g) });
+      }
+      state.trail.forEach((sid, i) => {
+        const sym = SYMBOLS[sid];
+        if (!sym) return;
+        items.push({ label: sym.name + "()", hash: buildHash(state.view, sid), trail: state.trail.slice(0, i + 1) });
+      });
+    } else if (state.view === "er") {
+      items.push({ label: "Diagrama entidad-relación", hash: buildHash("er", null) });
+    }
+    items.forEach((it, i) => {
+      if (i > 0) nav.appendChild(h("span", { class: "sep", "aria-hidden": "true" }, "›"));
+      if (i === items.length - 1) nav.appendChild(h("span", { class: "actual", "aria-current": "page" }, it.label));
+      else {
+        const a = h("a", { href: it.hash }, it.label);
+        if (it.trail) a.addEventListener("click", () => { state.pendingTrail = it.trail; });
+        nav.appendChild(a);
+      }
+    });
+  }
+
+  function goUp() {
+    if (["flujo", "secuencia", "codigo"].includes(state.view)) {
+      if (state.trail.length > 1) {
+        const prev = state.trail.slice(0, -1);
+        go(state.view, prev[prev.length - 1], { trail: prev });
+        return;
+      }
+      const owner = MAP && MAP.owner ? MAP.owner[state.id] : null;
+      go("mapa", owner && owner !== (MAP && MAP.root) ? owner : null);
+      return;
+    }
+    if (state.view === "mapa" && state.id && MAP && MAP.groups[state.id]) {
+      const parent = MAP.groups[state.id].parent;
+      go("mapa", parent && parent !== MAP.root ? parent : null);
+      return;
+    }
+    if (state.view === "er") go("mapa", null);
+  }
+
+  // ------------------------------------------------------------------ pestañas e info
+
+  function renderTabs(sid) {
+    const tabs = $("pestanas");
+    clear(tabs);
+    if (!sid) {
+      if (DATA.er && DATA.er.tables && DATA.er.tables.length) {
+        tabs.appendChild(tabButton("Mapa", state.view === "mapa", () => go("mapa", null)));
+        tabs.appendChild(tabButton("Entidad-relación", state.view === "er", () => go("er", null)));
+      }
+      return;
+    }
+    tabs.appendChild(tabButton("Flujo", state.view === "flujo", () => go("flujo", sid, { trail: state.trail })));
+    tabs.appendChild(tabButton("Secuencia", state.view === "secuencia", () => go("secuencia", sid, { trail: state.trail })));
+    tabs.appendChild(tabButton("Código", state.view === "codigo", () => go("codigo", sid, { trail: state.trail })));
+  }
+
+  function tabButton(label, selected, onclick) {
+    return h("button", { role: "tab", type: "button", "aria-selected": selected ? "true" : "false", onclick }, label);
+  }
+
+  function renderInfo(parts) {
+    const info = $("info");
+    clear(info);
+    appendAll(info, parts);
+  }
+
+  function showEmpty(message) {
+    const lienzo = $("lienzo");
+    clear(lienzo);
+    lienzo.appendChild(h("div", { class: "vacio" }, message));
+  }
+
+  // ------------------------------------------------------------------ lienzo: zoom y arrastre
+
+  let currentGroup = null;
+
+  function mount(svg, group, w, hgt, legendKinds) {
+    const lienzo = $("lienzo");
+    clear(lienzo);
+    svg.appendChild(group);
+    lienzo.appendChild(svg);
+    if (legendKinds && legendKinds.length) lienzo.appendChild(buildLegend(legendKinds));
+    currentGroup = group;
+    state.size = { w, h: hgt };
+    if (!state.keepTransform) fit();
+    apply();
+  }
+
+  function fit() {
+    const r = $("lienzo").getBoundingClientRect();
+    const w = Math.max(state.size.w, 1);
+    const hh = Math.max(state.size.h, 1);
+    const k = Math.min((r.width - 40) / w, (r.height - 60) / hh, 1.25);
+    const kk = Math.max(Math.min(k, 4), 0.08);
+    state.transform = { k: kk, x: Math.max(10, (r.width - w * kk) / 2), y: Math.max(10, Math.min((r.height - hh * kk) / 2, 40)) };
+  }
+
+  function apply() {
+    if (!currentGroup) return;
+    const t = state.transform;
+    currentGroup.setAttribute("transform", "translate(" + t.x.toFixed(1) + "," + t.y.toFixed(1) + ") scale(" + t.k.toFixed(4) + ")");
+  }
+
+  function zoomBy(f, cx, cy) {
+    const r = $("lienzo").getBoundingClientRect();
+    const px = cx === undefined ? r.width / 2 : cx;
+    const py = cy === undefined ? r.height / 2 : cy;
+    const t = state.transform;
+    const k = Math.max(0.08, Math.min(4, t.k * f));
+    const ratio = k / t.k;
+    state.transform = { k, x: px - (px - t.x) * ratio, y: py - (py - t.y) * ratio };
+    apply();
+  }
+
+  function installCanvasEvents() {
+    const lienzo = $("lienzo");
+    lienzo.addEventListener("wheel", (e) => {
+      e.preventDefault();
+      const r = lienzo.getBoundingClientRect();
+      zoomBy(Math.exp(-e.deltaY * 0.0015), e.clientX - r.left, e.clientY - r.top);
+    }, { passive: false });
+    let start = null;
+    lienzo.addEventListener("pointerdown", (e) => {
+      if (e.button !== 0) return;
+      start = { x: e.clientX, y: e.clientY, tx: state.transform.x, ty: state.transform.y };
+      state.dragged = false;
+    });
+    window.addEventListener("pointermove", (e) => {
+      if (!start) return;
+      const dx = e.clientX - start.x;
+      const dy = e.clientY - start.y;
+      if (!state.dragged && Math.abs(dx) + Math.abs(dy) > 4) {
+        state.dragged = true;
+        lienzo.classList.add("arrastrando");
+      }
+      if (state.dragged) {
+        state.transform.x = start.tx + dx;
+        state.transform.y = start.ty + dy;
+        apply();
+      }
+    });
+    window.addEventListener("pointerup", () => {
+      start = null;
+      lienzo.classList.remove("arrastrando");
+      setTimeout(() => { state.dragged = false; }, 0);
+    });
+    lienzo.addEventListener("dblclick", (e) => {
+      if (e.target.closest && e.target.closest(".nodo")) return;
+      goUp();
+    });
+  }
+
+  // ------------------------------------------------------------------ SVG comunes
+
+  function markers() {
+    return s("defs", null,
+      marker("punta", "punta"),
+      marker("punta-exc", "punta-exc"),
+      marker("punta-foco", "punta-foco"));
+  }
+
+  function marker(id, cls) {
+    return s("marker", { id, viewBox: "0 0 10 10", refX: "9", refY: "5", markerWidth: "8", markerHeight: "8", orient: "auto-start-reverse", markerUnits: "userSpaceOnUse" },
+      s("path", { d: "M0,0 L10,5 L0,10 z", class: cls }));
+  }
+
+  function pathFrom(points) {
+    let d = "";
+    for (let i = 0; i < points.length; i += 2) d += (i === 0 ? "M" : "L") + points[i] + "," + points[i + 1];
+    return d;
+  }
+
+  function drawLabel(text, x, y, w, hh, extraClass) {
+    return s("g", { class: "etiqueta" + (extraClass ? " " + extraClass : "") },
+      s("rect", { x, y, width: w, height: hh, rx: 3 }),
+      s("text", { x: x + 4, y: y + hh / 2 + 0.5 }, text));
+  }
+
+  function textBlock(lines, cx, cy) {
+    const t = s("text", { x: cx, y: cy, "text-anchor": "middle" });
+    const n = lines.length;
+    lines.forEach((ln, i) => {
+      t.appendChild(s("tspan", { x: cx, dy: i === 0 ? (-(n - 1) / 2) * LINE_H : LINE_H }, ln));
+    });
+    return t;
+  }
+
+  function flowShape(kind, x, y, w, hh) {
+    const r = x + w;
+    const b = y + hh;
+    switch (kind) {
+      case "terminal":
+        return [s("rect", { class: "forma", x, y, width: w, height: hh, rx: hh / 2 })];
+      case "decision":
+        return [s("polygon", { class: "forma", points: [x + w / 2, y, r, y + hh / 2, x + w / 2, b, x, y + hh / 2].join(" ") })];
+      case "subproceso":
+        return [
+          s("rect", { class: "forma", x, y, width: w, height: hh }),
+          s("line", { class: "linea-interna", x1: x + 8, y1: y, x2: x + 8, y2: b }),
+          s("line", { class: "linea-interna", x1: r - 8, y1: y, x2: r - 8, y2: b }),
+        ];
+      case "es":
+        return [s("polygon", { class: "forma", points: [x + 12, y, r, y, r - 12, b, x, b].join(" ") })];
+      case "pantalla":
+        return [s("path", { class: "forma", d: "M" + (x + 16) + "," + y + " L" + (r - 18) + "," + y + " C" + (r + 4) + "," + y + " " + (r + 4) + "," + b + " " + (r - 18) + "," + b + " L" + (x + 16) + "," + b + " L" + x + "," + (y + hh / 2) + " Z" })];
+      case "teclado":
+        return [s("polygon", { class: "forma", points: [x, y + 10, r, y, r, b, x, b].join(" ") })];
+      case "documento": {
+        const wy = b - 8;
+        return [s("path", { class: "forma", d: "M" + x + "," + y + " L" + r + "," + y + " L" + r + "," + wy + " Q" + (x + w * 0.75) + "," + (wy - 10) + " " + (x + w / 2) + "," + wy + " T" + x + "," + wy + " Z" })];
+      }
+      default:
+        return [s("rect", { class: "forma", x, y, width: w, height: hh, rx: kind === "externo" ? 4 : 2 })];
+    }
+  }
+
+  function textOffset(kind) {
+    if (kind === "teclado") return 5;
+    if (kind === "documento") return -4;
+    return 0;
+  }
+
+  // ------------------------------------------------------------------ leyenda
+
+  function buildLegend(kinds) {
+    const box = h("div", { class: "leyenda", role: "list", "aria-label": "Leyenda" });
+    for (const k of kinds) {
+      const icon = s("svg", { viewBox: "0 0 26 16", "aria-hidden": "true" });
+      if (CONF_NAMES[k]) {
+        icon.appendChild(s("line", { x1: 1, y1: 8, x2: 25, y2: 8, class: "arista c-" + k }));
+      } else if (k === "excepcion") {
+        icon.appendChild(s("line", { x1: 1, y1: 8, x2: 25, y2: 8, class: "arista k-excepcion" }));
+      } else if (k === "conector") {
+        icon.appendChild(s("g", { class: "nodo k-conector" }, s("circle", { class: "forma", cx: 13, cy: 8, r: 6 })));
+      } else {
+        const g = s("g", { class: "nodo k-" + k });
+        appendAll(g, flowShape(k === "funcion" || k === "entrada" ? "terminal" : k, 2, 2, 22, 12));
+        icon.appendChild(g);
+      }
+      box.appendChild(h("div", { class: "item", role: "listitem", "data-tipo": k }, icon, NODE_NAMES[k] || CONF_NAMES[k] || k));
+    }
+    return box;
+  }
+
+  // ------------------------------------------------------------------ vista: flujo
+
+  function renderFlow(sid) {
+    const sym = SYMBOLS[sid];
+    renderTabs(sid);
+    if (!sym) {
+      renderInfo([]);
+      showEmpty("No se encontró la función.");
+      hidePanel();
+      return;
+    }
+    const flow = FLOWS[sid];
+    const infoParts = [h("code", null, sym.signature), "  ·  " + sym.file + ":" + sym.line_start];
+    if (sym.doc) infoParts.push(h("div", { class: "doc" }, sym.doc));
+    if (flow && flow.truncated) infoParts.push(h("div", null, "Función muy grande: algunos bloques se muestran colapsados (clic para ver el código)."));
+    renderInfo(infoParts);
+    renderPanel(sid);
+    if (!flow) {
+      const impl = (DATA.impl && DATA.impl[sid]) || [];
+      if (impl.length) {
+        const lienzo = $("lienzo");
+        clear(lienzo);
+        const box = h("div", { class: "vacio" }, "Método sin cuerpo (abstracto o de interfaz). Posibles implementaciones:");
+        const ul = h("ul");
+        for (const id of impl) {
+          const t = SYMBOLS[id];
+          if (t) ul.appendChild(h("li", null, h("a", { href: buildHash("flujo", id) }, t.qualname)));
+        }
+        box.appendChild(ul);
+        lienzo.appendChild(box);
+      } else {
+        showEmpty("Esta función no tiene cuerpo para dibujar (declaración, abstracta o externa).");
+      }
+      return;
+    }
+    const lay = flow.layout;
+    const svg = s("svg", { role: "img", "aria-label": "Diagrama de flujo de " + sym.qualname });
+    svg.appendChild(markers());
+    const g = s("g", { class: "vista" });
+    const kinds = new Set();
+    let hasExc = false;
+    for (const [pts, kind, arrow] of lay.lines) {
+      if (kind === "excepcion") hasExc = true;
+      g.appendChild(s("path", { class: "arista k-" + kind, d: pathFrom(pts), "marker-end": arrow ? (kind === "excepcion" ? "url(#punta-exc)" : "url(#punta)") : null }));
+    }
+    for (const [text, x, y, w, hh] of lay.labels) g.appendChild(drawLabel(text, x, y, w, hh));
+    for (const [nid, x, y, w, hh, easy, tech] of lay.nodes) {
+      const info = flow.nodes[nid];
+      kinds.add(info.kind);
+      g.appendChild(drawFlowNode(sid, nid, info, x, y, w, hh, state.mode === "facil" ? easy : tech));
+    }
+    for (const [label, cx, cy, r] of lay.connectors) {
+      kinds.add("conector");
+      const cg = s("g", { class: "nodo k-conector" }, s("circle", { class: "forma", cx, cy, r }));
+      cg.appendChild(s("text", { x: cx, y: cy + 0.5, "text-anchor": "middle" }, label));
+      cg.appendChild(s("title", null, "Conector " + label + ": la línea continúa en el otro conector " + label));
+      g.appendChild(cg);
+    }
+    const order = ["terminal", "proceso", "subproceso", "decision", "es", "teclado", "pantalla", "documento", "externo", "conector"];
+    const legend = order.filter((k) => kinds.has(k));
+    if (hasExc) legend.push("excepcion");
+    mount(svg, g, lay.w, lay.h, legend);
+    if (state.selectedNode) selectNode(sid, state.selectedNode, false);
+  }
+
+  function drawFlowNode(sid, nid, info, x, y, w, hh, lines) {
+    const clickable = !!info.target && !!SYMBOLS[info.target];
+    const g = s("g", { class: "nodo k-" + info.kind + (clickable ? " clicable" : ""), "data-id": nid });
+    appendAll(g, flowShape(info.kind, x, y, w, hh));
+    g.appendChild(textBlock(lines, x + w / 2, y + hh / 2 + textOffset(info.kind)));
+    const sym = SYMBOLS[sid];
+    let tip = info.tech + "\n" + sym.file + ":" + info.a + (info.b !== info.a ? "-" + info.b : "");
+    if (clickable) tip += "\nClic: abrir el flujo de " + SYMBOLS[info.target].qualname;
+    g.appendChild(s("title", null, tip));
+    if (clickable) {
+      g.setAttribute("tabindex", "0");
+      g.setAttribute("role", "button");
+      g.setAttribute("aria-label", "Abrir flujo de " + SYMBOLS[info.target].qualname);
+      g.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openSub(info.target); } });
+    }
+    g.addEventListener("click", (e) => {
+      if (state.dragged) return;
+      e.stopPropagation();
+      if (clickable) openSub(info.target);
+      else selectNode(sid, nid, true);
+    });
+    return g;
+  }
+
+  function openSub(target) {
+    const trail = state.trail.length ? state.trail.slice() : [state.id];
+    const i = trail.indexOf(target);
+    const next = i >= 0 ? trail.slice(0, i + 1) : trail.concat([target]);
+    go("flujo", target, { trail: next });
+  }
+
+  function selectNode(sid, nid, scroll) {
+    state.selectedNode = nid;
+    const flow = FLOWS[sid];
+    if (!flow || !flow.nodes[nid]) return;
+    document.querySelectorAll(".nodo.seleccionado").forEach((n) => n.classList.remove("seleccionado"));
+    const el = document.querySelector('.nodo[data-id="' + nid + '"]');
+    if (el) el.classList.add("seleccionado");
+    const info = flow.nodes[nid];
+    highlightLines(info.a, info.b, scroll);
+  }
+
+  // ------------------------------------------------------------------ panel lateral
+
+  function hidePanel() {
+    $("panel").hidden = true;
+  }
+
+  function linkList(title, entries) {
+    if (!entries || !entries.length) return null;
+    const ul = h("ul");
+    for (const [id, conf] of entries) {
+      const sym = SYMBOLS[id];
+      if (!sym) continue;
+      ul.appendChild(h("li", null, h("a", { href: buildHash("flujo", id), title: CONF_NAMES[conf] || "" }, sym.qualname), conf && conf !== "exacta" ? " (" + conf + ")" : ""));
+    }
+    return h("div", { class: "seccion" }, h("h3", null, title), ul);
+  }
+
+  let panelFile = null;
+
+  function renderPanel(sid) {
+    const panel = $("panel");
+    const sym = SYMBOLS[sid];
+    clear(panel);
+    panel.hidden = false;
+    const m = sym.metrics || {};
+    const meta = h("div", { class: "meta" }, h("code", null, sym.file + ":" + sym.line_start + "-" + sym.line_end), " · " + sym.lang);
+    const metrics = h("div", { class: "meta" },
+      "Complejidad: " + (m.cc !== undefined ? m.cc : "–") + " · Líneas: " + (sym.line_end - sym.line_start + 1) +
+      " · Llamadas entrantes: " + (m.calls_in || 0) + " · salientes: " + (m.calls_out || 0));
+    appendAll(panel, [h("h2", null, sym.qualname), meta, metrics]);
+    const incoming = linkList("Llamado por", DATA.calls_in && DATA.calls_in[sid]);
+    const outgoing = linkList("Llama a", DATA.calls_out && DATA.calls_out[sid]);
+    const impl = DATA.impl && DATA.impl[sid] ? linkList("Posibles implementaciones", DATA.impl[sid].map((i) => [i, "probable"])) : null;
+    appendAll(panel, [incoming, outgoing, impl]);
+    const source = DATA.sources ? DATA.sources[sym.file] : null;
+    const pre = h("div", { class: "codigo", id: "codigo", role: "region", "aria-label": "Código fuente" });
+    if (source === null || source === undefined) {
+      pre.appendChild(h("div", { class: "vacio" }, "El código fuente no se incluyó (opción --no-source)."));
+    } else {
+      const lines = source.split("\n");
+      lines.forEach((ln, i) => {
+        pre.appendChild(h("div", { class: "ln", "data-n": i + 1 }, h("span", { class: "num" }, String(i + 1)), ln));
+      });
+    }
+    panel.appendChild(pre);
+    panelFile = sym.file;
+    highlightLines(sym.line_start, sym.line_end, true);
+  }
+
+  function highlightLines(a, b, scroll) {
+    const pre = $("codigo");
+    if (!pre) return;
+    pre.querySelectorAll(".ln.marcada").forEach((n) => n.classList.remove("marcada"));
+    let first = null;
+    for (let n = a; n <= b; n++) {
+      const el = pre.querySelector('.ln[data-n="' + n + '"]');
+      if (el) {
+        el.classList.add("marcada");
+        if (!first) first = el;
+      }
+    }
+    if (first && scroll) pre.scrollTop = Math.max(0, first.offsetTop - pre.clientHeight / 3);
+  }
+
+  // ------------------------------------------------------------------ vista: código
+
+  function renderCodeView(sid) {
+    renderTabs(sid);
+    const sym = SYMBOLS[sid];
+    if (!sym) { showEmpty("No se encontró la función."); return; }
+    renderInfo([h("code", null, sym.signature), "  ·  " + sym.file + ":" + sym.line_start]);
+    renderPanel(sid);
+    const lienzo = $("lienzo");
+    clear(lienzo);
+    const source = DATA.sources ? DATA.sources[sym.file] : null;
+    if (source === null || source === undefined) { showEmpty("El código fuente no se incluyó (opción --no-source)."); return; }
+    const pre = h("div", { class: "codigo", style: "position:absolute;inset:0;" });
+    source.split("\n").slice(sym.line_start - 1, sym.line_end).forEach((ln, i) => {
+      pre.appendChild(h("div", { class: "ln" }, h("span", { class: "num" }, String(sym.line_start + i)), ln));
+    });
+    lienzo.appendChild(pre);
+  }
+
+  // ------------------------------------------------------------------ vista: mapa
+
+  function renderMap(gid) {
+    renderTabs(null);
+    if (!MAP) {
+      renderInfo([]);
+      hidePanel();
+      const first = Object.keys(FLOWS)[0];
+      if (first) { go("flujo", first); return; }
+      showEmpty("No hay nada que mostrar.");
+      return;
+    }
+    const id = gid && MAP.groups[gid] ? gid : MAP.root;
+    const group = MAP.groups[id];
+    renderInfo([h("strong", null, group.name), group.summary ? "  ·  " + group.summary : ""]);
+    hidePanel();
+    const lay = group.layout;
+    if (!lay || !lay.nodes.length) { showEmpty("Este nivel no tiene elementos."); return; }
+    const svg = s("svg", { role: "img", "aria-label": "Mapa: " + group.name });
+    svg.appendChild(markers());
+    const g = s("g", { class: "vista" });
+    const kinds = new Set();
+    const confs = new Set();
+    const focus = state.focus && lay.nodes.some((n) => n[0] === state.focus) ? state.focus : null;
+    const lit = focus ? neighborhood(lay.edges, focus) : null;
+    for (const [src, dst, pts, conf, label, lx, ly, lw, lh] of lay.edges) {
+      confs.add(conf);
+      const dim = lit && !(lit.has(src) && lit.has(dst)) ? " atenuado" : "";
+      const lightEdge = lit && !dim ? " resaltada" : "";
+      g.appendChild(s("path", { class: "arista c-" + conf + dim + lightEdge, d: pathFrom(pts), "marker-end": lightEdge ? "url(#punta-foco)" : "url(#punta)" }));
+      if (label) g.appendChild(drawLabel(label, lx, ly, lw, lh, dim.trim()));
+    }
+    for (const [nid, kind, x, y, w, hh, label, sub, link] of lay.nodes) {
+      kinds.add(kind);
+      const dim = lit && !lit.has(nid) ? " atenuado" : "";
+      const ng = s("g", { class: "nodo k-" + kind + (link ? " clicable" : "") + dim + (nid === focus ? " seleccionado" : ""), "data-id": nid });
+      const rx = kind === "funcion" || kind === "entrada" ? hh / 2 : kind === "modulo" ? 10 : 4;
+      ng.appendChild(s("rect", { class: "forma", x, y, width: w, height: hh, rx }));
+      if (kind === "interfaz") ng.appendChild(s("line", { class: "linea-interna", x1: x, y1: y + 6, x2: x + w, y2: y + 6 }));
+      const lines = sub ? [label, sub] : [label];
+      ng.appendChild(textBlock(lines, x + w / 2, y + hh / 2));
+      ng.appendChild(s("title", null, label + (sub ? "\n" + sub : "") + (link ? "\nClic: entrar · Alt+clic: enfocar" : "")));
+      if (link) {
+        ng.setAttribute("tabindex", "0");
+        ng.setAttribute("role", "button");
+        ng.setAttribute("aria-label", label);
+        ng.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); location.hash = withParams(link); } });
+      }
+      ng.addEventListener("click", (e) => {
+        if (state.dragged) return;
+        e.stopPropagation();
+        if (e.altKey || e.shiftKey || !link) {
+          state.focus = state.focus === nid ? null : nid;
+          syncHash();
+          rerender();
+          return;
+        }
+        location.hash = withParams(link);
+      });
+      g.appendChild(ng);
+    }
+    const order = ["modulo", "clase", "interfaz", "funcion", "entrada", "otros"];
+    const legend = order.filter((k) => kinds.has(k)).concat(["exacta", "probable", "ambigua", "externa"].filter((c) => confs.has(c)));
+    mount(svg, g, lay.w, lay.h, legend);
+  }
+
+  function withParams(link) {
+    const tmp = link.replace(/^#\//, "").split("/");
+    return buildHash(tmp[0], tmp.slice(1).join("/") || null);
+  }
+
+  function neighborhood(edges, start) {
+    const down = new Map();
+    const up = new Map();
+    for (const [a, b] of edges) {
+      if (!down.has(a)) down.set(a, []);
+      if (!up.has(b)) up.set(b, []);
+      down.get(a).push(b);
+      up.get(b).push(a);
+    }
+    const lit = new Set([start]);
+    for (const graph of [down, up]) {
+      const stack = [start];
+      const seen = new Set([start]);
+      while (stack.length) {
+        const cur = stack.pop();
+        for (const nxt of graph.get(cur) || []) {
+          if (!seen.has(nxt)) { seen.add(nxt); lit.add(nxt); stack.push(nxt); }
+        }
+      }
+    }
+    return lit;
+  }
+
+  // ------------------------------------------------------------------ vista: secuencia
+
+  function renderSequence(sid) {
+    renderTabs(sid);
+    const sym = SYMBOLS[sid];
+    if (!sym) { showEmpty("No se encontró la función."); return; }
+    renderInfo([h("code", null, sym.signature), "  ·  " + sym.file + ":" + sym.line_start]);
+    renderPanel(sid);
+    const seq = DATA.sequence && DATA.sequence[sid];
+    if (!seq) { showEmpty("No hay diagrama de secuencia para esta función (no llama a otras funciones del proyecto)."); return; }
+    const lay = seq.layout;
+    const svg = s("svg", { role: "img", "aria-label": "Diagrama de secuencia de " + sym.qualname });
+    svg.appendChild(markers());
+    const g = s("g", { class: "vista" });
+    for (const [x, y, w, hh, label, kind] of lay.fragments) {
+      g.appendChild(s("rect", { x, y, width: w, height: hh, class: "fragmento", fill: "none", stroke: "var(--borde)", "stroke-width": 1.2, rx: 3 }));
+      g.appendChild(drawLabel(label, x, y, Math.min(w, label.length * 6.6 + 10), 16, "frag-" + kind));
+    }
+    for (const [x, y1, y2] of lay.lifelines) {
+      g.appendChild(s("line", { x1: x, y1, x2: x, y2, stroke: "var(--borde)", "stroke-dasharray": "4 4" }));
+    }
+    for (const [x, y, w, hh, label, kind] of lay.participants) {
+      const pg = s("g", { class: "nodo k-" + kind });
+      pg.appendChild(s("rect", { class: "forma", x, y, width: w, height: hh, rx: kind === "entrada" ? hh / 2 : 4 }));
+      pg.appendChild(textBlock([label], x + w / 2, y + hh / 2));
+      g.appendChild(pg);
+    }
+    for (const [x1, x2, y, label, kind, target, conf] of lay.messages) {
+      const dashed = kind === "retorno";
+      const self = x1 === x2;
+      const d = self ? "M" + x1 + "," + y + " h30 v14 h-30" : "M" + x1 + "," + y + " L" + x2 + "," + y;
+      g.appendChild(s("path", { class: "arista c-" + (conf || "exacta"), d, "stroke-dasharray": dashed ? "5 4" : null, "marker-end": "url(#punta)" }));
+      const tx = self ? x1 + 36 : Math.min(x1, x2) + 6;
+      const t = s("text", { x: tx, y: y - 5, class: "msg", fill: "var(--texto)", "font-size": 11, "font-family": "var(--mono)" }, label);
+      if (target && SYMBOLS[target]) {
+        t.setAttribute("style", "cursor:pointer;text-decoration:underline");
+        t.addEventListener("click", () => openSub(target));
+        t.appendChild(s("title", null, "Abrir el flujo de " + SYMBOLS[target].qualname));
+      }
+      g.appendChild(t);
+    }
+    mount(svg, g, lay.w, lay.h, ["exacta", "probable", "ambigua", "externa"].filter((c) => lay.confs && lay.confs.includes(c)));
+  }
+
+  // ------------------------------------------------------------------ vista: entidad-relación
+
+  function renderER() {
+    renderTabs(null);
+    hidePanel();
+    const er = DATA.er;
+    if (!er || !er.tables || !er.tables.length) {
+      renderInfo([]);
+      showEmpty("No se encontraron tablas SQL en el proyecto.");
+      return;
+    }
+    renderInfo([h("strong", null, "Diagrama entidad-relación"), "  ·  " + er.tables.length + " tablas, " + er.fks.length + " relaciones"]);
+    const lay = er.layout;
+    const svg = s("svg", { role: "img", "aria-label": "Diagrama entidad-relación" });
+    svg.appendChild(markers());
+    const g = s("g", { class: "vista" });
+    for (const [pts, label, lx, ly, lw, lh] of lay.edges) {
+      g.appendChild(s("path", { class: "arista c-exacta", d: pathFrom(pts), "marker-end": "url(#punta)" }));
+      if (label) g.appendChild(drawLabel(label, lx, ly, lw, lh));
+    }
+    for (const [tid, x, y, w, hh, name, cols] of lay.tables) {
+      const tg = s("g", { class: "nodo k-tabla" + (state.focus === tid ? " seleccionado" : ""), "data-id": tid });
+      tg.appendChild(s("rect", { class: "forma", x, y, width: w, height: hh, rx: 4 }));
+      tg.appendChild(s("text", { x: x + 8, y: y + 13, "font-weight": "700" }, name));
+      tg.appendChild(s("line", { class: "linea-interna", x1: x, y1: y + 24, x2: x + w, y2: y + 24 }));
+      cols.forEach((c, i) => {
+        tg.appendChild(s("text", { x: x + 8, y: y + 24 + LINE_H * (i + 0.5) + 4 }, c));
+      });
+      g.appendChild(tg);
+    }
+    mount(svg, g, lay.w, lay.h, ["tabla"]);
+  }
+
+  // ------------------------------------------------------------------ exportar
+
+  function currentSVGString() {
+    const svg = $("lienzo").querySelector("svg");
+    if (!svg) return null;
+    const clone = svg.cloneNode(true);
+    const g = clone.querySelector("g.vista");
+    if (g) g.removeAttribute("transform");
+    clone.querySelectorAll(".atenuado").forEach((n) => n.classList.remove("atenuado"));
+    clone.querySelectorAll(".seleccionado").forEach((n) => n.classList.remove("seleccionado"));
+    clone.querySelectorAll(".resaltada").forEach((n) => n.classList.remove("resaltada"));
+    const w = state.size.w;
+    const hh = state.size.h;
+    clone.setAttribute("xmlns", SVG_NS);
+    clone.setAttribute("width", w);
+    clone.setAttribute("height", hh);
+    clone.setAttribute("viewBox", "0 0 " + w + " " + hh);
+    clone.removeAttribute("style");
+    // Estilos en línea: copiar los computados de cada elemento del original.
+    const src = svg.querySelectorAll("*");
+    const dst = clone.querySelectorAll("*");
+    const props = ["fill", "fill-opacity", "stroke", "stroke-width", "stroke-dasharray", "opacity", "font-family", "font-size", "font-weight", "dominant-baseline"];
+    for (let i = 0; i < src.length && i < dst.length; i++) {
+      const cs = getComputedStyle(src[i]);
+      const parts = [];
+      for (const p of props) parts.push(p + ":" + cs.getPropertyValue(p));
+      dst[i].setAttribute("style", parts.join(";"));
+    }
+    const bg = getComputedStyle(document.body).backgroundColor;
+    const rect = document.createElementNS(SVG_NS, "rect");
+    setAttrs(rect, { x: 0, y: 0, width: w, height: hh, fill: bg });
+    clone.insertBefore(rect, clone.firstChild);
+    return new XMLSerializer().serializeToString(clone);
+  }
+
+  function download(name, blob) {
+    const url = URL.createObjectURL(blob);
+    const a = h("a", { href: url, download: name });
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  function exportName(ext) {
+    const base = state.id && SYMBOLS[state.id] ? SYMBOLS[state.id].qualname : (state.view || "mapa");
+    return "desglosa-" + String(base).replace(/[^\w.-]+/g, "_") + "." + ext;
+  }
+
+  function exportSVG() {
+    const text = currentSVGString();
+    if (text) download(exportName("svg"), new Blob([text], { type: "image/svg+xml" }));
+  }
+
+  function exportPNG() {
+    const text = currentSVGString();
+    if (!text) return;
+    const img = new Image();
+    const url = URL.createObjectURL(new Blob([text], { type: "image/svg+xml" }));
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.ceil(state.size.w * 2);
+      canvas.height = Math.ceil(state.size.h * 2);
+      const ctx = canvas.getContext("2d");
+      ctx.scale(2, 2);
+      ctx.drawImage(img, 0, 0);
+      URL.revokeObjectURL(url);
+      canvas.toBlob((blob) => { if (blob) download(exportName("png"), blob); }, "image/png");
+    };
+    img.src = url;
+  }
+
+  // ------------------------------------------------------------------ teclado
+
+  function installKeys() {
+    document.addEventListener("keydown", (e) => {
+      const tag = (e.target && e.target.tagName) || "";
+      if (tag === "INPUT" || tag === "TEXTAREA") return;
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (e.key === "/") { e.preventDefault(); const b = $("buscar"); if (b) b.focus(); }
+      else if (e.key === "Escape") goUp();
+      else if (e.key === "t") toggleTheme();
+      else if (e.key === "m") toggleMode();
+      else if (e.key === "+" || e.key === "=") zoomBy(1.25);
+      else if (e.key === "-") zoomBy(1 / 1.25);
+      else if (e.key === "0") { state.transform = { k: 1, x: 20, y: 20 }; apply(); }
+      else if (e.key === "f") { fit(); apply(); }
+    });
+  }
+
+  // ------------------------------------------------------------------ inicio
+
+  installCanvasEvents();
+  installKeys();
+  window.addEventListener("hashchange", render);
+  window.addEventListener("resize", () => { if (!state.keepTransform) { fit(); apply(); } });
+  render();
+})();

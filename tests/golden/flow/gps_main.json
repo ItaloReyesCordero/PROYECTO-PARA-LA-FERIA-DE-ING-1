@@ -1,0 +1,746 @@
+{
+  "edges": [
+    {
+      "dst": "n1",
+      "kind": "normal",
+      "label": null,
+      "src": "n0"
+    },
+    {
+      "dst": "n2",
+      "kind": "normal",
+      "label": null,
+      "src": "n1"
+    },
+    {
+      "dst": "n3",
+      "kind": "normal",
+      "label": null,
+      "src": "n2"
+    },
+    {
+      "dst": "n4",
+      "kind": "normal",
+      "label": "sí",
+      "src": "n3"
+    },
+    {
+      "dst": "n5",
+      "kind": "normal",
+      "label": null,
+      "src": "n4"
+    },
+    {
+      "dst": "n6",
+      "kind": "normal",
+      "label": null,
+      "src": "n5"
+    },
+    {
+      "dst": "n7",
+      "kind": "normal",
+      "label": "no",
+      "src": "n3"
+    },
+    {
+      "dst": "n8",
+      "kind": "normal",
+      "label": null,
+      "src": "n7"
+    },
+    {
+      "dst": "n9",
+      "kind": "normal",
+      "label": "sí",
+      "src": "n8"
+    },
+    {
+      "dst": "n10",
+      "kind": "normal",
+      "label": null,
+      "src": "n9"
+    },
+    {
+      "dst": "n11",
+      "kind": "normal",
+      "label": "sí",
+      "src": "n10"
+    },
+    {
+      "dst": "n12",
+      "kind": "normal",
+      "label": null,
+      "src": "n11"
+    },
+    {
+      "dst": "n13",
+      "kind": "normal",
+      "label": null,
+      "src": "n12"
+    },
+    {
+      "dst": "n14",
+      "kind": "normal",
+      "label": "no",
+      "src": "n10"
+    },
+    {
+      "dst": "n8",
+      "kind": "retorno_bucle",
+      "label": null,
+      "src": "n14"
+    },
+    {
+      "dst": "n15",
+      "kind": "normal",
+      "label": "no",
+      "src": "n8"
+    },
+    {
+      "dst": "n16",
+      "kind": "normal",
+      "label": "sí",
+      "src": "n15"
+    },
+    {
+      "dst": "n17",
+      "kind": "normal",
+      "label": null,
+      "src": "n16"
+    },
+    {
+      "dst": "n18",
+      "kind": "normal",
+      "label": "sí",
+      "src": "n17"
+    },
+    {
+      "dst": "n19",
+      "kind": "normal",
+      "label": null,
+      "src": "n18"
+    },
+    {
+      "dst": "n19",
+      "kind": "normal",
+      "label": "no",
+      "src": "n17"
+    },
+    {
+      "dst": "n20",
+      "kind": "normal",
+      "label": null,
+      "src": "n19"
+    },
+    {
+      "dst": "n15",
+      "kind": "retorno_bucle",
+      "label": null,
+      "src": "n20"
+    },
+    {
+      "dst": "n21",
+      "kind": "normal",
+      "label": "no",
+      "src": "n15"
+    },
+    {
+      "dst": "n22",
+      "kind": "normal",
+      "label": "sí",
+      "src": "n21"
+    },
+    {
+      "dst": "n23",
+      "kind": "normal",
+      "label": "sí",
+      "src": "n22"
+    },
+    {
+      "dst": "n24",
+      "kind": "normal",
+      "label": "sí",
+      "src": "n23"
+    },
+    {
+      "dst": "n25",
+      "kind": "normal",
+      "label": "no",
+      "src": "n23"
+    },
+    {
+      "dst": "n26",
+      "kind": "normal",
+      "label": "sí",
+      "src": "n25"
+    },
+    {
+      "dst": "n27",
+      "kind": "normal",
+      "label": "no",
+      "src": "n25"
+    },
+    {
+      "dst": "n28",
+      "kind": "normal",
+      "label": "sí",
+      "src": "n27"
+    },
+    {
+      "dst": "n29",
+      "kind": "normal",
+      "label": "no",
+      "src": "n27"
+    },
+    {
+      "dst": "n30",
+      "kind": "normal",
+      "label": "sí",
+      "src": "n29"
+    },
+    {
+      "dst": "n31",
+      "kind": "normal",
+      "label": null,
+      "src": "n24"
+    },
+    {
+      "dst": "n31",
+      "kind": "normal",
+      "label": null,
+      "src": "n26"
+    },
+    {
+      "dst": "n31",
+      "kind": "normal",
+      "label": null,
+      "src": "n28"
+    },
+    {
+      "dst": "n31",
+      "kind": "normal",
+      "label": null,
+      "src": "n30"
+    },
+    {
+      "dst": "n31",
+      "kind": "normal",
+      "label": "no",
+      "src": "n29"
+    },
+    {
+      "dst": "n32",
+      "kind": "normal",
+      "label": "no",
+      "src": "n22"
+    },
+    {
+      "dst": "n33",
+      "kind": "normal",
+      "label": "sí",
+      "src": "n32"
+    },
+    {
+      "dst": "n34",
+      "kind": "normal",
+      "label": "sí",
+      "src": "n33"
+    },
+    {
+      "dst": "n35",
+      "kind": "normal",
+      "label": "no",
+      "src": "n33"
+    },
+    {
+      "dst": "n36",
+      "kind": "normal",
+      "label": "sí",
+      "src": "n35"
+    },
+    {
+      "dst": "n37",
+      "kind": "normal",
+      "label": null,
+      "src": "n34"
+    },
+    {
+      "dst": "n37",
+      "kind": "normal",
+      "label": null,
+      "src": "n36"
+    },
+    {
+      "dst": "n37",
+      "kind": "normal",
+      "label": "no",
+      "src": "n35"
+    },
+    {
+      "dst": "n38",
+      "kind": "normal",
+      "label": null,
+      "src": "n31"
+    },
+    {
+      "dst": "n38",
+      "kind": "normal",
+      "label": null,
+      "src": "n37"
+    },
+    {
+      "dst": "n38",
+      "kind": "normal",
+      "label": "no",
+      "src": "n32"
+    },
+    {
+      "dst": "n21",
+      "kind": "retorno_bucle",
+      "label": null,
+      "src": "n38"
+    },
+    {
+      "dst": "n39",
+      "kind": "normal",
+      "label": "no",
+      "src": "n21"
+    },
+    {
+      "dst": "n40",
+      "kind": "normal",
+      "label": null,
+      "src": "n39"
+    },
+    {
+      "dst": "n41",
+      "kind": "normal",
+      "label": null,
+      "src": "n40"
+    }
+  ],
+  "nodes": [
+    {
+      "call_id": null,
+      "id": "n0",
+      "kind": "terminal",
+      "line_end": 98,
+      "line_start": 98,
+      "target_symbol": null,
+      "text_easy": "Inicio: main()",
+      "text_tech": "Inicio: main(void)"
+    },
+    {
+      "call_id": null,
+      "id": "n1",
+      "kind": "proceso",
+      "line_end": 103,
+      "line_start": 100,
+      "target_symbol": null,
+      "text_easy": "char Dato\nint i = 0\nint j = 1\nint k = 0",
+      "text_tech": "char Dato\nint i = 0\nint j = 1\nint k = 0"
+    },
+    {
+      "call_id": null,
+      "id": "n2",
+      "kind": "proceso",
+      "line_end": 105,
+      "line_start": 104,
+      "target_symbol": null,
+      "text_easy": "int cont = 0\nint cont1 = 0",
+      "text_tech": "int cont = 0\nint cont1 = 0"
+    },
+    {
+      "call_id": "4039a869e29d",
+      "id": "n3",
+      "kind": "decision",
+      "line_end": 107,
+      "line_start": 107,
+      "target_symbol": "10c0e864db70",
+      "text_easy": "¿no abrir_puerto(\"COM3\")?",
+      "text_tech": "!abrir_puerto(\"COM3\")"
+    },
+    {
+      "call_id": "b78cb424a408",
+      "id": "n4",
+      "kind": "pantalla",
+      "line_end": 108,
+      "line_start": 108,
+      "target_symbol": null,
+      "text_easy": "Muestra: \"No se pudo abrir el puerto\"",
+      "text_tech": "printf(\"No se pudo abrir el puerto\\n\")"
+    },
+    {
+      "call_id": null,
+      "id": "n5",
+      "kind": "proceso",
+      "line_end": 109,
+      "line_start": 109,
+      "target_symbol": null,
+      "text_easy": "Retorna 1",
+      "text_tech": "return 1"
+    },
+    {
+      "call_id": null,
+      "id": "n6",
+      "kind": "terminal",
+      "line_end": 109,
+      "line_start": 109,
+      "target_symbol": null,
+      "text_easy": "Fin",
+      "text_tech": "Fin"
+    },
+    {
+      "call_id": "7f08cd7d2fd3",
+      "id": "n7",
+      "kind": "subproceso",
+      "line_end": 113,
+      "line_start": 113,
+      "target_symbol": "1c7f8d5a9577",
+      "text_easy": "Llama a leer_caracter() → Dato",
+      "text_tech": "Dato = leer_caracter()"
+    },
+    {
+      "call_id": null,
+      "id": "n8",
+      "kind": "decision",
+      "line_end": 114,
+      "line_start": 114,
+      "target_symbol": null,
+      "text_easy": "¿Dato ≠ '$'?",
+      "text_tech": "Dato != '$'"
+    },
+    {
+      "call_id": null,
+      "id": "n9",
+      "kind": "proceso",
+      "line_end": 115,
+      "line_start": 115,
+      "target_symbol": null,
+      "text_easy": "k++",
+      "text_tech": "k++"
+    },
+    {
+      "call_id": null,
+      "id": "n10",
+      "kind": "decision",
+      "line_end": 116,
+      "line_start": 116,
+      "target_symbol": null,
+      "text_easy": "¿k = MAX_ESPERA?",
+      "text_tech": "k == MAX_ESPERA"
+    },
+    {
+      "call_id": "8bbdc5becede",
+      "id": "n11",
+      "kind": "subproceso",
+      "line_end": 117,
+      "line_start": 117,
+      "target_symbol": "b9e201dcb086",
+      "text_easy": "Llama a cerrar_puerto()",
+      "text_tech": "cerrar_puerto()"
+    },
+    {
+      "call_id": null,
+      "id": "n12",
+      "kind": "proceso",
+      "line_end": 118,
+      "line_start": 118,
+      "target_symbol": null,
+      "text_easy": "Retorna 0",
+      "text_tech": "return 0"
+    },
+    {
+      "call_id": null,
+      "id": "n13",
+      "kind": "terminal",
+      "line_end": 118,
+      "line_start": 118,
+      "target_symbol": null,
+      "text_easy": "Fin",
+      "text_tech": "Fin"
+    },
+    {
+      "call_id": "f0e1fcdb712b",
+      "id": "n14",
+      "kind": "subproceso",
+      "line_end": 120,
+      "line_start": 120,
+      "target_symbol": "1c7f8d5a9577",
+      "text_easy": "Llama a leer_caracter() → Dato",
+      "text_tech": "Dato = leer_caracter()"
+    },
+    {
+      "call_id": null,
+      "id": "n15",
+      "kind": "decision",
+      "line_end": 124,
+      "line_start": 124,
+      "target_symbol": null,
+      "text_easy": "¿cont < NUM_TRAMAS y i < TAM_BUFFER?",
+      "text_tech": "cont < NUM_TRAMAS && i < TAM_BUFFER"
+    },
+    {
+      "call_id": null,
+      "id": "n16",
+      "kind": "proceso",
+      "line_end": 125,
+      "line_start": 125,
+      "target_symbol": null,
+      "text_easy": "Buffer[i] = Dato",
+      "text_tech": "Buffer[i] = Dato"
+    },
+    {
+      "call_id": null,
+      "id": "n17",
+      "kind": "decision",
+      "line_end": 126,
+      "line_start": 126,
+      "target_symbol": null,
+      "text_easy": "¿Dato = '$'?",
+      "text_tech": "Dato == '$'"
+    },
+    {
+      "call_id": null,
+      "id": "n18",
+      "kind": "proceso",
+      "line_end": 127,
+      "line_start": 127,
+      "target_symbol": null,
+      "text_easy": "cont++",
+      "text_tech": "cont++"
+    },
+    {
+      "call_id": null,
+      "id": "n19",
+      "kind": "proceso",
+      "line_end": 129,
+      "line_start": 129,
+      "target_symbol": null,
+      "text_easy": "i++",
+      "text_tech": "i++"
+    },
+    {
+      "call_id": "486cdb1e9b22",
+      "id": "n20",
+      "kind": "subproceso",
+      "line_end": 130,
+      "line_start": 130,
+      "target_symbol": "1c7f8d5a9577",
+      "text_easy": "Llama a leer_caracter() → Dato",
+      "text_tech": "Dato = leer_caracter()"
+    },
+    {
+      "call_id": null,
+      "id": "n21",
+      "kind": "decision",
+      "line_end": 134,
+      "line_start": 134,
+      "target_symbol": null,
+      "text_easy": "¿j < TAM_BUFFER y cont1 < NUM_TRAMAS?",
+      "text_tech": "j < TAM_BUFFER && cont1 < NUM_TRAMAS"
+    },
+    {
+      "call_id": null,
+      "id": "n22",
+      "kind": "decision",
+      "line_end": 135,
+      "line_start": 135,
+      "target_symbol": null,
+      "text_easy": "¿Buffer[j - 1] = '$' y Buffer[j] = 'G'?",
+      "text_tech": "Buffer[j - 1] == '$' && Buffer[j] == 'G'"
+    },
+    {
+      "call_id": null,
+      "id": "n23",
+      "kind": "decision",
+      "line_end": 136,
+      "line_start": 136,
+      "target_symbol": null,
+      "text_easy": "¿strncmp(&Buffer[j], \"GPRMC\", 5) = 0?",
+      "text_tech": "strncmp(&Buffer[j], \"GPRMC\", 5) == 0"
+    },
+    {
+      "call_id": "b535427dcc20",
+      "id": "n24",
+      "kind": "subproceso",
+      "line_end": 137,
+      "line_start": 137,
+      "target_symbol": "c6bfb9a57fd7",
+      "text_easy": "Llama a DesglosaGPRMC()",
+      "text_tech": "DesglosaGPRMC(j)"
+    },
+    {
+      "call_id": null,
+      "id": "n25",
+      "kind": "decision",
+      "line_end": 138,
+      "line_start": 138,
+      "target_symbol": null,
+      "text_easy": "¿strncmp(&Buffer[j], \"GPGGA\", 5) = 0?",
+      "text_tech": "strncmp(&Buffer[j], \"GPGGA\", 5) == 0"
+    },
+    {
+      "call_id": "814e3c6a7c0c",
+      "id": "n26",
+      "kind": "subproceso",
+      "line_end": 139,
+      "line_start": 139,
+      "target_symbol": "69ba2472a654",
+      "text_easy": "Llama a DesglosaGPGGA()",
+      "text_tech": "DesglosaGPGGA(j)"
+    },
+    {
+      "call_id": null,
+      "id": "n27",
+      "kind": "decision",
+      "line_end": 140,
+      "line_start": 140,
+      "target_symbol": null,
+      "text_easy": "¿strncmp(&Buffer[j], \"GPGSA\", 5) = 0?",
+      "text_tech": "strncmp(&Buffer[j], \"GPGSA\", 5) == 0"
+    },
+    {
+      "call_id": "953b0b4ed4f8",
+      "id": "n28",
+      "kind": "subproceso",
+      "line_end": 141,
+      "line_start": 141,
+      "target_symbol": "8de890aa93bd",
+      "text_easy": "Llama a DesglosaGPGSA()",
+      "text_tech": "DesglosaGPGSA(j)"
+    },
+    {
+      "call_id": null,
+      "id": "n29",
+      "kind": "decision",
+      "line_end": 142,
+      "line_start": 142,
+      "target_symbol": null,
+      "text_easy": "¿strncmp(&Buffer[j], \"GPVTG\", 5) = 0?",
+      "text_tech": "strncmp(&Buffer[j], \"GPVTG\", 5) == 0"
+    },
+    {
+      "call_id": "c688cf9d9a6f",
+      "id": "n30",
+      "kind": "subproceso",
+      "line_end": 143,
+      "line_start": 143,
+      "target_symbol": "24c733d208e4",
+      "text_easy": "Llama a DesglosaGPVTG()",
+      "text_tech": "DesglosaGPVTG(j)"
+    },
+    {
+      "call_id": null,
+      "id": "n31",
+      "kind": "proceso",
+      "line_end": 145,
+      "line_start": 145,
+      "target_symbol": null,
+      "text_easy": "cont1++",
+      "text_tech": "cont1++"
+    },
+    {
+      "call_id": null,
+      "id": "n32",
+      "kind": "decision",
+      "line_end": 146,
+      "line_start": 146,
+      "target_symbol": null,
+      "text_easy": "¿Buffer[j - 1] = '$' y Buffer[j] = 'P'?",
+      "text_tech": "Buffer[j - 1] == '$' && Buffer[j] == 'P'"
+    },
+    {
+      "call_id": null,
+      "id": "n33",
+      "kind": "decision",
+      "line_end": 147,
+      "line_start": 147,
+      "target_symbol": null,
+      "text_easy": "¿strncmp(&Buffer[j], \"PGRME\", 5) = 0?",
+      "text_tech": "strncmp(&Buffer[j], \"PGRME\", 5) == 0"
+    },
+    {
+      "call_id": "e61a7b99bef2",
+      "id": "n34",
+      "kind": "subproceso",
+      "line_end": 148,
+      "line_start": 148,
+      "target_symbol": "7ff4951c61d6",
+      "text_easy": "Llama a DesglosaPGRME()",
+      "text_tech": "DesglosaPGRME(j)"
+    },
+    {
+      "call_id": null,
+      "id": "n35",
+      "kind": "decision",
+      "line_end": 149,
+      "line_start": 149,
+      "target_symbol": null,
+      "text_easy": "¿strncmp(&Buffer[j], \"PGRMV\", 5) = 0?",
+      "text_tech": "strncmp(&Buffer[j], \"PGRMV\", 5) == 0"
+    },
+    {
+      "call_id": "38f0b2d25fad",
+      "id": "n36",
+      "kind": "subproceso",
+      "line_end": 150,
+      "line_start": 150,
+      "target_symbol": "a869ab3bddb4",
+      "text_easy": "Llama a DesglosaPGRMV()",
+      "text_tech": "DesglosaPGRMV(j)"
+    },
+    {
+      "call_id": null,
+      "id": "n37",
+      "kind": "proceso",
+      "line_end": 152,
+      "line_start": 152,
+      "target_symbol": null,
+      "text_easy": "cont1++",
+      "text_tech": "cont1++"
+    },
+    {
+      "call_id": null,
+      "id": "n38",
+      "kind": "proceso",
+      "line_end": 154,
+      "line_start": 154,
+      "target_symbol": null,
+      "text_easy": "j++",
+      "text_tech": "j++"
+    },
+    {
+      "call_id": "25a0a36e50db",
+      "id": "n39",
+      "kind": "subproceso",
+      "line_end": 157,
+      "line_start": 157,
+      "target_symbol": "b9e201dcb086",
+      "text_easy": "Llama a cerrar_puerto()",
+      "text_tech": "cerrar_puerto()"
+    },
+    {
+      "call_id": null,
+      "id": "n40",
+      "kind": "proceso",
+      "line_end": 158,
+      "line_start": 158,
+      "target_symbol": null,
+      "text_easy": "Retorna 0",
+      "text_tech": "return 0"
+    },
+    {
+      "call_id": null,
+      "id": "n41",
+      "kind": "terminal",
+      "line_end": 159,
+      "line_start": 159,
+      "target_symbol": null,
+      "text_easy": "Fin",
+      "text_tech": "Fin"
+    }
+  ],
+  "symbol_id": "40080fb94f63",
+  "truncated": false
+}

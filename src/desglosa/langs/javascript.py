@@ -236,5 +236,9 @@ class Hooks(LangHooks):
             return node.child_by_field_name("value")
         return node.child_by_field_name("condition")
 
+    def catch_label(self, node: Node, src: Src) -> str:
+        # `catch (e)` solo nombra la variable, no el tipo de excepción.
+        return ""
+
 
 HOOKS = Hooks(SPEC)

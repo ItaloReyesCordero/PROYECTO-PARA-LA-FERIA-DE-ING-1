@@ -137,6 +137,7 @@ def _analysis_options(args: argparse.Namespace):
         scan=scan_opts,
         jobs=args.jobs,
         max_flow_nodes=getattr(args, "max_flow_nodes", 120),
+        flow_max_height=getattr(args, "flow_max_height", 1600),
     )
 
 
@@ -174,6 +175,77 @@ def cmd_export_ir(args: argparse.Namespace) -> int:
         print(summary(analysis))
         print(f"IR escrito en {args.output}")
     return EXIT_OK
+
+
+def _find_symbol(analysis, spec: str):
+    """`archivo:funcion` → símbolo (acepta nombre corto o calificado)."""
+    file_part, sep, func = spec.rpartition(":")
+    if not sep:
+        file_part, func = "", spec
+    file_part = file_part.replace("\\", "/").lstrip("./")
+    cands = [
+        s
+        for s in analysis.project.symbols
+        if s.kind in ("function", "method")
+        and (not file_part or s.file == file_part or s.file.endswith("/" + file_part))
+        and (s.qualname == func or s.name == func)
+    ]
+    return cands
+
+
+def cmd_flow(args: argparse.Namespace) -> int:
+    from desglosa.render.html import render_html
+    from desglosa.render.payload import build_payload, reachable
+
+    analysis, code = _run_analysis(args)
+    if analysis is None:
+        return code
+    cands = _find_symbol(analysis, args.function)
+    if not cands:
+        print(f"No encontré la función {args.function!r}.", file=sys.stderr)
+        sample = [
+            f"{s.file}:{s.qualname}"
+            for s in analysis.project.symbols
+            if s.kind in ("function", "method")
+        ][:15]
+        if sample:
+            print("Algunas disponibles:\n  " + "\n  ".join(sample), file=sys.stderr)
+        return EXIT_USAGE
+    if len(cands) > 1:
+        print(f"{args.function!r} es ambiguo. Usa archivo:Clase.metodo:", file=sys.stderr)
+        for s in cands:
+            print(f"  {s.file}:{s.qualname}", file=sys.stderr)
+        return EXIT_USAGE
+    sym = cands[0]
+    if sym.id not in analysis.flows:
+        print(f"{sym.qualname} no tiene cuerpo para dibujar.", file=sys.stderr)
+        return EXIT_USAGE
+    only = reachable(analysis, sym.id)
+    payload = build_payload(
+        analysis, include_source=not args.no_source, only=only, start=f"#/flujo/{sym.id}"
+    )
+    title = f"{sym.qualname} — Desglosa"
+    _write_text(args.output, render_html(payload, title))
+    flow = analysis.flows[sym.id]
+    print(
+        f"Flujo de {sym.qualname} ({sym.file}:{sym.line_start}): "
+        f"{len(flow.graph.nodes)} nodos, {flow.layout.columns} columna(s)."
+    )
+    print(f"HTML escrito en {args.output}")
+    return EXIT_OK
+
+
+def _add_flow_args(p: argparse.ArgumentParser) -> None:
+    p.add_argument(
+        "--max-flow-nodes", type=int, default=120, help="nodos máximos por flujo (def. 120)"
+    )
+    p.add_argument(
+        "--flow-max-height",
+        type=float,
+        default=1600,
+        help="alto máximo de una columna del flujo en px (def. 1600)",
+    )
+    p.add_argument("--no-source", action="store_true", help="no incluir el código fuente")
 
 
 def _add_analysis_args(p: argparse.ArgumentParser) -> None:
@@ -227,6 +299,13 @@ def build_parser() -> argparse.ArgumentParser:
     _add_analysis_args(p)
     p.add_argument("-o", "--output", default="ir.json", help="archivo de salida ('-' = pantalla)")
     p.set_defaults(func=cmd_export_ir)
+
+    p = sub.add_parser("flow", help="genera el diagrama de flujo de una función")
+    _add_analysis_args(p)
+    p.add_argument("function", metavar="archivo:funcion", help="p. ej. gps.c:main")
+    _add_flow_args(p)
+    p.add_argument("-o", "--output", default="flujo.html", help="archivo HTML de salida")
+    p.set_defaults(func=cmd_flow)
 
     return parser
 

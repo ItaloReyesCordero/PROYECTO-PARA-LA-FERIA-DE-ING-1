@@ -107,7 +107,10 @@ def decode_bytes(data: bytes) -> tuple[str, str]:
 
 
 def count_lines(text: str) -> int:
-    return len(text.splitlines())
+    # No usar splitlines(): también corta en U+2028, \x0c, etc. y no coincidiría con tree-sitter.
+    if not text:
+        return 0
+    return text.count("\n") + (0 if text.endswith("\n") else 1)
 
 
 def looks_minified(text: str) -> bool:

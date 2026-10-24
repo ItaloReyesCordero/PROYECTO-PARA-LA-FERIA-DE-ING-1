@@ -2,6 +2,14 @@
 
 ## [Sin publicar]
 
+### Fase 2 — Diagrama de flujo
+- Diagrama de flujo por función con los símbolos clásicos y todas las construcciones de
+  control (if/else if, bucles, do-while, switch, try/catch/finally, saltos).
+- Layout estructurado con carriles para bucles, escaleras para `else if`, columnas con
+  conectores y enrutado de `break`/`continue` sin cruzar nodos.
+- Visor HTML autocontenido (modo fácil/técnico, temas, zoom, leyenda, código, export).
+- Comando `flow` y ejemplo GPS en C.
+
 ### Fase 1 — Extracción
 - `scan`: recorrido ordenado, `.gitignore`/`.desglosaignore`/`--ignore`, minificados, binarios.
 - Modelo intermedio (IR) con ids estables y JSON determinista.

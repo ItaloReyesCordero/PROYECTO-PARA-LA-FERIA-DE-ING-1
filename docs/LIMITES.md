@@ -1,0 +1,37 @@
+# Límites conocidos
+
+Desglosa hace **análisis estático**: lee el código, nunca lo ejecuta. Eso trae límites
+que conviene conocer (y explicar en la feria) en vez de esconder.
+
+## Resolución de llamadas
+- **Inyección de dependencias e interfaces**: si una variable es de tipo interfaz, no se
+  sabe qué clase llegará en tiempo de ejecución. Se muestran las *posibles
+  implementaciones* conocidas (confianza "probable").
+- **Llamadas dinámicas** (`$obj->$metodo()`, reflexión, callbacks, metaprogramación de
+  Ruby, `getattr`) quedan como "externa" o "ambigua". Nunca se adivina.
+- El tipo de una variable solo se conoce si hay una pista en la misma función o clase:
+  anotación de tipo, parámetro tipado, `x = new Clase()` o un atributo asignado así.
+- En C/C++, una función se considera "importada" si el archivo incluye un `.h` con el
+  mismo nombre base que el `.c` donde está definida (`pago.h` ↔ `pago.c`).
+
+## Diagramas de flujo
+- **Macros y `#ifdef`** de C/C++/Rust no se expanden: se dibuja el código tal como está.
+- **Control de flujo dentro de expresiones** (ternarios `a ? b : c`, `&&`/`||` en
+  cortocircuito, lambdas, comprensiones de listas) queda dentro del texto del nodo.
+- **`goto`** se dibuja como un nodo "goto etiqueta (no soportado)" y se emite una
+  advertencia; el diagrama no sigue el salto.
+- **Funciones gigantes**: si pasan de `--max-flow-nodes` (120), los bloques más profundos
+  se colapsan en un nodo "Bloque (L12–L40)".
+- **El modo fácil reformula, no explica**: traduce operadores y usa plantillas en español
+  ("¿total > 0?", "Para cada item en items"), pero no entiende la intención del código.
+
+## Errores de sintaxis
+- Los archivos con errores se analizan igual y se cuenta cuántos errores tienen.
+- La recuperación de errores de tree-sitter puede "tragarse" el código que sigue a un
+  paréntesis o llave sin cerrar; esas funciones pueden no aparecer.
+
+## Escaneo
+- Las reglas de `.gitignore` de subcarpetas se aplican, pero una negación (`!archivo`)
+  en un `.gitignore` no deshace una regla de otro `.gitignore` distinto.
+- La detección de minificados (línea promedio > 200 o alguna línea > 2000 caracteres)
+  no se aplica a archivos `.sql` (los volcados de datos suelen tener líneas largas).

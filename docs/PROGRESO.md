@@ -83,3 +83,58 @@ uv run desglosa doctor
 uv run desglosa export-ir tests/fixtures/php -o ir.json
 uv run pytest -q
 ```
+
+---
+
+## Fase 2 — Diagrama de flujo ✅
+
+**Qué se hizo**
+- `flow.py`: AST de una función → `FlowGraph` con el algoritmo de "salidas abiertas"
+  (§7.1): secuencias agrupadas (máx. 4 sentencias por proceso), subprocesos clicables,
+  E/S (pantalla, teclado, documento, E/S), if/elif/else, while, for clásico (con nodos de
+  inicialización e incremento), for-each, do-while, switch/match con fallthrough,
+  try/catch/finally, return, break, continue, throw, goto (marcado como no soportado),
+  límite `--max-flow-nodes` que colapsa los bloques más profundos.
+- `layout/flow.py`: layout estructurado propio (§7.4). Eje vertical común, "sí" abajo y
+  "no" a la derecha, carril izquierdo para el retorno de bucles, salida por la derecha,
+  `break`/`continue` enrutados sin cruzar nodos (o con conectores A, B… si no hay camino),
+  columnas con conectores numerados cuando el alto pasa de `--flow-max-height`.
+- Visor HTML (`render/`): un único archivo con CSS y JS en línea, datos JSON escapados,
+  modo fácil/técnico, tema claro/oscuro, zoom con rueda, arrastre, leyenda solo con los
+  tipos presentes, panel con el código y la línea resaltada, export SVG/PNG.
+- Comando `desglosa flow <ruta> <archivo>:<funcion>`. Fixture GPS en `examples/gps-c/`.
+- Tests (85 en total): golden del FlowGraph de `emitir` en los 7 lenguajes y de
+  `gps.c:main`; todos los nodos alcanzables; **ningún nodo superpuesto, ninguna línea que
+  atraviese un nodo, ninguna etiqueta tapando un nodo** (en todos los flujos de los
+  fixtures); HTML sin `http(s)://`, `</script>` escapado, determinista (mismo SHA-256).
+
+**Qué falló / encontré**
+- Las cadenas `if / else if` en diagonal hacían el diagrama GPS muy ancho → ahora se
+  dibujan como **escalera** (rombos apilados por el "no", ramas "sí" a la derecha).
+- Las columnas quedaban desbalanceadas (una con 3 nodos) → reparto de alto parejo.
+- `str.splitlines()` corta en U+2028 y desfasaba el conteo de líneas → se cuenta `\n`.
+
+**Decisiones (revísalas)**
+1. **Varios "Fin"**: cada `return` dentro de un if/bucle lleva su propio terminal "Fin"
+   justo debajo (como en los diagramas a mano) en vez de una línea larga hasta el final.
+   Un `throw` sin `catch` termina en "Fin (excepción)".
+2. **Cláusula de guarda**: si la rama "sí" termina (return/throw/break), se dibuja al
+   costado y el camino principal sigue recto hacia abajo.
+3. **Modo fácil**: las decisiones son preguntas (`¿total > 0?`), los for-each dicen
+   `Para cada x en xs` y el switch `Según x`. Los operadores se traducen (§7.2).
+4. Una sentencia que es **solo una llamada no resuelta** (`archivo.write(…)`) es un nodo
+   "externo" gris punteado; si la llamada está dentro de una asignación, queda en el proceso.
+5. Los **rombos cuya condición llama a una función del proyecto** también son clicables
+   (`¿emitir(factura)?` abre el flujo de `emitir`).
+6. **E/S que no son llamadas**: `echo` (PHP), `cout <<`, `cin >>` y `ofstream` (C++).
+7. El layout se calcula en Python (determinista); el navegador solo dibuja. Un mismo layout
+   sirve para los dos modos (cada caja mide lo que el texto más largo de los dos), así al
+   cambiar de modo los nodos no se mueven.
+8. Además de `<`, `>`, `&`, U+2028/2029, el JSON escapa `/` como `\/`: así una URL que
+   aparezca en un comentario del código no rompe la regla "el HTML no contiene http://".
+
+**Probar**
+```powershell
+uv run desglosa flow examples/gps-c gps.c:main -o gps.html
+start gps.html
+```

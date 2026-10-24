@@ -11,6 +11,7 @@ from pathlib import Path
 
 from desglosa import grammars, langs
 from desglosa.extract import FileResult, extract_file
+from desglosa.flows_stage import FlowOutput, make_tasks, run_tasks
 from desglosa.ir import CONFIDENCES, Project, SourceFile
 from desglosa.resolve import resolve
 from desglosa.scan import ScanOptions, ScanResult, grammar_for, scan
@@ -24,6 +25,8 @@ class AnalyzeOptions:
     scan: ScanOptions = field(default_factory=ScanOptions)
     jobs: int | None = None
     max_flow_nodes: int = 120
+    flow_max_height: float = 1600
+    flows: bool = True
 
 
 @dataclass
@@ -32,6 +35,7 @@ class Analysis:
     scan: ScanResult
     results: list[FileResult]
     seconds: float
+    flows: dict[str, FlowOutput] = field(default_factory=dict)
 
 
 def required_grammars(result: ScanResult) -> set[str]:
@@ -97,15 +101,27 @@ def analyze(target: Path | str, options: AnalyzeOptions | None = None) -> Analys
     files = sorted([r.file for r in results] + scanned.skipped, key=lambda f: f.path)
     warnings = [w for r in results for w in r.warnings]
     warnings += [f"{s.path}: saltado ({s.skipped_reason})" for s in scanned.skipped]
+    flows: dict[str, FlowOutput] = {}
+    if options.flows:
+        tasks = make_tasks(
+            str(scanned.root), symbols, calls, options.max_flow_nodes, options.flow_max_height
+        )
+        for out in run_tasks(tasks, _jobs_for(len(tasks), options.jobs)):
+            flows[out.graph.symbol_id] = out
+            warnings.extend(out.warnings)
+    order = {s.id: i for i, s in enumerate(symbols)}
     project = Project(
         root_name=scanned.root_name,
         files=tuple(files),
         symbols=tuple(symbols),
         imports=tuple(imports),
         calls=tuple(calls),
+        flows=tuple(
+            f.graph for f in sorted(flows.values(), key=lambda f: order[f.graph.symbol_id])
+        ),
         warnings=tuple(sorted(warnings)),
     )
-    return Analysis(project, scanned, results, time.perf_counter() - start)
+    return Analysis(project, scanned, results, time.perf_counter() - start, flows)
 
 
 def summary(analysis: Analysis) -> str:

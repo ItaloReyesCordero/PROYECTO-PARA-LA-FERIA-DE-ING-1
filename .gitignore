@@ -12,6 +12,7 @@ wheels/
 # Herramientas
 .pytest_cache/
 .ruff_cache/
+.playwright-mcp/
 
 # Salidas generadas al probar (los ejemplos oficiales viven en examples/)
 /*.html

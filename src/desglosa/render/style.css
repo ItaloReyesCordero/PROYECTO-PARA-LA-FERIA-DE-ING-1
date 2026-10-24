@@ -1,0 +1,219 @@
+/* Desglosa — estilos del visor. Tokens de color según SPEC §11.3. */
+:root {
+  --fondo: #0b1120;
+  --rejilla: #1e293b;
+  --superficie: #0f172a;
+  --superficie-2: #111c33;
+  --borde: #1f2a44;
+  --texto: #e5e7eb;
+  --texto-suave: #94a3b8;
+  --linea: #94a3b8;
+  --acento: #60a5fa;
+  --foco: #fbbf24;
+
+  --c-terminal: #34d399;
+  --c-proceso: #60a5fa;
+  --c-subproceso: #a78bfa;
+  --c-decision: #fbbf24;
+  --c-es: #22d3ee;
+  --c-teclado: #22d3ee;
+  --c-pantalla: #f472b6;
+  --c-documento: #f472b6;
+  --c-excepcion: #fb7185;
+  --c-externo: #94a3b8;
+  --c-conector: #94a3b8;
+  --c-modulo: #818cf8;
+  --c-clase: #60a5fa;
+  --c-funcion: #a78bfa;
+  --c-entrada: #34d399;
+  --c-tabla: #fb923c;
+  --relleno: 0.18;
+
+  --mono: ui-monospace, "Cascadia Mono", "Consolas", "SFMono-Regular", Menlo, monospace;
+  --sans: system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  color-scheme: dark;
+}
+
+[data-tema="claro"] {
+  --fondo: #f8fafc;
+  --rejilla: #e2e8f0;
+  --superficie: #ffffff;
+  --superficie-2: #f1f5f9;
+  --borde: #cbd5e1;
+  --texto: #0f172a;
+  --texto-suave: #475569;
+  --linea: #475569;
+  --acento: #2563eb;
+  --foco: #b45309;
+
+  --c-terminal: #059669;
+  --c-proceso: #2563eb;
+  --c-subproceso: #7c3aed;
+  --c-decision: #b45309;
+  --c-es: #0891b2;
+  --c-teclado: #0891b2;
+  --c-pantalla: #db2777;
+  --c-documento: #db2777;
+  --c-excepcion: #e11d48;
+  --c-externo: #64748b;
+  --c-conector: #64748b;
+  --c-modulo: #4f46e5;
+  --c-clase: #2563eb;
+  --c-funcion: #7c3aed;
+  --c-entrada: #059669;
+  --c-tabla: #c2410c;
+  --relleno: 0.14;
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body {
+  background: var(--fondo);
+  color: var(--texto);
+  font: 14px/1.45 var(--sans);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--foco); outline-offset: 2px; }
+
+/* ---------------------------------------------------------------- barra superior */
+.barra {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  padding: 8px 14px; background: var(--superficie); border-bottom: 1px solid var(--borde);
+}
+.marca { font-weight: 700; letter-spacing: .02em; }
+.marca span { color: var(--acento); }
+.migas { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; min-width: 0; flex: 1; }
+.migas a, .migas span { color: var(--texto-suave); text-decoration: none; white-space: nowrap; }
+.migas a:hover { color: var(--texto); text-decoration: underline; }
+.migas .actual { color: var(--texto); font-weight: 600; }
+.migas .sep { opacity: .6; }
+.herramientas { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.boton {
+  background: var(--superficie-2); border: 1px solid var(--borde); border-radius: 6px;
+  padding: 4px 10px; cursor: pointer; line-height: 1.4;
+}
+.boton:hover { border-color: var(--acento); }
+.boton[aria-pressed="true"] { border-color: var(--acento); color: var(--acento); }
+.buscador { position: relative; }
+.buscador input {
+  background: var(--superficie-2); border: 1px solid var(--borde); border-radius: 6px;
+  padding: 4px 10px; width: 220px;
+}
+.resultados {
+  position: absolute; top: 110%; left: 0; right: 0; z-index: 10; list-style: none; margin: 0;
+  padding: 4px; background: var(--superficie); border: 1px solid var(--borde); border-radius: 6px;
+  max-height: 320px; overflow: auto;
+}
+.resultados li { padding: 4px 8px; border-radius: 4px; cursor: pointer; }
+.resultados li[aria-selected="true"], .resultados li:hover { background: var(--superficie-2); }
+.resultados small { color: var(--texto-suave); margin-left: 6px; }
+
+/* ---------------------------------------------------------------- cuerpo */
+.cuerpo { flex: 1; display: flex; min-height: 0; }
+.escenario { flex: 1; position: relative; min-width: 0; display: flex; flex-direction: column; }
+.pestanas { display: flex; gap: 2px; padding: 6px 14px 0; }
+.pestanas button {
+  background: transparent; border: 1px solid transparent; border-bottom: none;
+  padding: 4px 12px; border-radius: 6px 6px 0 0; cursor: pointer; color: var(--texto-suave);
+}
+.pestanas button[aria-selected="true"] {
+  background: var(--superficie); border-color: var(--borde); color: var(--texto);
+}
+.info { padding: 6px 14px; color: var(--texto-suave); font-size: 13px; }
+.info .doc { color: var(--texto); white-space: pre-wrap; }
+.lienzo {
+  flex: 1; position: relative; overflow: hidden; cursor: grab;
+  background-color: var(--fondo);
+  background-image:
+    linear-gradient(to right, var(--rejilla) 0.5px, transparent 0.5px),
+    linear-gradient(to bottom, var(--rejilla) 0.5px, transparent 0.5px);
+  background-size: 40px 40px;
+}
+.lienzo.arrastrando { cursor: grabbing; }
+.lienzo svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.vacio { padding: 40px; color: var(--texto-suave); text-align: center; }
+
+.leyenda {
+  position: absolute; left: 12px; bottom: 12px; display: flex; flex-wrap: wrap; gap: 10px;
+  max-width: calc(100% - 24px); padding: 6px 10px; border-radius: 8px;
+  background: var(--superficie); border: 1px solid var(--borde); font-size: 12px;
+}
+.leyenda .item { display: flex; align-items: center; gap: 6px; color: var(--texto-suave); }
+.leyenda svg { width: 26px; height: 16px; position: static; }
+
+/* ---------------------------------------------------------------- panel lateral */
+.panel {
+  width: 420px; max-width: 45vw; border-left: 1px solid var(--borde); background: var(--superficie);
+  display: flex; flex-direction: column; min-height: 0;
+}
+.panel[hidden] { display: none; }
+.panel h2 { font-size: 14px; margin: 0; padding: 10px 14px 4px; }
+.panel .meta { padding: 0 14px 8px; color: var(--texto-suave); font-size: 12px; }
+.panel .meta code { font-family: var(--mono); color: var(--texto); }
+.panel .seccion { padding: 4px 14px 8px; font-size: 13px; }
+.panel .seccion h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .05em;
+  color: var(--texto-suave); margin: 6px 0 4px; }
+.panel .seccion ul { margin: 0; padding-left: 18px; }
+.panel .seccion a { color: var(--acento); cursor: pointer; text-decoration: none; }
+.panel .seccion a:hover { text-decoration: underline; }
+.codigo {
+  flex: 1; overflow: auto; margin: 0; padding: 8px 0; font: 12px/1.5 var(--mono);
+  background: var(--superficie-2); border-top: 1px solid var(--borde); counter-reset: none;
+}
+.codigo .ln { display: flex; padding: 0 10px 0 0; white-space: pre; }
+.codigo .ln .num { width: 48px; flex: none; text-align: right; padding-right: 10px;
+  color: var(--texto-suave); user-select: none; }
+.codigo .ln.marcada { background: color-mix(in srgb, var(--acento) 18%, transparent); }
+
+/* ---------------------------------------------------------------- SVG: nodos */
+.nodo .forma { fill: var(--c); fill-opacity: var(--relleno); stroke: var(--c); stroke-width: 1.6; }
+.nodo .linea-interna { stroke: var(--c); stroke-width: 1.4; }
+.nodo text { fill: var(--texto); font: 12px var(--mono); dominant-baseline: middle; }
+.nodo.clicable { cursor: pointer; }
+.nodo.clicable:hover .forma, .nodo.clicable:focus .forma { stroke-width: 3; }
+.nodo.seleccionado .forma { stroke-width: 3; stroke: var(--foco); }
+.nodo.atenuado { opacity: .25; }
+.k-terminal { --c: var(--c-terminal); }
+.k-proceso { --c: var(--c-proceso); }
+.k-subproceso { --c: var(--c-subproceso); }
+.k-decision { --c: var(--c-decision); }
+.k-es { --c: var(--c-es); }
+.k-teclado { --c: var(--c-teclado); }
+.k-pantalla { --c: var(--c-pantalla); }
+.k-documento { --c: var(--c-documento); }
+.k-externo { --c: var(--c-externo); }
+.k-externo .forma { stroke-dasharray: 4 3; }
+.k-conector { --c: var(--c-conector); }
+.k-modulo { --c: var(--c-modulo); }
+.k-clase { --c: var(--c-clase); }
+.k-interfaz { --c: var(--c-clase); }
+.k-funcion { --c: var(--c-funcion); }
+.k-entrada { --c: var(--c-entrada); }
+.k-tabla { --c: var(--c-tabla); }
+.k-otros { --c: var(--c-externo); }
+.k-otros .forma { stroke-dasharray: 4 3; }
+
+/* ---------------------------------------------------------------- SVG: aristas */
+.arista { fill: none; stroke: var(--linea); stroke-width: 1.5; }
+.arista.k-excepcion { stroke: var(--c-excepcion); stroke-dasharray: 5 4; }
+.arista.c-exacta { stroke-width: 1.8; }
+.arista.c-probable { stroke-dasharray: 6 4; }
+.arista.c-ambigua { stroke-dasharray: 2 4; }
+.arista.c-externa { stroke: var(--c-externo); stroke-width: 1; stroke-dasharray: 1 3; }
+.arista.atenuado, .etiqueta.atenuado { opacity: .15; }
+.arista.resaltada { stroke: var(--foco); stroke-width: 2.4; }
+.punta { fill: var(--linea); }
+.punta-exc { fill: var(--c-excepcion); }
+.punta-foco { fill: var(--foco); }
+.etiqueta rect { fill: var(--superficie); stroke: var(--borde); stroke-width: .6; }
+.etiqueta text { fill: var(--texto-suave); font: 11px var(--mono); dominant-baseline: middle; }
+
+@media print {
+  .barra, .panel, .pestanas, .leyenda, .herramientas { display: none !important; }
+  body { overflow: visible; height: auto; background: #fff; }
+  .lienzo { background: #fff; overflow: visible; }
+}
