@@ -1,0 +1,19 @@
+# Archivos generados por Python
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Entornos virtuales
+.venv
+
+# Herramientas
+.pytest_cache/
+.ruff_cache/
+
+# Salidas generadas al probar (los ejemplos oficiales viven en examples/)
+/*.html
+/ir.json
+/reporte.md

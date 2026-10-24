@@ -1,0 +1,176 @@
+"""Interfaz de línea de comandos de Desglosa (argparse, SPEC §12).
+
+Códigos de salida: 0 ok, 1 error de uso, 2 faltan gramáticas.
+"""
+
+from __future__ import annotations
+
+import argparse
+import platform
+import sys
+from importlib import metadata
+from pathlib import Path
+
+from desglosa import __version__, grammars
+from desglosa.scan import detect_language, grammar_for
+
+EXIT_OK = 0
+EXIT_USAGE = 1
+EXIT_GRAMMARS = 2
+
+
+def _pkg_version(name: str) -> str:
+    try:
+        return metadata.version(name)
+    except metadata.PackageNotFoundError:
+        return "no instalado"
+
+
+# --------------------------------------------------------------------------- setup / doctor
+
+
+def cmd_setup(args: argparse.Namespace) -> int:
+    print("Descargando gramáticas tree-sitter (única vez que Desglosa usa internet)...")
+    try:
+        count = grammars.setup()
+    except Exception as exc:  # errores de red del paquete externo
+        print(f"Error al descargar las gramáticas: {exc}", file=sys.stderr)
+        return EXIT_GRAMMARS
+    missing = set(grammars.ALL_GRAMMARS) - grammars.downloaded()
+    if missing:
+        print(f"Quedaron sin descargar: {', '.join(sorted(missing))}", file=sys.stderr)
+        return EXIT_GRAMMARS
+    print(f"Listo: {count} gramáticas disponibles sin conexión.")
+    return EXIT_OK
+
+
+def cmd_doctor(args: argparse.Namespace) -> int:
+    print(f"Desglosa {__version__}")
+    print(f"Python {platform.python_version()} ({sys.executable})")
+    for pkg in ("tree-sitter", "tree-sitter-language-pack", "sqlglot", "pathspec"):
+        print(f"  {pkg}: {_pkg_version(pkg)}")
+    have = grammars.downloaded()
+    print("Gramáticas:")
+    ok = 0
+    for name in grammars.LANGS:
+        status = "OK" if name in have else "FALTA"
+        ok += status == "OK"
+        print(f"  {name:<12} {status}")
+    for name in grammars.EXTRA_GRAMMARS:
+        status = "OK" if name in have else "FALTA"
+        print(f"  {name:<12} {status}   (extra: archivos .tsx)")
+    total = len(grammars.LANGS)
+    print(f"{ok}/{total} lenguajes listos.")
+    if ok < total or not set(grammars.EXTRA_GRAMMARS) <= have:
+        print("Ejecuta una vez: desglosa setup")
+        return EXIT_GRAMMARS
+    return EXIT_OK
+
+
+# --------------------------------------------------------------------------- debug-ast
+
+
+def _short_text(node, limit: int = 50) -> str:
+    text = node.text.decode("utf-8", errors="replace") if node.text is not None else ""
+    text = " ".join(text.split())
+    if len(text) > limit:
+        text = text[: limit - 3] + "..."
+    return text
+
+
+def _print_ast(node, depth: int, max_depth: int, show_all: bool, field: str | None) -> None:
+    indent = "  " * depth
+    label = f"{field}: " if field else ""
+    start, end = node.start_point[0] + 1, node.end_point[0] + 1
+    lines = f"L{start}" if start == end else f"L{start}-L{end}"
+    extra = ""
+    if node.named_child_count == 0 or depth == max_depth:
+        extra = f'  "{_short_text(node)}"'
+    error = "  <ERROR>" if node.type == "ERROR" or node.is_missing else ""
+    print(f"{indent}{label}{node.type} {lines}{extra}{error}")
+    if depth >= max_depth:
+        return
+    for i, child in enumerate(node.children):
+        if not show_all and not child.is_named:
+            continue
+        _print_ast(child, depth + 1, max_depth, show_all, node.field_name_for_child(i))
+
+
+def cmd_debug_ast(args: argparse.Namespace) -> int:
+    path = Path(args.file)
+    if not path.is_file():
+        print(f"No existe el archivo: {path}", file=sys.stderr)
+        return EXIT_USAGE
+    lang = args.lang or detect_language(path, h_as=args.h_as)
+    if lang is None:
+        print(f"No sé qué lenguaje es {path.name}. Usa --lang.", file=sys.stderr)
+        return EXIT_USAGE
+    grammar = grammar_for(path, lang)
+    try:
+        parser = grammars.get_parser(grammar)
+    except grammars.MissingGrammarError as exc:
+        print(str(exc), file=sys.stderr)
+        return EXIT_GRAMMARS
+    tree = parser.parse(path.read_bytes())
+    print(f"# {path.name} — gramática: {grammar}")
+    _print_ast(tree.root_node, 0, args.depth, args.all, None)
+    return EXIT_OK
+
+
+# --------------------------------------------------------------------------- parser
+
+
+class _Parser(argparse.ArgumentParser):
+    """argparse sale con 2 en errores de uso; la SPEC reserva el 2 para gramáticas."""
+
+    def error(self, message: str):  # type: ignore[override]
+        self.print_usage(sys.stderr)
+        self.exit(EXIT_USAGE, f"{self.prog}: error: {message}\n")
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = _Parser(
+        prog="desglosa",
+        description="Convierte código fuente en un HTML interactivo (mapa, flujo, secuencia, ER). "
+        "Sin IA y sin internet.",
+    )
+    parser.add_argument("--version", action="version", version=f"desglosa {__version__}")
+    sub = parser.add_subparsers(dest="command", metavar="comando")
+
+    p = sub.add_parser("setup", help="descarga las gramáticas (única vez que usa internet)")
+    p.set_defaults(func=cmd_setup)
+
+    p = sub.add_parser("doctor", help="verifica versiones y gramáticas disponibles")
+    p.set_defaults(func=cmd_doctor)
+
+    p = sub.add_parser("debug-ast", help="imprime el árbol sintáctico de un archivo")
+    p.add_argument("file", help="archivo a analizar")
+    p.add_argument("--depth", type=int, default=6, help="profundidad máxima (por defecto 6)")
+    p.add_argument("--lang", help="forzar lenguaje (python, php, c, ...)")
+    p.add_argument("--h-as", choices=("c", "cpp"), default="c", help="lenguaje para archivos .h")
+    p.add_argument("--all", action="store_true", help="incluir nodos anónimos (puntuación)")
+    p.set_defaults(func=cmd_debug_ast)
+
+    return parser
+
+
+def _configure_console() -> None:
+    # En consolas Windows con cp1252 evitamos que un carácter raro tumbe el programa.
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is not None:
+            reconfigure(errors="replace")
+
+
+def main(argv: list[str] | None = None) -> int:
+    _configure_console()
+    parser = build_parser()
+    args = parser.parse_args(argv)
+    if not getattr(args, "func", None):
+        parser.print_help()
+        return EXIT_USAGE
+    return args.func(args)
+
+
+if __name__ == "__main__":
+    sys.exit(main())
