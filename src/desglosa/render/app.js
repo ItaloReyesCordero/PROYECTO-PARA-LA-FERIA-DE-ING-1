@@ -289,7 +289,7 @@
     if (item.kind === "tabla") { go("er", null, { focus: item.id }); return; }
     const sym = SYMBOLS[item.id];
     if (!sym) return;
-    if (sym.kind === "function" || sym.kind === "method") { go("flujo", item.id); return; }
+    if (sym.kind === "function" || sym.kind === "method") { go("flujo", item.id, { trail: [item.id] }); return; }
     const owner = MAP && MAP.owner ? MAP.owner[item.id] : null;
     const target = MAP && MAP.groups[item.id] ? item.id : owner;
     go("mapa", target || null, { focus: item.id });
@@ -610,29 +610,20 @@
     const svg = s("svg", { role: "img", "aria-label": "Diagrama de flujo de " + sym.qualname });
     svg.appendChild(markers());
     const g = s("g", { class: "vista" });
-    const kinds = new Set();
-    let hasExc = false;
     for (const [pts, kind, arrow] of lay.lines) {
-      if (kind === "excepcion") hasExc = true;
       g.appendChild(s("path", { class: "arista k-" + kind, d: pathFrom(pts), "marker-end": arrow ? (kind === "excepcion" ? "url(#punta-exc)" : "url(#punta)") : null }));
     }
     for (const [text, x, y, w, hh] of lay.labels) g.appendChild(drawLabel(text, x, y, w, hh));
     for (const [nid, x, y, w, hh, easy, tech] of lay.nodes) {
-      const info = flow.nodes[nid];
-      kinds.add(info.kind);
-      g.appendChild(drawFlowNode(sid, nid, info, x, y, w, hh, state.mode === "facil" ? easy : tech));
+      g.appendChild(drawFlowNode(sid, nid, flow.nodes[nid], x, y, w, hh, state.mode === "facil" ? easy : tech));
     }
     for (const [label, cx, cy, r] of lay.connectors) {
-      kinds.add("conector");
       const cg = s("g", { class: "nodo k-conector" }, s("circle", { class: "forma", cx, cy, r }));
       cg.appendChild(s("text", { x: cx, y: cy + 0.5, "text-anchor": "middle" }, label));
       cg.appendChild(s("title", null, "Conector " + label + ": la línea continúa en el otro conector " + label));
       g.appendChild(cg);
     }
-    const order = ["terminal", "proceso", "subproceso", "decision", "es", "teclado", "pantalla", "documento", "externo", "conector"];
-    const legend = order.filter((k) => kinds.has(k));
-    if (hasExc) legend.push("excepcion");
-    mount(svg, g, lay.w, lay.h, legend);
+    mount(svg, g, lay.w, lay.h, lay.legend || []);
     if (state.selectedNode) selectNode(sid, state.selectedNode, false);
   }
 
@@ -782,19 +773,15 @@
     const svg = s("svg", { role: "img", "aria-label": "Mapa: " + group.name });
     svg.appendChild(markers());
     const g = s("g", { class: "vista" });
-    const kinds = new Set();
-    const confs = new Set();
     const focus = state.focus && lay.nodes.some((n) => n[0] === state.focus) ? state.focus : null;
     const lit = focus ? neighborhood(lay.edges, focus) : null;
     for (const [src, dst, pts, conf, label, lx, ly, lw, lh] of lay.edges) {
-      confs.add(conf);
       const dim = lit && !(lit.has(src) && lit.has(dst)) ? " atenuado" : "";
       const lightEdge = lit && !dim ? " resaltada" : "";
       g.appendChild(s("path", { class: "arista c-" + conf + dim + lightEdge, d: pathFrom(pts), "marker-end": lightEdge ? "url(#punta-foco)" : "url(#punta)" }));
       if (label) g.appendChild(drawLabel(label, lx, ly, lw, lh, dim.trim()));
     }
     for (const [nid, kind, x, y, w, hh, label, sub, link] of lay.nodes) {
-      kinds.add(kind);
       const dim = lit && !lit.has(nid) ? " atenuado" : "";
       const ng = s("g", { class: "nodo k-" + kind + (link ? " clicable" : "") + dim + (nid === focus ? " seleccionado" : ""), "data-id": nid });
       const rx = kind === "funcion" || kind === "entrada" ? hh / 2 : kind === "modulo" ? 10 : 4;
@@ -822,14 +809,15 @@
       });
       g.appendChild(ng);
     }
-    const order = ["modulo", "clase", "interfaz", "funcion", "entrada", "otros"];
-    const legend = order.filter((k) => kinds.has(k)).concat(["exacta", "probable", "ambigua", "externa"].filter((c) => confs.has(c)));
-    mount(svg, g, lay.w, lay.h, legend);
+    mount(svg, g, lay.w, lay.h, lay.legend || []);
   }
 
   function withParams(link) {
     const tmp = link.replace(/^#\//, "").split("/");
-    return buildHash(tmp[0], tmp.slice(1).join("/") || null);
+    const id = tmp.slice(1).join("/") || null;
+    // Entrar a una función desde el mapa empieza un recorrido nuevo de migas.
+    if (tmp[0] === "flujo" && id) state.pendingTrail = [id];
+    return buildHash(tmp[0], id);
   }
 
   function neighborhood(edges, start) {

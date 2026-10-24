@@ -138,3 +138,49 @@ uv run pytest -q
 uv run desglosa flow examples/gps-c gps.c:main -o gps.html
 start gps.html
 ```
+
+---
+
+## Fase 3 — Visor completo (MVP para la feria) ✅
+
+**Qué se hizo**
+- `macro.py`: mapa por niveles Proyecto → carpeta → archivo/clase → función. Colapsa
+  cadenas de carpetas (`Http/Controllers`), muestra un archivo de una sola clase como esa
+  clase, agrega llamadas por nivel (conteo + peor confianza) y aplica el tope de 15 hijos
+  con "Otros (N)".
+- `layout/layered.py`: Sugiyama simplificado (ciclos, capas, baricentro, nodos virtuales),
+  izquierda → derecha; los nodos sin conexiones van en una grilla.
+- Comando `desglosa analyze <ruta> -o demo.html` con el visor completo: mapa clicable,
+  migas de pan que crecen al entrar a subprocesos, pestañas Flujo/Secuencia/Código, panel
+  con código y llamadas entrantes/salientes, buscador (`/`), `Esc` para subir, temas,
+  modo fácil/técnico, zoom/arrastre, leyenda solo con los tipos presentes.
+- Ejemplo `examples/laravel-mini/` (rutas, controlador, servicio, interfaz de repositorio
+  con implementación MySQL y SQL en cadenas, esquema SQL con las 3 formas de FK).
+- Tests (105): niveles del mapa, agregación de aristas, "Otros (N)", leyenda, layout por
+  capas (también con 25 grafos aleatorios: sin superposiciones, sin aristas que crucen
+  cajas, sin etiquetas sobre nodos), colores del CSS = tabla de §11.3 en los dos temas,
+  comando `analyze` determinista y con `--no-source`.
+
+**Qué falló / encontré**
+- Los grafos aleatorios encontraron etiquetas que tapaban nodos cuando un nodo era más
+  angosto que su columna → ahora cada arista recorre su fila hasta el borde de la columna.
+- La clase base `Controller` salía como punto de entrada → solo `XxxController`.
+- Las migas heredaban el recorrido anterior al usar el buscador → se reinician.
+
+**Decisiones (revísalas)**
+1. **Clic = entrar** (como dice §11.2). El "focus" aguas arriba/abajo (§11.2, S) se activa
+   con **Alt+clic** o Mayús+clic sobre un nodo del mapa, o con `?focus=<id>` en la URL.
+2. El mapa agrupa por **carpetas**, no por namespaces (funciona igual en los 12 lenguajes).
+3. Una arista solo se dibuja entre hermanos del nivel actual: una llamada entre dos
+   carpetas aparece en el nivel donde esas carpetas se ven lado a lado.
+4. La leyenda se calcula en Python (así se puede testear) y el visor solo la dibuja.
+5. La rejilla usa líneas de **1 px**: las de 0,5 px de la SPEC no se ven en pantallas 1x
+   (proyectores de la feria).
+
+**Probar**
+```powershell
+uv run desglosa analyze examples/laravel-mini -o demo.html
+start demo.html
+```
+Recorrido: `app` → `Http/Controllers` → `FacturaController` → `store()` → clic en
+"Llama a emitir()" → flujo de `FacturacionService.emitir`.

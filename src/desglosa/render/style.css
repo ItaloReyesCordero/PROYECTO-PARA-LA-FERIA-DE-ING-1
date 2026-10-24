@@ -128,9 +128,10 @@ button, input, select { font: inherit; color: inherit; }
 .lienzo {
   flex: 1; position: relative; overflow: hidden; cursor: grab;
   background-color: var(--fondo);
+  /* SPEC: líneas de 0,5 px; en pantallas 1x eso no se ve, así que usamos 1 px. */
   background-image:
-    linear-gradient(to right, var(--rejilla) 0.5px, transparent 0.5px),
-    linear-gradient(to bottom, var(--rejilla) 0.5px, transparent 0.5px);
+    linear-gradient(to right, var(--rejilla) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--rejilla) 1px, transparent 1px);
   background-size: 40px 40px;
 }
 .lienzo.arrastrando { cursor: grabbing; }

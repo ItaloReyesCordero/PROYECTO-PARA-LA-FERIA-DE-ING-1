@@ -60,6 +60,11 @@ class _Frame:
         self.field_types: dict[str, str] = {}
 
 
+def _is_controller(name: str) -> bool:
+    """`FacturaController` sí; la clase base `Controller` (o `BaseController`) no."""
+    return name.endswith("Controller") and name not in ("Controller", "BaseController")
+
+
 def call_id(lang: str, path: str, caller_qualname: str, callee: str, line: int, col: int) -> str:
     """Id estable de una llamada (mismo esquema que los símbolos)."""
     return stable_id(lang, path, f"{caller_qualname}->{callee}@{col}", line)
@@ -134,12 +139,12 @@ class _Walker:
             frame.kind == "module" or (kind == "method" and self.hooks.is_static(node, self.src))
         ):
             is_entry = True
-        if kind == "class" and name.endswith("Controller"):
+        if kind == "class" and _is_controller(name):
             is_entry = True
         if (
             kind == "method"
             and frame.kind == "class"
-            and frame.symbol.name.endswith("Controller")
+            and _is_controller(frame.symbol.name)
             and name not in self.spec.constructor_names
             and name != frame.symbol.name
         ):

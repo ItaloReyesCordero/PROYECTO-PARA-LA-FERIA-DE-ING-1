@@ -53,6 +53,31 @@ def _flat(points: tuple[tuple[float, float], ...]) -> list[float]:
     return out
 
 
+FLOW_LEGEND_ORDER = (
+    "terminal",
+    "proceso",
+    "subproceso",
+    "decision",
+    "es",
+    "teclado",
+    "pantalla",
+    "documento",
+    "externo",
+    "conector",
+    "excepcion",
+)
+
+
+def flow_legend(graph: FlowGraph, layout: FlowLayout) -> list[str]:
+    """Leyenda con SOLO los tipos presentes en el diagrama (RF-D06)."""
+    present = {n.kind for n in graph.nodes}
+    if layout.connectors:
+        present.add("conector")
+    if any(ln.kind == "excepcion" for ln in layout.lines):
+        present.add("excepcion")
+    return [k for k in FLOW_LEGEND_ORDER if k in present]
+
+
 def flow_payload(graph: FlowGraph, layout: FlowLayout) -> dict:
     nodes = {
         n.id: {
@@ -76,5 +101,6 @@ def flow_payload(graph: FlowGraph, layout: FlowLayout) -> dict:
         "lines": [[_flat(ln.points), ln.kind, ln.arrow] for ln in layout.lines],
         "labels": [[lb.text, lb.x, lb.y, lb.w, lb.h] for lb in layout.labels],
         "connectors": [[c.label, c.x, c.y, c.r] for c in layout.connectors],
+        "legend": flow_legend(graph, layout),
     }
     return {"truncated": graph.truncated, "nodes": nodes, "layout": lay}

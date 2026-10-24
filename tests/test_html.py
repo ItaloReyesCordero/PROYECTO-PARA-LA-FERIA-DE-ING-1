@@ -80,6 +80,41 @@ def test_flow_command_includes_reachable_flows(tmp_path):
     assert data["meta"]["start"].startswith("#/flujo/")
 
 
+def test_analyze_command(tmp_path, capsys):
+    out = tmp_path / "demo.html"
+    target = ROOT / "examples" / "laravel-mini"
+    assert cli.main(["analyze", str(target), "-o", str(out)]) == cli.EXIT_OK
+    page = out.read_text(encoding="utf-8")
+    data = _data(page)
+    assert data["meta"]["start"] == "#/mapa"
+    assert data["map"]["root"] in data["map"]["groups"]
+    assert len(data["flows"]) >= 10
+    assert "app/Http/Controllers/FacturaController.php" in data["sources"]
+    assert "HTML escrito" in capsys.readouterr().out
+    again = tmp_path / "otra.html"
+    assert cli.main(["analyze", str(target), "-o", str(again)]) == cli.EXIT_OK
+    assert again.read_bytes() == out.read_bytes()
+
+
+def test_analyze_no_source(tmp_path):
+    out = tmp_path / "demo.html"
+    target = ROOT / "examples" / "laravel-mini"
+    assert cli.main(["analyze", str(target), "-o", str(out), "--no-source"]) == cli.EXIT_OK
+    assert _data(out.read_text(encoding="utf-8"))["sources"] == {}
+
+
+def test_flow_legend_lists_only_present_kinds(tmp_path):
+    page = _flow_html(tmp_path, ROOT / "examples" / "gps-c", "gps.c:main")
+    for flow in _data(page)["flows"].values():
+        kinds = {n["kind"] for n in flow["nodes"].values()}
+        lay = flow["layout"]
+        if lay["connectors"]:
+            kinds.add("conector")
+        if any(line[1] == "excepcion" for line in lay["lines"]):
+            kinds.add("excepcion")
+        assert set(lay["legend"]) == kinds
+
+
 @pytest.mark.parametrize("spec", ["gps.c:no_existe", "nada"])
 def test_flow_command_unknown_function(tmp_path, spec):
     out = tmp_path / "x.html"

@@ -131,6 +131,8 @@ class _Block:
     connectors: list[Connector] = field(default_factory=list)
     escapes: list[_Esc] = field(default_factory=list)
     targets: dict[tuple[str, int, int], _Target] = field(default_factory=dict)
+    entry_id: str | None = None  # nodo de entrada/salida si el bloque es una hoja
+    exit_id: str | None = None
 
     def place(self, child: _Block, dx: float, dy: float) -> None:
         for n in child.nodes:
@@ -225,6 +227,7 @@ class _Layout:
     def __init__(self, graph: FlowGraph) -> None:
         self.sizes = {n.id: node_size(n) for n in graph.nodes}
         self.kinds = {n.id: n.kind for n in graph.nodes}
+        self.edge_kind = {(e.src, e.dst): e.kind for e in graph.edges}
 
     def box(self, nid: str, x: float, y: float) -> NodeBox:
         w, h, easy, tech = self.sizes[nid]
@@ -236,6 +239,7 @@ class _Layout:
         w, h, _, _ = self.sizes[nid]
         b = _Block(w=w, h=h, ax=w / 2, entry_node=True, exits=not stop)
         b.nodes.append(self.box(nid, 0, 0))
+        b.entry_id = b.exit_id = nid
         return b
 
     def any(self, item) -> _Block:
@@ -272,6 +276,7 @@ class _Layout:
         out = _Block(w=left + right, ax=left)
         y = 0.0
         prev_exit: float | None = 0.0
+        prev_id: str | None = None
         started = False
         for p in parts:
             if isinstance(p, SJump):
@@ -285,11 +290,16 @@ class _Layout:
                 y += GAP
             out.place(p, left - p.ax, y)
             if started and prev_exit is not None:
-                out.line([(left, prev_exit), (left, y)], arrow=p.entry_node)
+                kind = "normal"
+                if prev_id and self.edge_kind.get((prev_id, p.entry_id)) == "excepcion":
+                    kind = "excepcion"
+                out.line([(left, prev_exit), (left, y)], kind=kind, arrow=p.entry_node)
             if not started:
                 out.entry_node = p.entry_node
+                out.entry_id = p.entry_id
                 started = True
             prev_exit = y + p.h if p.exits else None
+            prev_id = p.exit_id
             y += p.h
         out.h = y
         out.exits = prev_exit is not None
@@ -878,6 +888,7 @@ class _Layout:
 
     def connector_block(self, label: str) -> _Block:
         b = _Block(w=2 * CONN_R, h=2 * CONN_R, ax=CONN_R, entry_node=True, exits=True)
+        b.entry_id = b.exit_id = f"conector-{label}"
         b.connectors.append(Connector(label, CONN_R, CONN_R, CONN_R))
         return b
 

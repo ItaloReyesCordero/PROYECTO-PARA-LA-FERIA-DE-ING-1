@@ -2,6 +2,12 @@
 
 ## [Sin publicar]
 
+### Fase 3 — Visor completo
+- Mapa por niveles con aristas agregadas, "Otros (N)" y layout por capas.
+- Comando `analyze`: HTML con mapa → flujo → subproceso → flujo, migas, buscador,
+  panel de código, temas, modo fácil/técnico y leyenda.
+- Ejemplo `examples/laravel-mini/`.
+
 ### Fase 2 — Diagrama de flujo
 - Diagrama de flujo por función con los símbolos clásicos y todas las construcciones de
   control (if/else if, bucles, do-while, switch, try/catch/finally, saltos).

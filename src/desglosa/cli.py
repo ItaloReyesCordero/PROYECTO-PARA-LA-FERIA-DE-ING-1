@@ -235,6 +235,37 @@ def cmd_flow(args: argparse.Namespace) -> int:
     return EXIT_OK
 
 
+MAX_HTML_MB = 20
+
+
+def cmd_analyze(args: argparse.Namespace) -> int:
+    from desglosa.macro import build_map
+    from desglosa.pipeline import summary
+    from desglosa.render.html import render_html
+    from desglosa.render.payload import build_payload
+
+    analysis, code = _run_analysis(args)
+    if analysis is None:
+        return code
+    payload = build_payload(
+        analysis,
+        include_source=not args.no_source,
+        start="#/mapa",
+        map_data=build_map(analysis.project),
+    )
+    page = render_html(payload, f"{analysis.project.root_name} — Desglosa")
+    _write_text(args.output, page)
+    print(summary(analysis))
+    size_mb = len(page.encode("utf-8")) / (1024 * 1024)
+    print(f"HTML escrito en {args.output} ({size_mb:.1f} MB)")
+    if size_mb > MAX_HTML_MB:
+        print(
+            f"Aviso: el HTML pesa más de {MAX_HTML_MB} MB. Prueba con --no-source o --lang.",
+            file=sys.stderr,
+        )
+    return EXIT_OK
+
+
 def _add_flow_args(p: argparse.ArgumentParser) -> None:
     p.add_argument(
         "--max-flow-nodes", type=int, default=120, help="nodos máximos por flujo (def. 120)"
@@ -294,6 +325,12 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--h-as", choices=("c", "cpp"), default="c", help="lenguaje para archivos .h")
     p.add_argument("--all", action="store_true", help="incluir nodos anónimos (puntuación)")
     p.set_defaults(func=cmd_debug_ast)
+
+    p = sub.add_parser("analyze", help="analiza un proyecto y genera el HTML interactivo")
+    _add_analysis_args(p)
+    _add_flow_args(p)
+    p.add_argument("-o", "--output", default="desglosa.html", help="archivo HTML de salida")
+    p.set_defaults(func=cmd_analyze)
 
     p = sub.add_parser("export-ir", help="exporta el modelo intermedio en JSON")
     _add_analysis_args(p)
