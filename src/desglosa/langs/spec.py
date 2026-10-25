@@ -203,8 +203,33 @@ class LangHooks:
         """False para nodos que son solo referencias (p. ej. `struct X *p` en C)."""
         return True
 
+    def class_kind(self, node: Node, src: Src) -> str | None:
+        """ "class", "interface" o None si el nodo no define un tipo (alias, referencia)."""
+        if not self.is_definition(node):
+            return None
+        return "interface" if node.type in self.spec.interface_nodes else "class"
+
+    def extra_bases(self, node: Node, src: Src) -> list[tuple[str, str]]:
+        """Herencia declarada fuera de la clase: [(tipo, base)] (Rust `impl Trait for Tipo`)."""
+        return []
+
     def function_body(self, node: Node) -> Node | None:
         return node.child_by_field_name("body")
+
+    def parameters_node(self, node: Node) -> Node | None:
+        params = node.child_by_field_name("parameters")
+        decl = node.child_by_field_name("declarator")
+        while params is None and decl is not None:
+            params = decl.child_by_field_name("parameters")
+            decl = decl.child_by_field_name("declarator")
+        return params
+
+    def parameter_list(self, node: Node, src: Src) -> tuple[list[Node], str] | None:
+        """(nodos de los parámetros, texto técnico) para el terminal "Inicio"."""
+        params = self.parameters_node(node)
+        if params is None:
+            return None
+        return list(params.named_children), src.text(params)
 
     def has_body(self, node: Node) -> bool:
         return self.function_body(node) is not None
@@ -305,3 +330,293 @@ class LangHooks:
         if param is None:
             return ""
         return one_line(src.text(param).strip("() "), 60)
+
+    # ---------------------------------------------------------------- forma del AST para el flujo
+    # Comportamiento por defecto (lenguajes tipo C, Python, PHP, Java). Go, Ruby, Rust,
+    # Kotlin y Swift sobrescriben lo que cambia.
+
+    block_types: tuple[str, ...] = (
+        "block",
+        "statement_block",
+        "compound_statement",
+        "constructor_body",
+    )
+
+    def is_block(self, node: Node) -> bool:
+        return node.type in self.spec.block_nodes or node.type in self.block_types
+
+    def body_statements(self, node: Node | None) -> list[Node]:
+        """Sentencias de un cuerpo; si `node` no es un bloque, es una sola sentencia."""
+        if node is None:
+            return []
+        if self.is_block(node):
+            out: list[Node] = []
+            for c in node.named_children:
+                if c.type in self.spec.comment_nodes:
+                    continue
+                if c.type in ("pass_statement", "empty_statement"):
+                    continue
+                if self.is_block(c) and c.type in self.flatten_blocks:
+                    out.extend(self.body_statements(c))
+                else:
+                    out.append(c)
+            return out
+        return [node]
+
+    # Bloques que son solo un contenedor de sentencias (se aplanan al leer un cuerpo).
+    flatten_blocks: tuple[str, ...] = ()
+
+    def unwrap(self, st: Node) -> Node:
+        """`expression_statement` que envuelve un if/return/throw… → el nodo interno."""
+        if st.type == "expression_statement" and st.named_child_count == 1:
+            inner = st.named_children[0]
+            if self.control_kind(inner) is not None:
+                return inner
+        return st
+
+    def control_kind(self, node: Node) -> str | None:
+        s = self.spec
+        t = node.type
+        if t in s.if_nodes:
+            return "if"
+        if t in s.loop_nodes:
+            return "loop"
+        if t in s.do_while_nodes:
+            return "do_while"
+        if t in s.switch_nodes:
+            return "switch"
+        if t in s.try_nodes:
+            return "try"
+        if t in s.return_nodes:
+            return "return"
+        if t in s.break_nodes:
+            return "break"
+        if t in s.continue_nodes:
+            return "continue"
+        if t in s.throw_nodes:
+            return "throw"
+        if t in s.goto_nodes:
+            return "goto"
+        if t in s.label_nodes:
+            return "label"
+        return None
+
+    def flow_kind(self, st: Node, src: Src) -> str | None:
+        """Qué construcción de control es la sentencia, o None si es simple."""
+        kind = self.control_kind(self.unwrap(st))
+        if kind is not None:
+            return kind
+        if self.is_block(st):
+            return "block"
+        if st.type == "with_statement":
+            return "with"
+        return None
+
+    def if_info(self, node: Node, src: Src) -> IfInfo:
+        then = node.child_by_field_name("consequence") or node.child_by_field_name("body")
+        alts = [
+            c for i, c in enumerate(node.children) if node.field_name_for_child(i) == "alternative"
+        ]
+        return IfInfo(
+            self.condition_node(node), self.condition(node, src), self.body_statements(then), alts
+        )
+
+    def alt_info(self, alt: Node, src: Src) -> AltInfo:
+        s = self.spec
+        if alt.type in s.elif_nodes:
+            return AltInfo("elif", alt, self.if_info(alt, src))
+        if alt.type in s.else_nodes:
+            body = alt.child_by_field_name("body")
+            if body is None:
+                named = [c for c in alt.named_children if c.type not in s.comment_nodes]
+                body = named[0] if named else None
+            if body is not None and body.type in s.if_nodes:
+                return AltInfo("if", body)
+            return AltInfo("else", alt, body=self.body_statements(body))
+        if alt.type in s.if_nodes:
+            return AltInfo("if", alt)
+        return AltInfo("else", alt, body=self.body_statements(alt))
+
+    def loop_info(self, node: Node, src: Src) -> LoopInfo:
+        body = self.body_statements(node.child_by_field_name("body"))
+        if node.type in ("foreach_statement", "enhanced_for_statement", "for_range_loop") or (
+            node.child_by_field_name("left") is not None
+            and node.child_by_field_name("right") is not None
+        ):
+            if node.type == "foreach_statement":
+                named = [c for c in node.named_children if c.type not in self.spec.comment_nodes]
+                coll_node = named[0] if named else None
+                var = src.text(named[1]) if len(named) > 2 else ""
+            else:
+                var_node = (
+                    node.child_by_field_name("left")
+                    or node.child_by_field_name("name")
+                    or node.child_by_field_name("declarator")
+                )
+                var = src.text(var_node)
+                coll_node = node.child_by_field_name("right") or node.child_by_field_name("value")
+            return LoopInfo(
+                "foreach",
+                body,
+                var_text=var,
+                coll_node=coll_node,
+                coll_text=src.text(coll_node),
+                header=self.loop_label(node, src),
+            )
+        init = next(
+            (
+                node.child_by_field_name(f)
+                for f in ("initializer", "init", "initialize")
+                if node.child_by_field_name(f) is not None
+            ),
+            None,
+        )
+        update = next(
+            (
+                node.child_by_field_name(f)
+                for f in ("update", "increment")
+                if node.child_by_field_name(f) is not None
+            ),
+            None,
+        )
+        if init is not None or update is not None or node.type == "for_statement":
+            cond = node.child_by_field_name("condition")
+            return LoopInfo(
+                "for",
+                body,
+                cond_node=cond,
+                cond_text=strip_parens(src.text(cond)) if cond is not None else "",
+                init=init,
+                update=update,
+            )
+        return LoopInfo(
+            "while", body, cond_node=self.condition_node(node), cond_text=self.condition(node, src)
+        )
+
+    def do_while_info(self, node: Node, src: Src) -> LoopInfo:
+        return LoopInfo(
+            "do",
+            self.body_statements(node.child_by_field_name("body")),
+            cond_node=self.condition_node(node),
+            cond_text=self.condition(node, src),
+        )
+
+    fallthrough: bool = False  # ¿un case sin break cae al siguiente? (C, JS, Java, PHP)
+
+    def case_statements(self, case: Node) -> list[Node]:
+        out: list[Node] = []
+        for i, ch in enumerate(case.children):
+            if not ch.is_named:
+                continue
+            fname = case.field_name_for_child(i)
+            if fname == "value" or ch.type in ("switch_label", "case_pattern"):
+                continue
+            if ch.type in self.spec.comment_nodes:
+                continue
+            if fname == "consequence" and self.is_block(ch):
+                out.extend(self.body_statements(ch))
+            else:
+                out.append(ch)
+        return out
+
+    def switch_info(self, node: Node, src: Src) -> tuple[str, str, list[CaseInfo]]:
+        body = node.child_by_field_name("body")
+        header_end = body.start_byte if body is not None else node.end_byte
+        tech = one_line(src.between(node.start_byte, header_end).rstrip(" {:"), 80)
+        cases = []
+        for c in body.named_children if body is not None else []:
+            if c.type not in self.spec.case_nodes:
+                continue
+            falls = self.fallthrough and c.type != "switch_rule"
+            cases.append(CaseInfo(self.case_value(c, src), self.case_statements(c), falls))
+        return self.condition(node, src), tech, cases
+
+    def catch_body(self, node: Node) -> Node | None:
+        body = node.child_by_field_name("body")
+        if body is not None:
+            return body
+        named = [c for c in node.named_children if c.type not in self.spec.comment_nodes]
+        return named[-1] if named else None
+
+    def try_info(self, node: Node, src: Src) -> TryInfo:
+        s = self.spec
+        catches = [c for c in node.named_children if c.type in s.catch_nodes]
+        final = next((c for c in node.named_children if c.type in s.finally_nodes), None)
+        els = next((c for c in node.named_children if c.type in s.else_nodes), None)
+        return TryInfo(
+            self.body_statements(node.child_by_field_name("body")),
+            [
+                (self.catch_label(c, src) or "excepción", self.body_statements(self.catch_body(c)))
+                for c in catches
+            ],
+            self.body_statements(self.catch_body(els)) if els is not None else None,
+            self.body_statements(self.catch_body(final)) if final is not None else None,
+        )
+
+    def jump_values(self, node: Node) -> list[Node]:
+        """Expresión de un return/throw (sin la palabra clave)."""
+        node = self.unwrap(node)
+        values = [c for c in node.named_children if c.type not in self.spec.comment_nodes]
+        if node.type == "expression_statement" and values:
+            values = list(values[0].named_children)
+        return values
+
+    def implicit_return(self, st: Node, src: Src) -> bool:
+        """¿La última expresión de la función es su valor de retorno? (Ruby, Rust)."""
+        return False
+
+    def if_branch(self, node: Node, index: int, field_name: str | None, child: Node) -> str:
+        """Para el contexto de las llamadas: "cond", "then" o "else" del hijo `index`."""
+        cond = self.condition_node(node)
+        if cond is not None and child.id == cond.id:
+            return "cond"
+        s = self.spec
+        if child.type in s.else_nodes or child.type in s.elif_nodes or field_name == "alternative":
+            return "else"
+        return "then"
+
+    def statement_io(self, st: Node, src: Src) -> tuple[str, str] | None:
+        """E/S que no es una llamada (p. ej. `gets` en Ruby): (io_kind, texto fácil)."""
+        return None
+
+
+class IfInfo(NamedTuple):
+    cond_node: Node | None
+    cond_text: str
+    then: list
+    alternatives: list
+    negated: bool = False  # `unless` (Ruby): la rama principal se ejecuta con "no"
+
+
+class AltInfo(NamedTuple):
+    kind: str  # "elif" | "if" | "else"
+    node: Node
+    info: IfInfo | None = None
+    body: list | None = None
+
+
+class LoopInfo(NamedTuple):
+    kind: str  # "while" | "for" | "foreach" | "do"
+    body: list
+    cond_node: Node | None = None
+    cond_text: str = ""
+    init: Node | None = None
+    update: Node | None = None
+    var_text: str = ""
+    coll_node: Node | None = None
+    coll_text: str = ""
+    header: str = ""
+    negated: bool = False  # `until` (Ruby): el cuerpo se ejecuta con "no"
+
+
+class CaseInfo(NamedTuple):
+    value: str | None  # None = caso por defecto
+    body: list
+    falls: bool = False  # sin break, cae al siguiente caso
+
+
+class TryInfo(NamedTuple):
+    body: list
+    catches: list  # [(etiqueta, sentencias)]
+    else_body: list | None
+    final: list | None

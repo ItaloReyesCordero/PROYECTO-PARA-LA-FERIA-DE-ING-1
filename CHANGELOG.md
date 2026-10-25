@@ -2,6 +2,10 @@
 
 ## [Sin publicar]
 
+### Fase 4 — Resto de lenguajes
+- Go, Ruby, Rust, Kotlin y Swift: extracción, resolución y diagrama de flujo.
+- `flow.py` independiente del lenguaje (la forma del AST la describe `LangHooks`).
+
 ### Fase 3 — Visor completo
 - Mapa por niveles con aristas agregadas, "Otros (N)" y layout por capas.
 - Comando `analyze`: HTML con mapa → flujo → subproceso → flujo, migas, buscador,

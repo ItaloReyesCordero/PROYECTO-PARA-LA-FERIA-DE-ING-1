@@ -1,0 +1,492 @@
+{
+  "edges": [
+    {
+      "dst": "n1",
+      "kind": "normal",
+      "label": null,
+      "src": "n0"
+    },
+    {
+      "dst": "n2",
+      "kind": "normal",
+      "label": "sí",
+      "src": "n1"
+    },
+    {
+      "dst": "n3",
+      "kind": "normal",
+      "label": null,
+      "src": "n2"
+    },
+    {
+      "dst": "n4",
+      "kind": "normal",
+      "label": null,
+      "src": "n3"
+    },
+    {
+      "dst": "n5",
+      "kind": "normal",
+      "label": "no",
+      "src": "n1"
+    },
+    {
+      "dst": "n6",
+      "kind": "normal",
+      "label": null,
+      "src": "n5"
+    },
+    {
+      "dst": "n7",
+      "kind": "normal",
+      "label": "sí",
+      "src": "n6"
+    },
+    {
+      "dst": "n8",
+      "kind": "normal",
+      "label": "no",
+      "src": "n7"
+    },
+    {
+      "dst": "n9",
+      "kind": "normal",
+      "label": "no",
+      "src": "n8"
+    },
+    {
+      "dst": "n6",
+      "kind": "retorno_bucle",
+      "label": null,
+      "src": "n9"
+    },
+    {
+      "dst": "n6",
+      "kind": "salto",
+      "label": "sí",
+      "src": "n7"
+    },
+    {
+      "dst": "n10",
+      "kind": "normal",
+      "label": "no",
+      "src": "n6"
+    },
+    {
+      "dst": "n10",
+      "kind": "salto",
+      "label": "sí",
+      "src": "n8"
+    },
+    {
+      "dst": "n11",
+      "kind": "normal",
+      "label": null,
+      "src": "n10"
+    },
+    {
+      "dst": "n12",
+      "kind": "normal",
+      "label": "caso \"efectivo\"",
+      "src": "n11"
+    },
+    {
+      "dst": "n13",
+      "kind": "normal",
+      "label": "caso \"tarjeta\"",
+      "src": "n11"
+    },
+    {
+      "dst": "n14",
+      "kind": "normal",
+      "label": "otro",
+      "src": "n11"
+    },
+    {
+      "dst": "n15",
+      "kind": "normal",
+      "label": null,
+      "src": "n12"
+    },
+    {
+      "dst": "n15",
+      "kind": "normal",
+      "label": null,
+      "src": "n13"
+    },
+    {
+      "dst": "n15",
+      "kind": "normal",
+      "label": null,
+      "src": "n14"
+    },
+    {
+      "dst": "n16",
+      "kind": "normal",
+      "label": null,
+      "src": "n15"
+    },
+    {
+      "dst": "n17",
+      "kind": "normal",
+      "label": "sí",
+      "src": "n16"
+    },
+    {
+      "dst": "n18",
+      "kind": "normal",
+      "label": null,
+      "src": "n17"
+    },
+    {
+      "dst": "n19",
+      "kind": "normal",
+      "label": null,
+      "src": "n18"
+    },
+    {
+      "dst": "n20",
+      "kind": "excepcion",
+      "label": "excepción: error",
+      "src": "n18"
+    },
+    {
+      "dst": "n16",
+      "kind": "retorno_bucle",
+      "label": null,
+      "src": "n19"
+    },
+    {
+      "dst": "n16",
+      "kind": "retorno_bucle",
+      "label": null,
+      "src": "n20"
+    },
+    {
+      "dst": "n21",
+      "kind": "normal",
+      "label": "no",
+      "src": "n16"
+    },
+    {
+      "dst": "n22",
+      "kind": "normal",
+      "label": "sí",
+      "src": "n21"
+    },
+    {
+      "dst": "n23",
+      "kind": "normal",
+      "label": null,
+      "src": "n22"
+    },
+    {
+      "dst": "n24",
+      "kind": "normal",
+      "label": "no",
+      "src": "n21"
+    },
+    {
+      "dst": "n25",
+      "kind": "normal",
+      "label": null,
+      "src": "n24"
+    },
+    {
+      "dst": "n26",
+      "kind": "normal",
+      "label": null,
+      "src": "n25"
+    },
+    {
+      "dst": "n27",
+      "kind": "normal",
+      "label": null,
+      "src": "n26"
+    }
+  ],
+  "nodes": [
+    {
+      "call_id": null,
+      "id": "n0",
+      "kind": "terminal",
+      "line_end": 11,
+      "line_start": 11,
+      "target_symbol": null,
+      "text_easy": "Inicio: emitir(factura)",
+      "text_tech": "Inicio: emitir(factura: Factura)"
+    },
+    {
+      "call_id": null,
+      "id": "n1",
+      "kind": "decision",
+      "line_end": 12,
+      "line_start": 12,
+      "target_symbol": null,
+      "text_easy": "¿factura.items.isEmpty?",
+      "text_tech": "factura.items.isEmpty"
+    },
+    {
+      "call_id": "0a0c41cf331b",
+      "id": "n2",
+      "kind": "pantalla",
+      "line_end": 13,
+      "line_start": 13,
+      "target_symbol": null,
+      "text_easy": "Muestra: \"Factura vacía\"",
+      "text_tech": "print(\"Factura vacía\")"
+    },
+    {
+      "call_id": null,
+      "id": "n3",
+      "kind": "proceso",
+      "line_end": 14,
+      "line_start": 14,
+      "target_symbol": null,
+      "text_easy": "Retorna false",
+      "text_tech": "return false"
+    },
+    {
+      "call_id": null,
+      "id": "n4",
+      "kind": "terminal",
+      "line_end": 14,
+      "line_start": 14,
+      "target_symbol": null,
+      "text_easy": "Fin",
+      "text_tech": "Fin"
+    },
+    {
+      "call_id": null,
+      "id": "n5",
+      "kind": "proceso",
+      "line_end": 16,
+      "line_start": 16,
+      "target_symbol": null,
+      "text_easy": "var total = 0.0",
+      "text_tech": "var total = 0.0"
+    },
+    {
+      "call_id": null,
+      "id": "n6",
+      "kind": "decision",
+      "line_end": 17,
+      "line_start": 17,
+      "target_symbol": null,
+      "text_easy": "Para cada item en factura.items",
+      "text_tech": "for item in factura.items"
+    },
+    {
+      "call_id": null,
+      "id": "n7",
+      "kind": "decision",
+      "line_end": 18,
+      "line_start": 18,
+      "target_symbol": null,
+      "text_easy": "¿item.precio < 0?",
+      "text_tech": "item.precio < 0"
+    },
+    {
+      "call_id": null,
+      "id": "n8",
+      "kind": "decision",
+      "line_end": 21,
+      "line_start": 21,
+      "target_symbol": null,
+      "text_easy": "¿item.cantidad = 0?",
+      "text_tech": "item.cantidad == 0"
+    },
+    {
+      "call_id": null,
+      "id": "n9",
+      "kind": "proceso",
+      "line_end": 24,
+      "line_start": 24,
+      "target_symbol": null,
+      "text_easy": "total += item.precio * Double(item.cantidad)",
+      "text_tech": "total += item.precio * Double(item.cantidad)"
+    },
+    {
+      "call_id": null,
+      "id": "n10",
+      "kind": "proceso",
+      "line_end": 26,
+      "line_start": 26,
+      "target_symbol": null,
+      "text_easy": "var descuento = 0.0",
+      "text_tech": "var descuento = 0.0"
+    },
+    {
+      "call_id": null,
+      "id": "n11",
+      "kind": "decision",
+      "line_end": 27,
+      "line_start": 27,
+      "target_symbol": null,
+      "text_easy": "Según factura.tipoPago",
+      "text_tech": "switch factura.tipoPago"
+    },
+    {
+      "call_id": null,
+      "id": "n12",
+      "kind": "proceso",
+      "line_end": 29,
+      "line_start": 29,
+      "target_symbol": null,
+      "text_easy": "descuento = 0.05",
+      "text_tech": "descuento = 0.05"
+    },
+    {
+      "call_id": null,
+      "id": "n13",
+      "kind": "proceso",
+      "line_end": 31,
+      "line_start": 31,
+      "target_symbol": null,
+      "text_easy": "descuento = 0",
+      "text_tech": "descuento = 0"
+    },
+    {
+      "call_id": null,
+      "id": "n14",
+      "kind": "proceso",
+      "line_end": 33,
+      "line_start": 33,
+      "target_symbol": null,
+      "text_easy": "descuento = 0",
+      "text_tech": "descuento = 0"
+    },
+    {
+      "call_id": null,
+      "id": "n15",
+      "kind": "proceso",
+      "line_end": 37,
+      "line_start": 35,
+      "target_symbol": null,
+      "text_easy": "total = total * (1 - descuento)\nvar intentos = 0\nvar cobrado = false",
+      "text_tech": "total = total * (1 - descuento)\nvar intentos = 0\nvar cobrado = false"
+    },
+    {
+      "call_id": null,
+      "id": "n16",
+      "kind": "decision",
+      "line_end": 38,
+      "line_start": 38,
+      "target_symbol": null,
+      "text_easy": "¿intentos < 3 y no cobrado?",
+      "text_tech": "intentos < 3 && !cobrado"
+    },
+    {
+      "call_id": null,
+      "id": "n17",
+      "kind": "proceso",
+      "line_end": 39,
+      "line_start": 39,
+      "target_symbol": null,
+      "text_easy": "intentos += 1",
+      "text_tech": "intentos += 1"
+    },
+    {
+      "call_id": null,
+      "id": "n18",
+      "kind": "proceso",
+      "line_end": 40,
+      "line_start": 40,
+      "target_symbol": null,
+      "text_easy": "Intentar",
+      "text_tech": "try"
+    },
+    {
+      "call_id": "bd5bd9239f16",
+      "id": "n19",
+      "kind": "subproceso",
+      "line_end": 41,
+      "line_start": 41,
+      "target_symbol": "9ccf4e6bec62",
+      "text_easy": "Llama a cobrar() → cobrado",
+      "text_tech": "cobrado = try pago.cobrar(monto: total, tipo: factura.tipoPago)"
+    },
+    {
+      "call_id": "575d7111bb13",
+      "id": "n20",
+      "kind": "pantalla",
+      "line_end": 43,
+      "line_start": 43,
+      "target_symbol": null,
+      "text_easy": "Muestra: \"Error al cobrar: \\(error)\"",
+      "text_tech": "print(\"Error al cobrar: \\(error)\")"
+    },
+    {
+      "call_id": null,
+      "id": "n21",
+      "kind": "decision",
+      "line_end": 46,
+      "line_start": 46,
+      "target_symbol": null,
+      "text_easy": "¿no cobrado?",
+      "text_tech": "!cobrado"
+    },
+    {
+      "call_id": null,
+      "id": "n22",
+      "kind": "proceso",
+      "line_end": 47,
+      "line_start": 47,
+      "target_symbol": null,
+      "text_easy": "Retorna false",
+      "text_tech": "return false"
+    },
+    {
+      "call_id": null,
+      "id": "n23",
+      "kind": "terminal",
+      "line_end": 47,
+      "line_start": 47,
+      "target_symbol": null,
+      "text_easy": "Fin",
+      "text_tech": "Fin"
+    },
+    {
+      "call_id": null,
+      "id": "n24",
+      "kind": "proceso",
+      "line_end": 49,
+      "line_start": 49,
+      "target_symbol": null,
+      "text_easy": "let linea = \"\\(factura.cliente);\\(total)\"",
+      "text_tech": "let linea = \"\\(factura.cliente);\\(total)\\n\""
+    },
+    {
+      "call_id": "ff22ab546388",
+      "id": "n25",
+      "kind": "documento",
+      "line_end": 50,
+      "line_start": 50,
+      "target_symbol": null,
+      "text_easy": "Escribe en archivo",
+      "text_tech": "try? linea.write(toFile: \"facturas.txt\", atomically: true, encoding: .utf8)"
+    },
+    {
+      "call_id": null,
+      "id": "n26",
+      "kind": "proceso",
+      "line_end": 51,
+      "line_start": 51,
+      "target_symbol": null,
+      "text_easy": "Retorna true",
+      "text_tech": "return true"
+    },
+    {
+      "call_id": null,
+      "id": "n27",
+      "kind": "terminal",
+      "line_end": 52,
+      "line_start": 52,
+      "target_symbol": null,
+      "text_easy": "Fin",
+      "text_tech": "Fin"
+    }
+  ],
+  "symbol_id": "1ae6e919c97e",
+  "truncated": false
+}

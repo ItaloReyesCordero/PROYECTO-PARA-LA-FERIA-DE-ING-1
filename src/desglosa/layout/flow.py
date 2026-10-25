@@ -310,9 +310,16 @@ class _Layout:
     @staticmethod
     def _chain(s: SIf) -> tuple[list[tuple[str, SSeq]], SSeq | None] | None:
         """if / else if / else if … → [(decisión, rama sí)], rama final (o None)."""
+        if s.yes_label != "sí":
+            return None
         steps = [(s.dec, s.yes)]
         cur = s.no
-        while cur is not None and len(cur.items) == 1 and isinstance(cur.items[0], SIf):
+        while (
+            cur is not None
+            and len(cur.items) == 1
+            and isinstance(cur.items[0], SIf)
+            and cur.items[0].yes_label == "sí"
+        ):
             nxt = cur.items[0]
             steps.append((nxt.dec, nxt.yes))
             cur = nxt.no
@@ -428,9 +435,9 @@ class _Layout:
         ):
             flipped = True
         if flipped:
-            down, down_label, side, side_label = no, "no", yes, "sí"
+            down, down_label, side, side_label = no, s.no_label, yes, s.yes_label
         else:
-            down, down_label, side, side_label = yes, "sí", no, "no"
+            down, down_label, side, side_label = yes, s.yes_label, no, s.no_label
 
         down_block = down if down is not None and not down.empty else None
         down_jump = down.pure_jump if down is not None else None
@@ -566,7 +573,7 @@ class _Layout:
         out.line([(x, seg_start), (x, y_c)], arrow=True)
         out.nodes.append(self.box(s.dec, x - dw / 2, y_c))
         y_b = y_c + dh + GAP
-        out.label("sí", x, y_c + dh, "below-start")
+        out.label(s.yes_label, x, y_c + dh, "below-start")
         if bb:
             out.line([(x, y_c + dh), (x, y_b)], arrow=bb.entry_node)
             out.place(bb, x - bb.ax, y_b)
@@ -606,7 +613,7 @@ class _Layout:
             [(x + dw / 2, y_c + dh / 2), (x_lane_r, y_c + dh / 2), (x_lane_r, y_exit), (x, y_exit)],
             arrow=False,
         )
-        out.label("no", x + dw / 2, y_c + dh / 2, "above-start")
+        out.label(s.no_label, x + dw / 2, y_c + dh / 2, "above-start")
         out.h = y_exit
         out.exits = True
         out.targets[("break", s.sid, 0)] = _Target(

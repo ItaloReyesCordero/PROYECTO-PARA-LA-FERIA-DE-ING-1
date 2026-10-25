@@ -236,6 +236,10 @@ def classify_io(
         return TECLADO
     if lang == "rust" and name == "read_line":
         return TECLADO
+    if lang == "swift" and name == "write" and any(a.startswith("toFile") for a in args):
+        return ESCRIBE
+    if lang == "swift" and name == "String" and any(a.startswith("contentsOfFile") for a in args):
+        return LEE
 
     kind = _FULL.get(lang, {}).get(full)
     if kind:

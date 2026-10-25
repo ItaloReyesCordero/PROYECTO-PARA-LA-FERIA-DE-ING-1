@@ -7,6 +7,9 @@ así que son deterministas.
 
 Algoritmo de "salidas abiertas" (§7.1): cada construcción recibe la lista de salidas
 pendientes `(nodo, etiqueta, tipo_arista)` y devuelve las suyas.
+
+Este módulo no conoce la forma concreta del AST de cada lenguaje: la pide a `LangHooks`
+(`flow_kind`, `if_info`, `loop_info`, `switch_info`, `try_info`…).
 """
 
 from __future__ import annotations
@@ -18,11 +21,10 @@ from tree_sitter import Node
 
 from desglosa.extract import call_id
 from desglosa.ir import FlowEdge, FlowGraph, FlowNode, Symbol
-from desglosa.langs.spec import LangHooks, LangSpec, Src, one_line, strip_parens
+from desglosa.langs.spec import IfInfo, LangHooks, LangSpec, LoopInfo, Src, one_line
 
 Exit = tuple[str, "str | None", str]  # (nodo origen, etiqueta, tipo de arista)
 
-FALLTHROUGH_LANGS = frozenset({"c", "cpp", "javascript", "typescript", "php", "java"})
 ASSIGN_TYPES = frozenset(
     {
         "assignment",
@@ -31,6 +33,11 @@ ASSIGN_TYPES = frozenset(
         "augmented_assignment_expression",
         "variable_declarator",
         "init_declarator",
+        "short_var_declaration",
+        "let_declaration",
+        "property_declaration",
+        "operator_assignment",
+        "assignment_statement",
     }
 )
 DECLARATION_TYPES = frozenset(
@@ -42,6 +49,7 @@ IO_NODE_KIND = {
     "archivo_escribe": "documento",
     "archivo_lee": "es",
 }
+CONTROL_KINDS = frozenset({"if", "loop", "do_while", "switch", "try"})
 TECH_LIMIT = 80
 
 
@@ -71,6 +79,8 @@ class SIf:
     dec: str
     yes: SSeq
     no: SSeq | None
+    yes_label: str = "sí"
+    no_label: str = "no"
 
 
 @dataclass
@@ -81,6 +91,8 @@ class SLoop:
     init: str | None
     update: str | None
     sid: int
+    yes_label: str = "sí"
+    no_label: str = "no"
 
 
 @dataclass
@@ -149,12 +161,14 @@ def easy_expr(text: str, lang: str) -> str:
 
 
 def _easy_code(s: str, lang: str) -> str:
-    s = s.replace("->", ".")
+    if lang in ("php", "c", "cpp"):
+        s = s.replace("->", ".")
     s = re.sub(r"!==|!=", " ≠ ", s)
     s = re.sub(r"===|==", " = ", s)
     s = s.replace("<=", " ≤ ").replace(">=", " ≥ ")
     s = s.replace("&&", " y ").replace("||", " o ")
-    s = re.sub(r"!(?![=])", " no ", s)
+    # `!x` es negación; `println!(` (macro de Rust) o `x!` (Swift) no.
+    s = re.sub(r"(?<![\w)\]])!(?![=])", " no ", s)
     s = re.sub(r"\band\b", "y", s)
     s = re.sub(r"\bor\b", "o", s)
     s = re.sub(r"\bnot\b", "no", s)
@@ -228,13 +242,6 @@ class FlowBuilder:
         self.warnings: list[str] = []
         self.stream_vars: dict[str, str] = {}
         s = spec
-        self.control_types = (
-            set(s.if_nodes)
-            | set(s.loop_nodes)
-            | set(s.do_while_nodes)
-            | set(s.switch_nodes)
-            | set(s.try_nodes)
-        )
         self.definition_types = (
             set(s.class_nodes)
             | set(s.interface_nodes)
@@ -291,28 +298,8 @@ class FlowBuilder:
     def text(self, node: Node | None) -> str:
         return self.src.text(node)
 
-    def _is_block(self, node: Node) -> bool:
-        return node.type in self.spec.block_nodes or node.type in (
-            "block",
-            "statement_block",
-            "compound_statement",
-            "constructor_body",
-        )
-
     def statements(self, node: Node | None) -> list[Node]:
-        if node is None:
-            return []
-        if self._is_block(node):
-            out = [c for c in node.named_children if c.type not in self.spec.comment_nodes]
-            return [c for c in out if c.type not in ("pass_statement", "empty_statement")]
-        return [node]
-
-    def _body_of(self, node: Node) -> Node | None:
-        body = node.child_by_field_name("body") or node.child_by_field_name("consequence")
-        if body is not None:
-            return body
-        named = [c for c in node.named_children if c.type not in self.spec.comment_nodes]
-        return named[-1] if named else None
+        return self.hooks.body_statements(node)
 
     def _is_definition(self, st: Node) -> str | None:
         """Nombre si la sentencia define una función/clase anidada."""
@@ -370,7 +357,11 @@ class FlowBuilder:
                     n.child_by_field_name("left")
                     or n.child_by_field_name("name")
                     or n.child_by_field_name("declarator")
+                    or n.child_by_field_name("pattern")
+                    or n.child_by_field_name("target")
                 )
+                if left is None and n.named_child_count:
+                    left = n.named_children[0]
                 if left is not None:
                     return one_line(self.text(left), 30)
             if depth < 3:
@@ -427,6 +418,7 @@ class FlowBuilder:
             "expression_statement",
             "await_expression",
             "parenthesized_expression",
+            "try_expression",
         ):
             inner = inner.named_children[0]
         return inner.id == call.id
@@ -456,6 +448,9 @@ class FlowBuilder:
     def _statement_io(self, st: Node) -> tuple[str, str] | None:
         """E/S que no es una llamada: `echo` (PHP), `cout <<` / `cin >>` y fstream (C++)."""
         lang = self.lang
+        found = self.hooks.statement_io(st, self.src)
+        if found is not None:
+            return found
         if lang == "php":
             inner = (
                 st.named_children[0]
@@ -510,29 +505,13 @@ class FlowBuilder:
             return kind, "Lee del archivo → " + content
         return None
 
+    def _kind(self, st: Node) -> str | None:
+        return self.hooks.flow_kind(st, self.src)
+
     def _is_simple(self, st: Node) -> bool:
-        t = st.type
-        s = self.spec
-        if (
-            t in self.control_types
-            or t in s.return_nodes
-            or t in s.break_nodes
-            or t in s.continue_nodes
-            or t in s.goto_nodes
-            or t in s.label_nodes
-            or t in s.block_nodes
-            or t == "with_statement"
-            or self._is_throw(st)
-        ):
+        if self._kind(st) is not None:
             return False
         return self.info(st).kind == "proceso"
-
-    def _is_throw(self, st: Node) -> bool:
-        if st.type in self.spec.throw_nodes:
-            return True
-        if st.type == "expression_statement" and st.named_child_count == 1:
-            return st.named_children[0].type in self.spec.throw_nodes
-        return False
 
     # ------------------------------------------------------------------ construcción
 
@@ -546,8 +525,7 @@ class FlowBuilder:
             sym.line_start,
         )
         body = self.hooks.function_body(func)
-        stmts = self.statements(body) if body is not None and self._is_block(body) else []
-        if body is not None and not self._is_block(body):
+        if body is not None and not self.hooks.is_block(body):
             # Cuerpo de expresión (arrow function `x => x + 1`): un solo "Retorna".
             nid = self.node(
                 "proceso",
@@ -560,6 +538,7 @@ class FlowBuilder:
             self.edge(nid, end)
             struct = SSeq([SNode(start), SNode(nid), SNode(end)])
             return self._result(struct)
+        stmts = self.statements(body)
         if self.lang == "python" and stmts and stmts[0].type in ("string", "expression_statement"):
             first = stmts[0]
             inner = (
@@ -601,35 +580,33 @@ class FlowBuilder:
         return FlowResult(graph, struct, self.warnings)
 
     def _params(self, func: Node) -> tuple[str, str]:
-        params = func.child_by_field_name("parameters")
-        if params is None:
-            decl = func.child_by_field_name("declarator")
-            while decl is not None and params is None:
-                params = decl.child_by_field_name("parameters")
-                decl = decl.child_by_field_name("declarator")
-        if params is None:
+        found = self.hooks.parameter_list(func, self.src)
+        if found is None:
             return "", "()"
-        tech = one_line(self.text(params), 70)
+        param_nodes, tech = found
+        tech = one_line(tech, 70)
         if not tech.startswith("("):
             tech = f"({tech})"
         names: list[str] = []
-        for p in params.named_children:
+        for p in param_nodes:
             if p.type in self.spec.comment_nodes:
                 continue
             name = self._param_name(p)
-            if name and name not in ("self", "cls", "void"):
+            if name and name not in ("self", "cls", "void", "&self", "&mut self"):
                 names.append(name.lstrip("$&*"))
         return ", ".join(names), tech
 
     def _param_name(self, p: Node) -> str | None:
         if p.type in ("identifier", "variable_name", "simple_identifier"):
             return self.text(p)
+        if p.type == "self_parameter":
+            return None
         for fname in ("name", "pattern", "declarator"):
             child = p.child_by_field_name(fname)
             if child is not None:
                 return self._param_name(child) or self.text(child)
         for c in p.named_children:
-            if c.type in ("identifier", "variable_name"):
+            if c.type in ("identifier", "variable_name", "simple_identifier"):
                 return self.text(c)
         return None
 
@@ -654,11 +631,16 @@ class FlowBuilder:
         for i, st in enumerate(stmts):
             if st.type in self.spec.comment_nodes:
                 continue
+            top_last = top and i == len(stmts) - 1
+            if top_last and self.hooks.implicit_return(st, self.src):
+                flush()
+                struct, exits = self.return_(st, exits, True, values=[st])
+                items.extend(struct.items)
+                continue
             if self._is_simple(st):
                 pending.append(st)
                 continue
             flush()
-            top_last = top and i == len(stmts) - 1
             struct, exits = self.stmt(st, exits, top_last)
             if isinstance(struct, SSeq):
                 items.extend(struct.items)
@@ -668,44 +650,46 @@ class FlowBuilder:
         return SSeq(items), exits
 
     def stmt(self, st: Node, exits: list[Exit], top_last: bool = False):
-        t = st.type
-        s = self.spec
+        kind = self._kind(st)
+        inner = self.hooks.unwrap(st)
         if (
-            t in self.control_types
+            kind in CONTROL_KINDS
             and self.depth_limit is not None
             and self.depth >= self.depth_limit
         ):
             return self._collapse(st, exits)
-        if t in s.if_nodes:
-            return self.if_(st, exits)
-        if t in s.loop_nodes:
-            return self.loop(st, exits)
-        if t in s.do_while_nodes:
-            return self.do_while(st, exits)
-        if t in s.switch_nodes:
-            return self.switch(st, exits)
-        if t in s.try_nodes:
-            return self.try_(st, exits)
-        if t in s.return_nodes:
+        if kind == "if":
+            return self.if_(inner, exits)
+        if kind == "loop":
+            return self.loop(inner, exits)
+        if kind == "do_while":
+            return self.do_while(inner, exits)
+        if kind == "switch":
+            return self.switch(inner, exits)
+        if kind == "try":
+            return self.try_(inner, exits)
+        if kind == "return":
             return self.return_(st, exits, top_last)
-        if t in s.break_nodes:
-            return self.jump("break", st, exits)
-        if t in s.continue_nodes:
-            return self.jump("continue", st, exits)
-        if self._is_throw(st):
+        if kind in ("break", "continue"):
+            return self.jump(kind, st, exits)
+        if kind == "throw":
             return self.throw(st, exits)
-        if t in s.goto_nodes:
-            label = self.text(st.child_by_field_name("label"))
+        if kind == "goto":
+            label = self.text(inner.child_by_field_name("label")) or self.text(inner)
             self.warnings.append(f"{self.path}:{st.start_point[0] + 1}: goto no soportado")
             nid = self.node("proceso", f"goto {label} (no soportado)", _tech(self.text(st)), st)
             self.link(exits, nid)
             return SSeq([SNode(nid)]), [(nid, None, "normal")]
-        if t in s.label_nodes:
-            inner = [c for c in st.named_children if c.type != "statement_identifier"]
-            return self.block(inner, exits, top=top_last)
-        if t in s.block_nodes:
+        if kind == "label":
+            inner_stmts = [
+                c
+                for c in inner.named_children
+                if c.type not in ("statement_identifier", "label_name")
+            ]
+            return self.block(inner_stmts, exits, top=top_last)
+        if kind == "block":
             return self.block(self.statements(st), exits)
-        if t == "with_statement":
+        if kind == "with":
             return self.with_(st, exits)
         info = self.info(st)
         nid = self.node(
@@ -738,145 +722,76 @@ class FlowBuilder:
 
     # ------------------------------------------------------------------ if
 
-    def if_(self, st: Node, exits: list[Exit]):
-        cond_text = self.hooks.condition(st, self.src)
-        cond_node = self.hooks.condition_node(st)
-        cid, target = self._decision_call(cond_node)
-        dec = self.node(
+    def _decision(self, info: IfInfo, owner: Node) -> str:
+        cid, target = self._decision_call(info.cond_node)
+        easy = easy_expr(info.cond_text, self.lang)
+        return self.node(
             "decision",
-            f"¿{easy_expr(cond_text, self.lang)}?",
-            one_line(cond_text, TECH_LIMIT),
-            st,
-            cond_node if cond_node is not None else st.start_point[0] + 1,
+            f"¿{easy}" if easy.endswith("?") else f"¿{easy}?",
+            one_line(info.cond_text, TECH_LIMIT),
+            owner,
+            info.cond_node if info.cond_node is not None else owner.start_point[0] + 1,
             cid,
             target,
         )
-        self.link(exits, dec)
-        self._enter()
-        yes_seq, yes_exits = self.block(
-            self.statements(self._consequence(st)), [(dec, "sí", "normal")]
-        )
-        alts = [c for i, c in enumerate(st.children) if st.field_name_for_child(i) == "alternative"]
-        no_seq, no_exits = self._alternatives(alts, [(dec, "no", "normal")])
-        self._leave()
-        return SIf(dec, yes_seq, no_seq), yes_exits + no_exits
 
-    def _consequence(self, st: Node) -> Node | None:
-        return st.child_by_field_name("consequence") or st.child_by_field_name("body")
+    def if_(self, st: Node, exits: list[Exit]):
+        info = self.hooks.if_info(st, self.src)
+        return self._if_from(info, st, exits)
+
+    def _if_from(self, info: IfInfo, owner: Node, exits: list[Exit]):
+        dec = self._decision(info, owner)
+        self.link(exits, dec)
+        yes_label, no_label = ("no", "sí") if info.negated else ("sí", "no")
+        self._enter()
+        yes_seq, yes_exits = self.block(info.then, [(dec, yes_label, "normal")])
+        no_seq, no_exits = self._alternatives(info.alternatives, [(dec, no_label, "normal")])
+        self._leave()
+        return SIf(dec, yes_seq, no_seq, yes_label, no_label), yes_exits + no_exits
 
     def _alternatives(self, alts: list[Node], exits: list[Exit]) -> tuple[SSeq | None, list[Exit]]:
         if not alts:
             return None, exits
-        first = alts[0]
-        s = self.spec
-        if first.type in s.elif_nodes:
-            cond_text = self.hooks.condition(first, self.src)
-            cond_node = self.hooks.condition_node(first)
-            cid, target = self._decision_call(cond_node)
-            dec = self.node(
-                "decision",
-                f"¿{easy_expr(cond_text, self.lang)}?",
-                one_line(cond_text, TECH_LIMIT),
-                first,
-                cond_node if cond_node is not None else first.start_point[0] + 1,
-                cid,
-                target,
-            )
-            self.link(exits, dec)
-            yes_seq, yes_exits = self.block(
-                self.statements(self._consequence(first)), [(dec, "sí", "normal")]
-            )
-            no_seq, no_exits = self._alternatives(alts[1:], [(dec, "no", "normal")])
-            return SSeq([SIf(dec, yes_seq, no_seq)]), yes_exits + no_exits
-        if first.type in s.else_nodes:
-            body = first.child_by_field_name("body")
-            if body is None:
-                named = [c for c in first.named_children if c.type not in s.comment_nodes]
-                body = named[0] if named else None
-            if body is not None and body.type in s.if_nodes:
-                struct, ex = self.if_(body, exits)
-                return SSeq([struct]), ex
-            return self.block(self.statements(body), exits)
-        if first.type in s.if_nodes:
-            struct, ex = self.if_(first, exits)
+        alt = self.hooks.alt_info(alts[0], self.src)
+        if alt.kind == "elif":
+            info = alt.info._replace(alternatives=list(alt.info.alternatives) + list(alts[1:]))
+            struct, ex = self._if_from(info, alt.node, exits)
             return SSeq([struct]), ex
-        return self.block(self.statements(first), exits)
+        if alt.kind == "if":
+            struct, ex = self.if_(alt.node, exits)
+            return SSeq([struct]), ex
+        return self.block(alt.body or [], exits)
 
     # ------------------------------------------------------------------ bucles
 
-    def _loop_kind(self, st: Node) -> str:
-        if st.type in ("foreach_statement", "enhanced_for_statement", "for_range_loop"):
-            return "foreach"
-        if (
-            st.child_by_field_name("left") is not None
-            and st.child_by_field_name("right") is not None
-        ):
-            return "foreach"
-        if any(
-            st.child_by_field_name(f) is not None
-            for f in ("initializer", "init", "initialize", "update", "increment")
-        ) or (st.type == "for_statement" and self.lang != "python"):
-            return "for"
-        return "while"
-
-    def _foreach_parts(self, st: Node) -> tuple[str, str]:
-        if st.type == "foreach_statement":
-            named = [c for c in st.named_children if c.type not in self.spec.comment_nodes]
-            coll = self.text(named[0]) if named else ""
-            var = self.text(named[1]) if len(named) > 2 else ""
-            return var, coll
-        var_node = (
-            st.child_by_field_name("left")
-            or st.child_by_field_name("name")
-            or st.child_by_field_name("declarator")
-        )
-        coll_node = st.child_by_field_name("right") or st.child_by_field_name("value")
-        return self.text(var_node), self.text(coll_node)
-
     def loop(self, st: Node, exits: list[Exit]):
-        kind = self._loop_kind(st)
+        info: LoopInfo = self.hooks.loop_info(st, self.src)
+        kind = info.kind
         sid = self._sid()
         lang = self.lang
         init_id = None
-        update_node = None
         if kind == "for":
-            init = next(
-                (
-                    st.child_by_field_name(f)
-                    for f in ("initializer", "init", "initialize")
-                    if st.child_by_field_name(f) is not None
-                ),
-                None,
-            )
-            update_node = next(
-                (
-                    st.child_by_field_name(f)
-                    for f in ("update", "increment")
-                    if st.child_by_field_name(f) is not None
-                ),
-                None,
-            )
-            if init is not None:
-                text = _tech(self.text(init))
-                init_id = self.node("proceso", easy_expr(text, lang), text, init)
+            if info.init is not None:
+                text = _tech(self.text(info.init))
+                init_id = self.node("proceso", easy_expr(text, lang), text, info.init)
                 self.link(exits, init_id)
                 exits = [(init_id, None, "normal")]
-            cond_node = st.child_by_field_name("condition")
-            cond = strip_parens(self.text(cond_node)) if cond_node is not None else ""
-            cond = one_line(cond, TECH_LIMIT)
+            cond = one_line(info.cond_text, TECH_LIMIT)
             easy = f"¿{easy_expr(cond, lang)}?" if cond else "Repetir siempre"
             tech = cond or "(sin condición)"
+            cond_node = info.cond_node
         elif kind == "foreach":
-            var, coll = self._foreach_parts(st)
-            cond_node = st.child_by_field_name("right") or st.child_by_field_name("value")
-            var_easy = easy_expr(one_line(var, 30), lang)
-            easy = f"Para cada {var_easy} en {easy_expr(one_line(coll, 40), lang)}"
-            tech = one_line(self.hooks.loop_label(st, self.src), TECH_LIMIT)
+            var_easy = easy_expr(one_line(info.var_text, 30), lang)
+            easy = f"Para cada {var_easy} en {easy_expr(one_line(info.coll_text, 40), lang)}"
+            if not info.var_text:
+                easy = f"Repetir {easy_expr(one_line(info.coll_text, 40), lang)}"
+            tech = one_line(info.header, TECH_LIMIT)
+            cond_node = info.coll_node
         else:
-            cond_node = self.hooks.condition_node(st)
-            cond = one_line(self.hooks.condition(st, self.src), TECH_LIMIT)
-            easy = f"¿{easy_expr(cond, lang)}?"
-            tech = cond
+            cond = one_line(info.cond_text, TECH_LIMIT)
+            easy = f"¿{easy_expr(cond, lang)}?" if cond else "Repetir siempre"
+            tech = cond or "(sin condición)"
+            cond_node = info.cond_node
         cid, target = self._decision_call(cond_node)
         dec = self.node(
             "decision",
@@ -888,17 +803,17 @@ class FlowBuilder:
             target,
         )
         self.link(exits, dec)
+        yes_label, no_label = ("no", "sí") if info.negated else ("sí", "no")
         ctx = _Ctx("loop", sid)
         self.stack.append(ctx)
         self._enter()
-        body = st.child_by_field_name("body")
-        body_seq, body_exits = self.block(self.statements(body), [(dec, "sí", "normal")])
+        body_seq, body_exits = self.block(info.body, [(dec, yes_label, "normal")])
         self._leave()
         self.stack.pop()
         update_id = None
-        if update_node is not None:
-            text = _tech(self.text(update_node))
-            update_id = self.node("proceso", easy_expr(text, lang), text, update_node)
+        if info.update is not None:
+            text = _tech(self.text(info.update))
+            update_id = self.node("proceso", easy_expr(text, lang), text, info.update)
             self.link(body_exits, update_id)
             self.link(ctx.continues, update_id)
             if body_exits or ctx.continues:
@@ -906,26 +821,26 @@ class FlowBuilder:
         else:
             self.link(body_exits, dec, "retorno_bucle")
             self.link(ctx.continues, dec)
-        struct = SLoop(kind, dec, body_seq, init_id, update_id, sid)
-        return struct, [(dec, "no", "normal"), *ctx.breaks]
+        struct = SLoop(kind, dec, body_seq, init_id, update_id, sid, yes_label, no_label)
+        return struct, [(dec, no_label, "normal"), *ctx.breaks]
 
     def do_while(self, st: Node, exits: list[Exit]):
+        info: LoopInfo = self.hooks.do_while_info(st, self.src)
         sid = self._sid()
         ctx = _Ctx("loop", sid)
         first_index = len(self.nodes)
         self.stack.append(ctx)
         self._enter()
-        body_seq, body_exits = self.block(self.statements(st.child_by_field_name("body")), exits)
+        body_seq, body_exits = self.block(info.body, exits)
         self._leave()
         self.stack.pop()
-        cond_node = self.hooks.condition_node(st)
-        cond = one_line(self.hooks.condition(st, self.src), TECH_LIMIT)
-        cid, target = self._decision_call(cond_node)
+        cond = one_line(info.cond_text, TECH_LIMIT)
+        cid, target = self._decision_call(info.cond_node)
         dec = self.node(
             "decision",
             f"¿{easy_expr(cond, self.lang)}?",
             cond,
-            cond_node if cond_node is not None else st,
+            info.cond_node if info.cond_node is not None else st,
             None,
             cid,
             target,
@@ -933,33 +848,15 @@ class FlowBuilder:
         self.link(body_exits, dec)
         self.link(ctx.continues, dec)
         entry = self.nodes[first_index].id if len(self.nodes) - 1 > first_index else dec
-        self.edge(dec, entry, "sí", "retorno_bucle")
-        return SDoWhile(dec, body_seq, sid), [(dec, "no", "normal"), *ctx.breaks]
+        again, leave = ("no", "sí") if info.negated else ("sí", "no")
+        self.edge(dec, entry, again, "retorno_bucle")
+        return SDoWhile(dec, body_seq, sid), [(dec, leave, "normal"), *ctx.breaks]
 
     # ------------------------------------------------------------------ switch
 
-    def _case_statements(self, case: Node) -> list[Node]:
-        out: list[Node] = []
-        for i, ch in enumerate(case.children):
-            if not ch.is_named:
-                continue
-            fname = case.field_name_for_child(i)
-            if fname == "value" or ch.type in ("switch_label", "case_pattern"):
-                continue
-            if ch.type in self.spec.comment_nodes:
-                continue
-            if fname == "consequence" and ch.type in self.spec.block_nodes:
-                out.extend(self.statements(ch))
-            else:
-                out.append(ch)
-        return out
-
     def switch(self, st: Node, exits: list[Exit]):
         lang = self.lang
-        subject = self.hooks.condition(st, self.src)
-        body = st.child_by_field_name("body")
-        header_end = body.start_byte if body is not None else st.end_byte
-        tech = one_line(self.src.between(st.start_byte, header_end).rstrip(" {:"), TECH_LIMIT)
+        subject, tech, cases = self.hooks.switch_info(st, self.src)
         dec = self.node(
             "decision",
             f"Según {easy_expr(one_line(subject, 40), lang)}",
@@ -972,22 +869,16 @@ class FlowBuilder:
         ctx = _Ctx("switch", sid)
         self.stack.append(ctx)
         self._enter()
-        cases = [
-            c
-            for c in (body.named_children if body is not None else [])
-            if c.type in self.spec.case_nodes
-        ]
         struct_cases: list[SCase] = []
         pending: list[str] = []
         fall: list[Exit] = []
         total: list[Exit] = []
         has_default = False
         for case in cases:
-            value = self.hooks.case_value(case, self.src)
-            label = f"caso {value}" if value is not None else "otro"
-            has_default = has_default or value is None
-            stmts = self._case_statements(case)
-            falls = lang in FALLTHROUGH_LANGS and case.type != "switch_rule"
+            label = f"caso {case.value}" if case.value is not None else "otro"
+            has_default = has_default or case.value is None
+            stmts = list(case.body)
+            falls = case.falls
             final_break = bool(stmts) and stmts[-1].type in self.spec.break_nodes
             if final_break:
                 stmts = stmts[:-1]
@@ -1022,45 +913,44 @@ class FlowBuilder:
     # ------------------------------------------------------------------ try
 
     def try_(self, st: Node, exits: list[Exit]):
-        s = self.spec
+        info = self.hooks.try_info(st, self.src)
         nid = self.node("proceso", "Intentar", "try", st, st.start_point[0] + 1)
         self.link(exits, nid)
-        catches = [c for c in st.named_children if c.type in s.catch_nodes]
-        final = next((c for c in st.named_children if c.type in s.finally_nodes), None)
-        else_clause = next((c for c in st.named_children if c.type in s.else_nodes), None)
-        labels = [self.hooks.catch_label(c, self.src) or "excepción" for c in catches]
+        labels = [label for label, _ in info.catches]
         sid = self._sid()
         ctx = _Ctx("try", sid, labels)
         self.stack.append(ctx)
         self._enter()
-        body_seq, body_exits = self.block(
-            self.statements(st.child_by_field_name("body")), [(nid, None, "normal")]
-        )
+        body_seq, body_exits = self.block(info.body, [(nid, None, "normal")])
         self.stack.pop()
-        if else_clause is not None:
-            else_seq, body_exits = self.block(
-                self.statements(self._body_of(else_clause)), body_exits
-            )
+        if info.else_body is not None:
+            else_seq, body_exits = self.block(info.else_body, body_exits)
             body_seq.items.extend(else_seq.items)
         catch_structs: list[tuple[str, SSeq]] = []
         all_exits = list(body_exits)
-        for i, c in enumerate(catches):
-            entry: list[Exit] = [(nid, f"excepción: {labels[i]}", "excepcion")]
+        for i, (label, stmts) in enumerate(info.catches):
+            entry: list[Exit] = [(nid, f"excepción: {label}", "excepcion")]
             entry += [ex for ex, idx in ctx.throws if idx == i]
-            seq, ex = self.block(self.statements(self._body_of(c)), entry)
-            catch_structs.append((labels[i], seq))
+            seq, ex = self.block(stmts, entry)
+            catch_structs.append((label, seq))
             all_exits.extend(ex)
         final_seq = None
-        if final is not None:
-            final_seq, all_exits = self.block(self.statements(self._body_of(final)), all_exits)
+        if info.final is not None:
+            final_seq, all_exits = self.block(info.final, all_exits)
         self._leave()
         return STry(nid, body_seq, catch_structs, final_seq, sid), all_exits
 
     # ------------------------------------------------------------------ saltos
 
-    def return_(self, st: Node, exits: list[Exit], top_last: bool):
+    def return_(
+        self,
+        st: Node,
+        exits: list[Exit],
+        top_last: bool,
+        values: list[Node] | None = None,
+    ):
         lang = self.lang
-        value_nodes = [c for c in st.named_children if c.type not in self.spec.comment_nodes]
+        value_nodes = values if values is not None else self.hooks.jump_values(st)
         value = _tech(" ".join(self.text(v) for v in value_nodes)) if value_nodes else ""
         info = self.info(st) if value_nodes else _StmtInfo("proceso", "", "")
         easy = f"Retorna {easy_expr(value, lang)}" if value else "Retorna"
@@ -1071,9 +961,10 @@ class FlowBuilder:
         )
         if kind == "subproceso":
             easy = f"Retorna el resultado de {info.easy.removeprefix('Llama a ')}"
-        nid = self.node(
-            kind, easy, _tech(self.text(st)), st, call_id=info.call_id, target=info.target
-        )
+        tech = _tech(self.text(st))
+        if values is not None:
+            tech = f"return {tech}"
+        nid = self.node(kind, easy, tech, st, call_id=info.call_id, target=info.target)
         self.link(exits, nid)
         if top_last:
             return SSeq([SNode(nid)]), [(nid, None, "normal")]
@@ -1102,9 +993,7 @@ class FlowBuilder:
 
     def throw(self, st: Node, exits: list[Exit]):
         lang = self.lang
-        value_nodes = [c for c in st.named_children if c.type not in self.spec.comment_nodes]
-        if st.type == "expression_statement" and value_nodes:
-            value_nodes = [c for c in value_nodes[0].named_children]
+        value_nodes = self.hooks.jump_values(st)
         value = _tech(" ".join(self.text(v) for v in value_nodes))
         shown = re.sub(r"^new\s+", "", value)
         nid = self.node(
@@ -1116,7 +1005,7 @@ class FlowBuilder:
             idx = 0
             for i, label in enumerate(ctx.catch_labels):
                 base = (
-                    re.split(r"[\s(]", shown, maxsplit=1)[0].rsplit(".", 1)[-1].rsplit("\\", 1)[-1]
+                    re.split(r"[\s(,]", shown, maxsplit=1)[0].rsplit(".", 1)[-1].rsplit("\\", 1)[-1]
                 )
                 if base and base in label:
                     idx = i

@@ -50,6 +50,19 @@ def have_grammars(*names: str) -> bool:
 
 
 needs_grammars = pytest.mark.skipif(
-    not have_grammars("python", "javascript", "typescript", "php", "java", "c", "cpp"),
+    not have_grammars(
+        "python",
+        "javascript",
+        "typescript",
+        "php",
+        "java",
+        "c",
+        "cpp",
+        "go",
+        "ruby",
+        "rust",
+        "kotlin",
+        "swift",
+    ),
     reason="faltan gramáticas: ejecuta `desglosa setup`",
 )

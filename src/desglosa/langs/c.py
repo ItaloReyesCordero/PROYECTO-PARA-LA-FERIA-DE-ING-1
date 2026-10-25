@@ -82,6 +82,8 @@ def declarator_name(node: Node | None) -> Node | None:
 
 
 class Hooks(LangHooks):
+    fallthrough = True
+
     def _name_node(self, node: Node) -> Node | None:
         fd = function_declarator(node)
         return fd.child_by_field_name("declarator") if fd is not None else None

@@ -105,6 +105,13 @@ class Resolver:
         for s in symbols:
             if s.kind in ("class", "interface"):
                 self.classes_by_name[s.name].append(s)
+        # Herencia declarada fuera de la clase (Rust `impl Trait for Tipo`).
+        for r in results:
+            for type_name, base in r.extra_bases:
+                for cls in self._narrow(self.classes_by_name.get(type_name, []), r.file.path):
+                    current = raw_bases.get(cls.id, ())
+                    if base not in current:
+                        raw_bases[cls.id] = (*current, base)
         # Métodos definidos fuera de su clase (C++ `A::m`): enlazar con la clase.
         fixed: list[Symbol] = []
         for s in symbols:
@@ -479,14 +486,29 @@ class Resolver:
                     if cls is not None and field_name.isidentifier():
                         return self._field_type(cls.id, field_name)
                     return None
+        if r.startswith("@") and cls is not None and r[1:].isidentifier():  # Ruby: @campo
+            return self._field_type(cls.id, r[1:])
         name = r.lstrip("$")
-        if not name.isidentifier():
+        if name.isidentifier():
+            typ = self.var_types.get(caller.id, {}).get(name)
+            if typ:
+                return typ
+            if spec.implicit_this and cls is not None:
+                return self._field_type(cls.id, name)
             return None
-        typ = self.var_types.get(caller.id, {}).get(name)
-        if typ:
-            return typ
-        if spec.implicit_this and cls is not None:
-            return self._field_type(cls.id, name)
+        # `var.campo` / `$var->campo`: tipo de la variable → tipo del campo en esa clase.
+        for sep in (".", "->"):
+            base, dot, field_name = name.partition(sep)
+            if dot and base.isidentifier() and field_name.isidentifier():
+                base_type = self.var_types.get(caller.id, {}).get(base)
+                if base_type is None and spec.implicit_this and cls is not None:
+                    base_type = self._field_type(cls.id, base)
+                if base_type is None:
+                    return None
+                owners = self._narrow(self.classes_by_name.get(base_type, []), caller.file)
+                if len(owners) == 1:
+                    return self._field_type(owners[0].id, field_name)
+                return None
         return None
 
     # ------------------------------------------------------------------ todo junto

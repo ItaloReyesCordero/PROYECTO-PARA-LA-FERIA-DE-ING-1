@@ -15,7 +15,20 @@ from tests.conftest import FIXTURES, needs_grammars
 pytestmark = needs_grammars
 
 ROOT = Path(__file__).resolve().parent.parent
-FACTURACION = ("c", "cpp", "java", "javascript", "php", "python", "typescript")
+FACTURACION = (
+    "c",
+    "cpp",
+    "go",
+    "java",
+    "javascript",
+    "kotlin",
+    "php",
+    "python",
+    "ruby",
+    "rust",
+    "swift",
+    "typescript",
+)
 
 
 @pytest.fixture(scope="module")
@@ -36,7 +49,7 @@ def _all_flows(analyses):
 @pytest.mark.parametrize("lang", FACTURACION)
 def test_emitir_golden(lang, analyses, golden):
     a = analyses[lang]
-    emitir = next(s for s in a.project.symbols if s.name == "emitir")
+    emitir = next(s for s in a.project.symbols if s.name.lower() == "emitir")
     golden(f"flow/{lang}_emitir.json", dumps(a.flows[emitir.id].graph))
 
 
@@ -91,11 +104,11 @@ def test_subprocess_targets(analyses):
     for lang in FACTURACION:
         a = analyses[lang]
         by_id = {s.id: s for s in a.project.symbols}
-        emitir = next(s for s in a.project.symbols if s.name == "emitir")
+        emitir = next(s for s in a.project.symbols if s.name.lower() == "emitir")
         targets = [
             by_id[n.target_symbol].name for n in a.flows[emitir.id].graph.nodes if n.target_symbol
         ]
-        assert "cobrar" in targets, lang
+        assert "cobrar" in [t.lower() for t in targets], lang
 
 
 def test_constructs_present(analyses):

@@ -52,6 +52,8 @@ def _type_text(node: Node | None, src: Src) -> str:
 
 
 class Hooks(LangHooks):
+    fallthrough = True
+
     def is_static(self, node: Node, src: Src) -> bool:
         mods = next((c for c in node.named_children if c.type == "modifiers"), None)
         return mods is not None and "static" in src.text(mods).split()

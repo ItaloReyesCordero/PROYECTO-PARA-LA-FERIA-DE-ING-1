@@ -45,6 +45,7 @@ class FileResult:
     var_types: dict[str, dict[str, str]] = field(default_factory=dict)  # función → var → tipo
     field_types: dict[str, dict[str, str]] = field(default_factory=dict)  # clase → campo → tipo
     qualifiers: dict[str, str] = field(default_factory=dict)  # método C++ → clase dueña
+    extra_bases: list[tuple[str, str]] = field(default_factory=list)  # (tipo, base) externos
     warnings: list[str] = field(default_factory=list)
 
 
@@ -89,6 +90,7 @@ class _Walker:
         self.class_bases: dict[str, tuple[str, ...]] = {}
         self.abstract: list[str] = []
         self.qualifiers: dict[str, str] = {}
+        self.extra_bases: list[tuple[str, str]] = []
         self.frames: list[_Frame] = []
         self.used_ids: set[str] = set()
         self.module_entry = False
@@ -172,10 +174,10 @@ class _Walker:
         t = node.type
         hooks, src = self.hooks, self.src
 
-        if t in self.class_types and hooks.is_definition(node):
+        kind = hooks.class_kind(node, src) if t in self.class_types else None
+        if kind is not None:
             name = hooks.symbol_name(node, src)
             if name:
-                kind = "interface" if t in self.spec.interface_nodes else "class"
                 sym = self.add_symbol(node, kind, name, frame)
                 self.class_bases[sym.id] = hooks.class_bases(node, src)
                 inner = _Frame(sym, kind, None)
@@ -224,6 +226,7 @@ class _Walker:
 
         for binding in hooks.bindings(node, src):
             self._add_binding(binding, frame)
+        self.extra_bases.extend(hooks.extra_bases(node, src))
 
         if frame.kind == "module" and hooks.is_main_guard(node, src):
             self.module_entry = True
@@ -232,23 +235,24 @@ class _Walker:
             if not child.is_named:
                 continue
             field_name = node.field_name_for_child(i)
-            self.walk(child, frame, self._child_ctx(node, child, field_name, ctx))
+            self.walk(child, frame, self._child_ctx(node, child, field_name, ctx, i))
 
     def _child_ctx(
-        self, node: Node, child: Node, field_name: str | None, ctx: tuple[ControlCtx, ...]
+        self,
+        node: Node,
+        child: Node,
+        field_name: str | None,
+        ctx: tuple[ControlCtx, ...],
+        index: int = 0,
     ) -> tuple[ControlCtx, ...]:
         t = node.type
         s = self.spec
         line = node.start_point[0] + 1
         if t in self.ifish:
-            cond = self.hooks.condition_node(node)
-            if cond is not None and child.id == cond.id:
+            branch = self.hooks.if_branch(node, index, field_name, child)
+            if branch == "cond":
                 return ctx
-            if (
-                child.type in s.else_nodes
-                or child.type in s.elif_nodes
-                or field_name == "alternative"
-            ):
+            if branch == "else":
                 return (*ctx, ControlCtx("else", child.start_point[0] + 1, "else"))
             label = one_line(self.hooks.condition(node, self.src), 60)
             return (*ctx, ControlCtx("if", line, label))
@@ -270,10 +274,16 @@ class _Walker:
         return ctx
 
     def _loop_label(self, node: Node) -> str:
-        if "while" in node.type or node.type in self.spec.do_while_nodes:
-            cond = self.hooks.condition(node, self.src)
-            if cond:
-                return one_line(cond, 60)
+        if node.type in self.spec.do_while_nodes:
+            info = self.hooks.do_while_info(node, self.src)
+        else:
+            info = self.hooks.loop_info(node, self.src)
+        if info.kind in ("while", "do") and info.cond_text:
+            return one_line(info.cond_text, 60)
+        if info.kind == "foreach" and info.header:
+            return one_line(info.header, 60)
+        if info.kind == "while":
+            return "repetir"
         return one_line(self.hooks.loop_label(node, self.src), 60)
 
     # ------------------------------------------------------------------ registros
@@ -395,6 +405,7 @@ def extract_bytes(path: str, lang: str, data: bytes) -> FileResult:
         var_types=dict(sorted(var_types.items())),
         field_types=dict(sorted(field_types.items())),
         qualifiers=dict(sorted(walker.qualifiers.items())),
+        extra_bases=sorted(set(walker.extra_bases)),
         warnings=warnings,
     )
 

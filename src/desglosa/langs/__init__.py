@@ -10,10 +10,15 @@ from desglosa.langs.spec import LangHooks, LangSpec
 _MODULES = {
     "c": "desglosa.langs.c",
     "cpp": "desglosa.langs.cpp",
+    "go": "desglosa.langs.go",
     "java": "desglosa.langs.java",
     "javascript": "desglosa.langs.javascript",
+    "kotlin": "desglosa.langs.kotlin",
     "php": "desglosa.langs.php",
     "python": "desglosa.langs.python",
+    "ruby": "desglosa.langs.ruby",
+    "rust": "desglosa.langs.rust",
+    "swift": "desglosa.langs.swift",
     "typescript": "desglosa.langs.typescript",
 }
 

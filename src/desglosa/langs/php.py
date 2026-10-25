@@ -73,6 +73,8 @@ def _var(text: str) -> str:
 
 
 class Hooks(LangHooks):
+    fallthrough = True
+
     def class_bases(self, node: Node, src: Src) -> tuple[str, ...]:
         out: list[str] = []
         for child in node.named_children:

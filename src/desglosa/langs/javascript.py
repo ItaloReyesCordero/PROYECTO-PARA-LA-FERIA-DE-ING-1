@@ -57,6 +57,8 @@ def _string_value(node: Node | None, src: Src) -> str:
 
 
 class Hooks(LangHooks):
+    fallthrough = True
+
     def symbol_name(self, node: Node, src: Src) -> str | None:
         name = node.child_by_field_name("name")
         if name is not None:

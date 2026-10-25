@@ -184,3 +184,43 @@ start demo.html
 ```
 Recorrido: `app` → `Http/Controllers` → `FacturaController` → `store()` → clic en
 "Llama a emitir()" → flujo de `FacturacionService.emitir`.
+
+---
+
+## Fase 4 — Resto de lenguajes ✅
+
+**Qué se hizo**
+- Extracción y diagrama de flujo de **Go, Ruby, Rust, Kotlin y Swift** (fixtures de
+  facturación en los 5, con golden de IR y de FlowGraph).
+- **Refactor**: `flow.py` ya no conoce la forma del AST de ningún lenguaje; la pide a
+  `LangHooks` (`flow_kind`, `if_info`, `loop_info`, `switch_info`, `try_info`…). Los
+  goldens de los 7 lenguajes anteriores **no cambiaron** con el refactor.
+- Soporte nuevo: `unless`/`until` (ramas con sí/no invertidos), `guard` de Swift,
+  bucles `.each do |x|` de Ruby como "Para cada", retorno implícito (Ruby, Rust, Kotlin
+  `= expr`), `fallthrough` explícito (Go, Swift), métodos atados por receptor (Go) o por
+  `impl` (Rust) o `extension` (Swift), `impl Trait for Tipo` como herencia, `panic(...)`
+  de Go y `raise` de Ruby como lanzamiento de excepción.
+- El resolvedor entiende receptores como `s.pago` (variable con tipo conocido → su campo)
+  y `@pago` (Ruby).
+- 130 tests: los 12 lenguajes pasan los mismos tests (cobrar se resuelve desde emitir,
+  E/S detectada, punto de entrada `main`) y las garantías de layout.
+
+**Qué falló / encontré**
+- Kotlin y Swift casi no usan campos con nombre; `return/break/continue/throw` comparten
+  un solo tipo de nodo. Todo anotado en `docs/ADDING_A_LANGUAGE.md`.
+- En Rust `format!(` salía como "format no (" en modo fácil (el `!` de una macro no es
+  negación) y en Kotlin `->` se convertía en `.`; corregido.
+
+**Decisiones (revísalas)**
+1. Go no declara qué interfaz implementa un tipo (es estructural), así que en Go no hay
+   "posible implementación": la llamada por interfaz queda como probable por nombre único.
+2. En Ruby las lecturas de atributos (`factura.items`) también son llamadas para el
+   parser; quedan como externas (no ensucian el mapa, que no dibuja externas).
+3. Una `extension` de Swift no crea una clase nueva: sus métodos se suman a la clase
+   extendida.
+
+**Probar**
+```powershell
+uv run desglosa flow tests/fixtures/ruby facturacion.rb:emitir -o ruby.html
+uv run desglosa analyze tests/fixtures/kotlin -o kotlin.html
+```
