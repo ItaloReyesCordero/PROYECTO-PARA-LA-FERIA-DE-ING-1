@@ -118,6 +118,7 @@
     dragged: false,
     selectedNode: null,
     showExternal: false,
+    legendClosed: false,
   };
 
   // ------------------------------------------------------------------ utilidades DOM
@@ -239,6 +240,7 @@
     else if (view === "secuencia") renderSequence(id);
     else if (view === "codigo") renderCodeView(id);
     else if (view === "er") renderER();
+    else if (view === "galaxia") renderGalaxy();
     else renderMap(null);
     renderCrumbs();
   }
@@ -336,6 +338,7 @@
     if (state.view === "flujo") renderFlow(state.id);
     else if (state.view === "mapa" || !state.view) renderMap(state.id);
     else if (state.view === "secuencia") renderSequence(state.id);
+    else if (state.view === "galaxia") renderGalaxy();
     state.selectedNode = keep;
   }
 
@@ -452,6 +455,8 @@
       });
     } else if (state.view === "er") {
       items.push({ label: "Diagrama entidad-relación", hash: buildHash("er", null) });
+    } else if (state.view === "galaxia") {
+      items.push({ label: "Galaxia", hash: buildHash("galaxia", null) });
     }
     items.forEach((it, i) => {
       if (i > 0) nav.appendChild(h("span", { class: "sep", "aria-hidden": "true" }, "›"));
@@ -480,7 +485,7 @@
       go("mapa", parent && parent !== MAP.root ? parent : null);
       return;
     }
-    if (state.view === "er") go("mapa", null);
+    if (state.view === "er" || state.view === "galaxia") go("mapa", null);
   }
 
   // ------------------------------------------------------------------ pestañas e info
@@ -489,9 +494,11 @@
     const tabs = $("pestanas");
     clear(tabs);
     if (!sid) {
-      if (DATA.er && DATA.er.tables && DATA.er.tables.length) {
-        tabs.appendChild(tabButton("Mapa", state.view === "mapa", () => go("mapa", null)));
-        tabs.appendChild(tabButton("Entidad-relación", state.view === "er", () => go("er", null)));
+      const hasER = DATA.er && DATA.er.tables && DATA.er.tables.length;
+      if (hasER || DATA.galaxy) {
+        tabs.appendChild(tabButton("Mapa", state.view === "mapa" || !state.view, () => go("mapa", null)));
+        if (DATA.galaxy) tabs.appendChild(tabButton("Galaxia", state.view === "galaxia", () => go("galaxia", null)));
+        if (hasER) tabs.appendChild(tabButton("Entidad-relación", state.view === "er", () => go("er", null)));
       }
       return;
     }
@@ -1087,6 +1094,100 @@
 
   // ------------------------------------------------------------------ vista: entidad-relación
 
+  // ------------------------------------------------------------------ vista: galaxia
+
+  const COM_COLORS = 10; // .com-0 … .com-9 en el CSS (colores del mapa semántico)
+
+  function renderGalaxy() {
+    renderTabs(null);
+    hidePanel();
+    const gx = DATA.galaxy;
+    if (!gx) { renderInfo([]); showEmpty("El proyecto es muy pequeño para la vista galaxia."); return; }
+    const [nodes, edges, comms] = [gx.nodes, gx.edges, gx.communities];
+    // Enfoque: "n<i>" (un archivo y sus conexiones) o "c<k>" (un subsistema).
+    const f = state.focus || "";
+    const focusNode = f.startsWith("n") ? Number(f.slice(1)) : null;
+    const focusCom = f.startsWith("c") ? Number(f.slice(1)) : null;
+    let lit = null;
+    if (focusNode !== null && nodes[focusNode]) {
+      lit = new Set([focusNode]);
+      for (const [a, b] of edges) {
+        if (a === focusNode) lit.add(b);
+        if (b === focusNode) lit.add(a);
+      }
+    } else if (focusCom !== null) {
+      lit = new Set(nodes.map((n, i) => (n[4] === focusCom ? i : -1)).filter((i) => i >= 0));
+    }
+    const info = [h("strong", null, "Galaxia"), "  ·  " + nodes.length + " archivos · " + comms.length + " subsistemas"];
+    if (focusNode !== null && nodes[focusNode]) {
+      const off = h("button", { class: "boton", type: "button", onclick: () => { state.focus = null; syncHash(); renderGalaxy(); } }, "Quitar enfoque");
+      info.push(h("div", { class: "aviso-foco" }, "Enfocado: ", h("strong", null, nodes[focusNode][0]), " y sus " + (lit.size - 1) + " conexiones. ", off));
+    } else if (focusCom !== null && comms[focusCom]) {
+      const off = h("button", { class: "boton", type: "button", onclick: () => { state.focus = null; syncHash(); renderGalaxy(); } }, "Quitar enfoque");
+      info.push(h("div", { class: "aviso-foco" }, "Subsistema: ", h("strong", null, comms[focusCom][1]), " (" + comms[focusCom][2] + " archivos). ", off));
+    } else {
+      info.push(h("div", { class: "pista" }, "Cada punto es un archivo; los colores son subsistemas que se llaman mucho entre sí. Clic: verlo en el mapa · Alt+clic: sus conexiones."));
+    }
+    if (gx.hidden_edges) info.push(h("div", { class: "pista" }, "Se dibujan las " + edges.length + " conexiones más fuertes de " + (edges.length + gx.hidden_edges) + "."));
+    renderInfo(info);
+    const svg = s("svg", { role: "img", "aria-label": "Galaxia del proyecto" });
+    const g = s("g", { class: "vista" });
+    for (const [cid, label, size, cx, cy, r] of comms) {
+      const dim = lit && focusCom !== null && cid !== focusCom ? " atenuado" : "";
+      g.appendChild(s("circle", { class: "galaxia-racimo com-" + (cid % COM_COLORS) + dim, cx, cy, r }));
+      g.appendChild(s("text", { class: "galaxia-titulo" + dim, x: cx, y: cy - r - 8, "text-anchor": "middle" }, label + " (" + size + ")"));
+    }
+    const edgeGroup = s("g", { class: "galaxia-aristas" });
+    for (const [a, b, w] of edges) {
+      const on = lit && lit.has(a) && lit.has(b) && (focusNode === null || a === focusNode || b === focusNode);
+      const cls = "galaxia-arista" + (lit ? (on ? " resaltada" : " atenuado") : "");
+      edgeGroup.appendChild(s("line", { class: cls, x1: nodes[a][1], y1: nodes[a][2], x2: nodes[b][1], y2: nodes[b][2], "stroke-width": Math.min(4, 0.6 + Math.log2(1 + w) * 0.5) }));
+    }
+    g.appendChild(edgeGroup);
+    const gods = new Set(gx.gods || []);
+    nodes.forEach(([file, x, y, r, cid, nfun, deg, link], i) => {
+      const dim = lit && !lit.has(i) ? " atenuado" : "";
+      const ng = s("g", { class: "galaxia-nodo com-" + (cid % COM_COLORS) + (link ? " clicable" : "") + dim + (i === focusNode ? " seleccionado" : ""), tabindex: "0", role: "button", "aria-label": file });
+      ng.appendChild(s("circle", { class: "forma", cx: x, cy: y, r }));
+      ng.appendChild(s("title", null, file + "\n" + nfun + " funciones · " + deg + " llamadas con otros archivos\nSubsistema: " + comms[cid][1] + (link ? "\nClic: ver en el mapa · Alt+clic o E: enfocar" : "")));
+      const focusThis = () => { state.focus = state.focus === "n" + i ? null : "n" + i; syncHash(); renderGalaxy(); };
+      ng.addEventListener("click", (e) => {
+        if (state.dragged) return;
+        e.stopPropagation();
+        if (e.altKey || e.shiftKey || !link) { focusThis(); return; }
+        location.hash = link;
+      });
+      ng.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && link) { e.preventDefault(); location.hash = link; }
+        else if (e.key === "e" || e.key === "E") { e.preventDefault(); e.stopPropagation(); focusThis(); }
+      });
+      g.appendChild(ng);
+    });
+    for (const i of gods) {
+      const [file, x, y, r] = nodes[i];
+      const dim = lit && !lit.has(i) ? " atenuado" : "";
+      g.appendChild(s("text", { class: "galaxia-central" + dim, x: x + r + 4, y: y + 4 }, file.split("/").pop()));
+    }
+    mount(svg, g, gx.w, gx.h, []);
+    // Leyenda plegable: los subsistemas más grandes; clic en uno para enfocarlo.
+    const legend = h("div", { class: "leyenda leyenda-galaxia" + (state.legendClosed ? " plegada" : "") });
+    const toggle = h("button", { type: "button", class: "boton-limpio titulo-leyenda", "aria-expanded": state.legendClosed ? "false" : "true",
+      onclick: () => { state.legendClosed = !state.legendClosed; renderGalaxy(); } },
+      (state.legendClosed ? "▸ " : "▾ ") + "Subsistemas (" + comms.length + ")");
+    legend.appendChild(toggle);
+    if (!state.legendClosed) {
+      const list = h("div", { role: "list", "aria-label": "Subsistemas" });
+      for (const [cid, label, size] of comms.slice(0, 12)) {
+        const item = h("button", { type: "button", class: "item boton-limpio" + (cid === focusCom ? " activo" : ""), role: "listitem", title: label + " (" + size + " archivos) · clic: enfocar" },
+          h("span", { class: "muestra com-" + (cid % COM_COLORS) }), h("span", { class: "texto-item" }, label + " (" + size + ")"));
+        item.addEventListener("click", () => { state.focus = state.focus === "c" + cid ? null : "c" + cid; syncHash(); renderGalaxy(); });
+        list.appendChild(item);
+      }
+      legend.appendChild(list);
+    }
+    $("lienzo").appendChild(legend);
+  }
+
   function renderER() {
     renderTabs(null);
     hidePanel();
@@ -1238,7 +1339,7 @@
       if (e.ctrlKey || e.metaKey || e.altKey) return;
       if (e.key === "/") { e.preventDefault(); const b = $("buscar"); if (b) b.focus(); }
       else if (e.key === "?") showHelp();
-      else if (e.key === "Escape" && state.focus && (state.view === "mapa" || !state.view)) toggleFocus(state.focus);
+      else if (e.key === "Escape" && state.focus && (state.view === "mapa" || state.view === "galaxia" || !state.view)) toggleFocus(state.focus);
       else if (e.key === "Escape") goUp();
       else if (e.key === "t") toggleTheme();
       else if (e.key === "m") toggleMode();

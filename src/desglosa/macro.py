@@ -539,4 +539,8 @@ def build_map(project: Project, routes: list[tuple[str, str]] | None = None) -> 
             "layout": mb.group_layout(gid, edges),
         }
     owner = {el: gid for el, gid in sorted(mb.owner.items())}
-    return {"root": "root", "groups": groups_out, "owner": owner}
+    # Archivo → su nivel en el mapa (lo usa la galaxia para "clic: ver en el mapa").
+    files = {
+        path: el for path, el in sorted(mb.file_element.items()) if el in mb.groups
+    }
+    return {"root": "root", "groups": groups_out, "owner": owner, "files": files}

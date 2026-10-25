@@ -11,6 +11,7 @@ from collections import Counter, defaultdict
 
 from desglosa import __version__
 from desglosa.flows_stage import cyclomatic
+from desglosa.galaxy import build_galaxy
 from desglosa.ir import CONFIDENCES, Symbol, call_targets
 from desglosa.pipeline import Analysis
 
@@ -282,6 +283,40 @@ def build_report(analysis: Analysis, top: int = 10) -> str:
     else:
         out.append("No hay funciones con cuerpo.")
     out.append("")
+
+    # ------------------------------------------------------------------ subsistemas
+    galaxy = build_galaxy(project)
+    if galaxy and galaxy["communities"]:
+        nodes, comms = galaxy["nodes"], galaxy["communities"]
+        out += ["## Subsistemas", ""]
+        out.append(
+            "Grupos de archivos que se llaman mucho entre sí (algoritmo de Louvain, sin IA); "
+            "el nombre sale de sus carpetas."
+        )
+        out.append("")
+        rows = [(_cell(label), str(size)) for _, label, size, *_ in comms[:15]]
+        out += _table(("Subsistema", "Archivos"), rows)
+        out.append("")
+        out += ["## Archivos centrales", ""]
+        out.append("Los archivos con más llamadas hacia y desde otros archivos: por ahí pasa todo.")
+        out.append("")
+        rows = [
+            (_code(nodes[i][0]), str(nodes[i][6]), _cell(comms[nodes[i][4]][1]))
+            for i in galaxy["gods"]
+        ]
+        out += _table(("Archivo", "Llamadas con otros archivos", "Subsistema"), rows)
+        out.append("")
+        between = {(a, b): w for a, b, w in galaxy["between"]}
+        if between:
+            out += ["## Conexiones entre subsistemas", ""]
+            out.append("Dónde una parte del proyecto depende de otra (las más fuertes).")
+            out.append("")
+            rows = [
+                (_cell(comms[a][1]), _cell(comms[b][1]), str(w))
+                for (a, b), w in sorted(between.items(), key=lambda kv: (-kv[1], kv[0]))[:10]
+            ]
+            out += _table(("Subsistema", "Subsistema", "Llamadas"), rows)
+            out.append("")
 
     # ------------------------------------------------------------------ notas
     out += ["## Notas en el código", ""]
