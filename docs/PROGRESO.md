@@ -224,3 +224,54 @@ Recorrido: `app` → `Http/Controllers` → `FacturaController` → `store()` �
 uv run desglosa flow tests/fixtures/ruby facturacion.rb:emitir -o ruby.html
 uv run desglosa analyze tests/fixtures/kotlin -o kotlin.html
 ```
+
+## Fase 5 — Secuencia, SQL/ER y rutas ✅
+
+**Qué se hizo**
+- **SQL → ER** (`sqlmodel.py`, con `sqlglot`): tablas, columnas, PK y las **3 formas de
+  clave foránea** (`REFERENCES` en la columna, `FOREIGN KEY` de tabla y
+  `ALTER TABLE … ADD CONSTRAINT`). El SQL se corta en sentencias respetando comillas y
+  comentarios; cada sentencia se intenta con el dialecto pedido (`--dialect`) y luego con
+  mysql, postgres, sqlite y tsql. Una sentencia ilegible da un aviso con archivo:línea y
+  el análisis sigue.
+- **Función → tabla** (confianza "probable"): se buscan cadenas con SQL dentro de cada
+  función (`FROM`/`JOIN` = lee; `INSERT INTO`/`UPDATE`/`DELETE FROM` = escribe).
+- **Rutas de Laravel** (`routes.py`): `Route::get/post/…` con `[X::class, 'm']`,
+  `'X@m'` o controlador invocable, y `Route::resource/apiResource`. El método destino se
+  marca como punto de entrada y la ruta aparece en el panel y en la secuencia.
+- **Diagrama de secuencia** (`sequence.py` + `layout/sequence.py`): actor "Usuario" si la
+  entrada es un punto de entrada, mensajes numerados 1, 1.1, 1.2…, retorno punteado solo
+  si la función devuelve algo, fragmentos `loop`/`alt`/`opt`/`try`, recursión
+  "(recursivo)" sin expandir, interfaz → `alt` "posible implementación", `new X()`.
+  Las llamadas externas van a un participante gris "Externo" y se ocultan por defecto
+  (botón "Mostrar llamadas externas"; al ocultarlas se renumera sin huecos).
+- **Visor**: pestañas Secuencia y ER, panel de tabla (relaciones, leída por / escrita
+  por), panel de función con "Ruta" y "Tablas (probable)".
+- **CLI**: `desglosa sequence <ruta> --entry Clase.metodo [--depth N]` y
+  `desglosa sql <ruta>` (sale con 1 si no hay tablas).
+- 155 tests. Gate de la fase: fixture `tests/fixtures/sql/esquema.sql` con las 3 FKs y
+  goldens de secuencia en `tests/golden/sequence/` (Laravel `store`, con y sin externos;
+  TypeScript con interfaz de 2 implementaciones y recursión).
+
+**Qué falló / encontré**
+- `throw new DomainException()` salía como `DomainException()`: la IR del proyecto no
+  guarda qué llamadas son `new`. Ahora `Analysis.new_calls` lo junta desde la extracción.
+- En la vista ER el panel lateral tapaba el diagrama: el panel se dibuja antes de
+  calcular el encuadre.
+
+**Decisiones (revísalas)**
+1. Función → tabla se detecta **solo con SQL escrito en cadenas**. Un ORM
+   (`Factura::where(...)`, `session.query(...)`) no se detecta: haría falta adivinar el
+   nombre de la tabla y la regla es no inventar.
+2. Si el proyecto tiene esquema `.sql`, solo cuentan las tablas conocidas (evita falsos
+   positivos como "from casa" en un texto normal).
+3. En la secuencia, lo que hace una función llamada dentro de un `try` o un `for` se
+   dibuja dentro de ese mismo fragmento (así se ve que todo ocurre "dentro del try").
+4. En el `alt` de interfaz se dibuja la llamada a cada implementación pero no se expande
+   su interior (si no, el diagrama se duplica). Se abre con clic en el mensaje.
+
+**Probar**
+```powershell
+uv run desglosa sequence examples/laravel-mini --entry FacturaController.store -o secuencia.html
+uv run desglosa sql examples/laravel-mini -o er.html
+```

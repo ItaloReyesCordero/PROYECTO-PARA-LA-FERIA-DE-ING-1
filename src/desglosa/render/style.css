@@ -210,6 +210,13 @@ button, input, select { font: inherit; color: inherit; }
 .punta { fill: var(--linea); }
 .punta-exc { fill: var(--c-excepcion); }
 .punta-foco { fill: var(--foco); }
+.arista.k-retorno { stroke-dasharray: 5 4; stroke-width: 1.2; }
+.linea-vida { stroke: var(--texto-suave); stroke-width: 1; stroke-dasharray: 4 4; opacity: .6; }
+.fragmento { fill: none; stroke: var(--texto-suave); stroke-width: 1.2; }
+.fragmento-divisor { stroke: var(--texto-suave); stroke-width: 1; stroke-dasharray: 6 4; }
+.msg { fill: var(--texto); font: 11px var(--mono); }
+.msg.retorno { fill: var(--texto-suave); }
+.msg.enlace { cursor: pointer; text-decoration: underline; }
 .etiqueta rect { fill: var(--superficie); stroke: var(--borde); stroke-width: .6; }
 .etiqueta text { fill: var(--texto-suave); font: 11px var(--mono); dominant-baseline: middle; }
 

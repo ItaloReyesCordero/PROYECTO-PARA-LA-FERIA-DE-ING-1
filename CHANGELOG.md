@@ -2,6 +2,14 @@
 
 ## [Sin publicar]
 
+### Fase 5 — Secuencia, SQL/ER y rutas
+- Diagrama de secuencia desde una función (fragmentos loop/alt/opt/try, recursión,
+  "posible implementación", llamadas externas ocultables). Comando `sequence`.
+- SQL → diagrama entidad-relación con las 3 formas de clave foránea y reintento con
+  varios dialectos. Comando `sql` y opción `--dialect`.
+- Enlace función → tabla (lee/escribe) desde el SQL escrito en cadenas.
+- Rutas de Laravel como puntos de entrada.
+
 ### Fase 4 — Resto de lenguajes
 - Go, Ruby, Rust, Kotlin y Swift: extracción, resolución y diagrama de flujo.
 - `flow.py` independiente del lenguaje (la forma del AST la describe `LangHooks`).

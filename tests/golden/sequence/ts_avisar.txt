@@ -1,0 +1,6 @@
+participantes: Servicio (clase), Correo (clase), Sms (clase), Externo (externo)
+1a Servicio -> Correo: enviar() [probable]  {loop:for (let i = 0; i < n; i++) / impl:posible implementación: Correo}
+1b Servicio -> Sms: enviar() [probable]  {loop:for (let i = 0; i < n; i++) / impl:posible implementación: Sms}
+2 Servicio -> Servicio: avisar() (recursivo) [exacta]  {if:n > 3}
+3 Servicio -> Servicio: fin() [exacta]  {else:else}
+3.1 Servicio -> Externo: log() [externa] (externo)  {else:else}

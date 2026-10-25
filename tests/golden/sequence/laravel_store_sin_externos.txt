@@ -1,0 +1,9 @@
+participantes: Usuario (actor), FacturaController (entrada), FacturacionService (clase), CalculadoraImpuestos (clase), Factura (clase), MySqlFacturaRepository (clase)
+1 Usuario -> FacturaController: POST /facturas → store() [exacta]
+1.1 FacturaController -> FacturacionService: emitir() [probable]  {try:intentar}
+1.1.1 FacturacionService -> CalculadoraImpuestos: aplicar() [probable]  {try:intentar}
+· CalculadoraImpuestos --> FacturacionService: retorna [exacta]  {try:intentar}
+1.1.2 FacturacionService -> Factura: new Factura() [exacta]  {try:intentar}
+1.1.3 FacturacionService -> MySqlFacturaRepository: guardar() [probable]  {try:intentar}
+· FacturacionService --> FacturaController: retorna [exacta]  {try:intentar}
+· FacturaController --> Usuario: retorna [exacta]

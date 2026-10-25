@@ -1,0 +1,27 @@
+participantes: Usuario (actor), FacturaController (entrada), FacturacionService (clase), CalculadoraImpuestos (clase), Factura (clase), MySqlFacturaRepository (clase), Externo (externo)
+1 Usuario -> FacturaController: POST /facturas → store() [exacta]
+1.1 FacturaController -> Externo: validate() [externa] (externo)
+1.2 FacturaController -> FacturacionService: emitir() [probable]  {try:intentar}
+1.2.1 FacturacionService -> Externo: count() [externa] (externo)  {try:intentar}
+1.2.2 FacturacionService -> Externo: new DomainException() [externa] (externo)  {try:intentar / if:count($items) === 0}
+1.2.3 FacturacionService -> CalculadoraImpuestos: aplicar() [probable]  {try:intentar}
+1.2.3.1 CalculadoraImpuestos -> Externo: new DomainException() [externa] (externo)  {try:intentar / caso:otro}
+1.2.3.2 CalculadoraImpuestos -> Externo: round() [externa] (externo)  {try:intentar}
+· CalculadoraImpuestos --> FacturacionService: retorna [exacta]  {try:intentar}
+1.2.4 FacturacionService -> Factura: new Factura() [exacta]  {try:intentar}
+1.2.5 FacturacionService -> MySqlFacturaRepository: guardar() [probable]  {try:intentar}
+1.2.5.1 MySqlFacturaRepository -> Externo: beginTransaction() [externa] (externo)  {try:intentar}
+1.2.5.2 MySqlFacturaRepository -> Externo: prepare() [externa] (externo)  {try:intentar / try:intentar}
+1.2.5.3 MySqlFacturaRepository -> Externo: execute() [externa] (externo)  {try:intentar / try:intentar}
+1.2.5.4 MySqlFacturaRepository -> Externo: lastInsertId() [externa] (externo)  {try:intentar / try:intentar}
+1.2.5.5 MySqlFacturaRepository -> Externo: prepare() [externa] (externo)  {try:intentar / try:intentar / loop:foreach ($factura->items as $item)}
+1.2.5.6 MySqlFacturaRepository -> Externo: execute() [externa] (externo)  {try:intentar / try:intentar / loop:foreach ($factura->items as $item)}
+1.2.5.7 MySqlFacturaRepository -> Externo: commit() [externa] (externo)  {try:intentar / try:intentar}
+1.2.5.8 MySqlFacturaRepository -> Externo: rollBack() [externa] (externo)  {try:intentar / catch:PDOException}
+· FacturacionService --> FacturaController: retorna [exacta]  {try:intentar}
+1.3 FacturaController -> Externo: response() [externa] (externo)  {catch:DomainException}
+1.4 FacturaController -> Externo: json() [externa] (externo)  {catch:DomainException}
+1.5 FacturaController -> Externo: getMessage() [externa] (externo)  {catch:DomainException}
+1.6 FacturaController -> Externo: response() [externa] (externo)
+1.7 FacturaController -> Externo: json() [externa] (externo)
+· FacturaController --> Usuario: retorna [exacta]

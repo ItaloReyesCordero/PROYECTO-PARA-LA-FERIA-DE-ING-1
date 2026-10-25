@@ -1,0 +1,2 @@
+participantes: app.ts (modulo)
+1 app.ts -> app.ts: factorial() (recursivo) [exacta]

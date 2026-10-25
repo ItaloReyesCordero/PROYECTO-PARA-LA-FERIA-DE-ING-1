@@ -6,7 +6,7 @@ import os
 import time
 from collections import Counter
 from concurrent.futures import ProcessPoolExecutor
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 
 from desglosa import grammars, langs
@@ -14,7 +14,9 @@ from desglosa.extract import FileResult, extract_file
 from desglosa.flows_stage import FlowOutput, make_tasks, run_tasks
 from desglosa.ir import CONFIDENCES, Project, SourceFile
 from desglosa.resolve import resolve
-from desglosa.scan import ScanOptions, ScanResult, grammar_for, scan
+from desglosa.routes import Route, find_routes, is_route_file
+from desglosa.scan import ScanOptions, ScanResult, decode_bytes, grammar_for, scan
+from desglosa.sqlmodel import merge, parse_sql, table_access
 
 # Con pocos archivos, arrancar procesos (spawn en Windows) cuesta más de lo que ahorra.
 PARALLEL_MIN_FILES = 40
@@ -27,6 +29,7 @@ class AnalyzeOptions:
     max_flow_nodes: int = 120
     flow_max_height: float = 1600
     flows: bool = True
+    dialect: str | None = None
 
 
 @dataclass
@@ -36,6 +39,16 @@ class Analysis:
     results: list[FileResult]
     seconds: float
     flows: dict[str, FlowOutput] = field(default_factory=dict)
+    routes: list[Route] = field(default_factory=list)
+
+    @property
+    def new_calls(self) -> set[str]:
+        """Ids de las llamadas `new X()` de todo el proyecto."""
+        return {c for r in self.results for c in r.new_calls}
+
+
+def _read_text(root: Path, path: str) -> str:
+    return decode_bytes((root / path).read_bytes())[0]
 
 
 def required_grammars(result: ScanResult) -> set[str]:
@@ -109,6 +122,30 @@ def analyze(target: Path | str, options: AnalyzeOptions | None = None) -> Analys
         for out in run_tasks(tasks, _jobs_for(len(tasks), options.jobs)):
             flows[out.graph.symbol_id] = out
             warnings.extend(out.warnings)
+    # SQL: tablas y FK de los .sql; enlace función → tabla desde las cadenas del código.
+    sql_models = [
+        parse_sql(e.path, _read_text(scanned.root, e.path), options.dialect)
+        for e in scanned.entries
+        if e.lang == "sql"
+    ]
+    sql = merge(sql_models)
+    warnings.extend(sql.warnings)
+    code_files = sorted({s.file for s in symbols if s.kind in ("function", "method")})
+    sources = {path: _read_text(scanned.root, path) for path in code_files}
+    access = table_access(symbols, sources, [t.name for t in sql.tables])
+    # Rutas de Laravel: los métodos referenciados son puntos de entrada.
+    route_files = [e.path for e in scanned.entries if is_route_file(e.path)]
+    routes = find_routes(
+        {p: _read_text(scanned.root, p) for p in route_files}, symbols
+    )
+    if routes:
+        entry_ids = {r.symbol_id for r in routes if r.symbol_id}
+        symbols = [replace(s, is_entry=True) if s.id in entry_ids else s for s in symbols]
+        warnings.extend(
+            f"{r.file}:{r.line}: ruta {r.verb} {r.path} apunta a {r.target} (no encontrado)"
+            for r in routes
+            if not r.symbol_id
+        )
     order = {s.id: i for i, s in enumerate(symbols)}
     project = Project(
         root_name=scanned.root_name,
@@ -119,9 +156,12 @@ def analyze(target: Path | str, options: AnalyzeOptions | None = None) -> Analys
         flows=tuple(
             f.graph for f in sorted(flows.values(), key=lambda f: order[f.graph.symbol_id])
         ),
+        tables=tuple(sql.tables),
+        fks=tuple(sql.fks),
+        table_access=tuple(access),
         warnings=tuple(sorted(warnings)),
     )
-    return Analysis(project, scanned, results, time.perf_counter() - start, flows)
+    return Analysis(project, scanned, results, time.perf_counter() - start, flows, routes)
 
 
 def summary(analysis: Analysis) -> str:
@@ -138,6 +178,10 @@ def summary(analysis: Analysis) -> str:
     lines.append(f"  Símbolos: {sum(kinds.values())} ({kinds_txt})")
     conf_txt = ", ".join(f"{c} {conf.get(c, 0)}" for c in CONFIDENCES)
     lines.append(f"  Llamadas: {len(p.calls)} ({conf_txt})")
+    if p.tables:
+        lines.append(f"  Tablas SQL: {len(p.tables)} ({len(p.fks)} relaciones)")
+    if analysis.routes:
+        lines.append(f"  Rutas: {len(analysis.routes)}")
     if skipped:
         lines.append(f"  Saltados: {len(skipped)}")
         for f in skipped[:10]:

@@ -53,6 +53,7 @@
     keepTransform: false,
     dragged: false,
     selectedNode: null,
+    showExternal: false,
   };
 
   // ------------------------------------------------------------------ utilidades DOM
@@ -699,6 +700,16 @@
       "Complejidad: " + (m.cc !== undefined ? m.cc : "–") + " · Líneas: " + (sym.line_end - sym.line_start + 1) +
       " · Llamadas entrantes: " + (m.calls_in || 0) + " · salientes: " + (m.calls_out || 0));
     appendAll(panel, [h("h2", null, sym.qualname), meta, metrics]);
+    const route = DATA.routes && DATA.routes[sid];
+    if (route) panel.appendChild(h("div", { class: "meta" }, "Ruta: ", h("code", null, route)));
+    const tables = DATA.tables_of && DATA.tables_of[sid];
+    if (tables && tables.length) {
+      const ul = h("ul");
+      for (const [table, mode] of tables) {
+        ul.appendChild(h("li", null, (mode === "lee" ? "Lee " : "Escribe ") , h("a", { href: buildHash("er", null, null) }, table)));
+      }
+      panel.appendChild(h("div", { class: "seccion" }, h("h3", null, "Tablas (probable)"), ul));
+    }
     const incoming = linkList("Llamado por", DATA.calls_in && DATA.calls_in[sid]);
     const outgoing = linkList("Llama a", DATA.calls_out && DATA.calls_out[sid]);
     const impl = DATA.impl && DATA.impl[sid] ? linkList("Posibles implementaciones", DATA.impl[sid].map((i) => [i, "probable"])) : null;
@@ -853,38 +864,47 @@
     renderPanel(sid);
     const seq = DATA.sequence && DATA.sequence[sid];
     if (!seq) { showEmpty("No hay diagrama de secuencia para esta función (no llama a otras funciones del proyecto)."); return; }
-    const lay = seq.layout;
+    if (seq.layout_all) {
+      const btn = h("button", { class: "boton", type: "button", "aria-pressed": state.showExternal ? "true" : "false", onclick: () => { state.showExternal = !state.showExternal; state.keepTransform = false; renderSequence(sid); } },
+        state.showExternal ? "Ocultar llamadas externas" : "Mostrar llamadas externas");
+      $("info").appendChild(h("div", { style: "margin-top:4px" }, btn));
+    }
+    const lay = state.showExternal && seq.layout_all ? seq.layout_all : seq.layout;
     const svg = s("svg", { role: "img", "aria-label": "Diagrama de secuencia de " + sym.qualname });
     svg.appendChild(markers());
     const g = s("g", { class: "vista" });
-    for (const [x, y, w, hh, label, kind] of lay.fragments) {
-      g.appendChild(s("rect", { x, y, width: w, height: hh, class: "fragmento", fill: "none", stroke: "var(--borde)", "stroke-width": 1.2, rx: 3 }));
-      g.appendChild(drawLabel(label, x, y, Math.min(w, label.length * 6.6 + 10), 16, "frag-" + kind));
+    for (const [x, y, w, hh, label, kind, divider] of lay.fragments) {
+      g.appendChild(s("rect", { x, y, width: w, height: hh, class: "fragmento k-frag-" + kind, rx: 3 }));
+      if (divider !== null && divider !== undefined) {
+        g.appendChild(s("line", { class: "fragmento-divisor", x1: x, y1: divider, x2: x + w, y2: divider }));
+        g.appendChild(drawLabel("[else]", x + 4, divider + 2, 52, 15));
+      }
+      g.appendChild(drawLabel(label, x, y, label.length * 6.6 + 10, 16));
     }
     for (const [x, y1, y2] of lay.lifelines) {
-      g.appendChild(s("line", { x1: x, y1, x2: x, y2, stroke: "var(--borde)", "stroke-dasharray": "4 4" }));
+      g.appendChild(s("line", { class: "linea-vida", x1: x, y1, x2: x, y2 }));
     }
     for (const [x, y, w, hh, label, kind] of lay.participants) {
-      const pg = s("g", { class: "nodo k-" + kind });
-      pg.appendChild(s("rect", { class: "forma", x, y, width: w, height: hh, rx: kind === "entrada" ? hh / 2 : 4 }));
+      const pg = s("g", { class: "nodo k-" + (kind === "actor" ? "entrada" : kind === "modulo" ? "clase" : kind) });
+      pg.appendChild(s("rect", { class: "forma", x, y, width: w, height: hh, rx: kind === "actor" || kind === "entrada" ? hh / 2 : 4 }));
       pg.appendChild(textBlock([label], x + w / 2, y + hh / 2));
       g.appendChild(pg);
     }
     for (const [x1, x2, y, label, kind, target, conf] of lay.messages) {
-      const dashed = kind === "retorno";
       const self = x1 === x2;
-      const d = self ? "M" + x1 + "," + y + " h30 v14 h-30" : "M" + x1 + "," + y + " L" + x2 + "," + y;
-      g.appendChild(s("path", { class: "arista c-" + (conf || "exacta"), d, "stroke-dasharray": dashed ? "5 4" : null, "marker-end": "url(#punta)" }));
-      const tx = self ? x1 + 36 : Math.min(x1, x2) + 6;
-      const t = s("text", { x: tx, y: y - 5, class: "msg", fill: "var(--texto)", "font-size": 11, "font-family": "var(--mono)" }, label);
-      if (target && SYMBOLS[target]) {
-        t.setAttribute("style", "cursor:pointer;text-decoration:underline");
+      const d = self ? "M" + x1 + "," + y + " h34 v14 h-30" : "M" + x1 + "," + y + " L" + x2 + "," + y;
+      const cls = kind === "retorno" ? "arista k-retorno" : "arista c-" + (conf || "exacta");
+      g.appendChild(s("path", { class: cls, d, "marker-end": "url(#punta)" }));
+      const tx = self ? x1 + 40 : Math.min(x1, x2) + 6;
+      const t = s("text", { x: tx, y: y - 6, class: "msg" + (kind === "retorno" ? " retorno" : "") }, label);
+      if (target && SYMBOLS[target] && FLOWS[target]) {
+        t.classList.add("enlace");
         t.addEventListener("click", () => openSub(target));
         t.appendChild(s("title", null, "Abrir el flujo de " + SYMBOLS[target].qualname));
       }
       g.appendChild(t);
     }
-    mount(svg, g, lay.w, lay.h, ["exacta", "probable", "ambigua", "externa"].filter((c) => lay.confs && lay.confs.includes(c)));
+    mount(svg, g, lay.w, lay.h, lay.confs || []);
   }
 
   // ------------------------------------------------------------------ vista: entidad-relación
@@ -915,9 +935,47 @@
       cols.forEach((c, i) => {
         tg.appendChild(s("text", { x: x + 8, y: y + 24 + LINE_H * (i + 0.5) + 4 }, c));
       });
+      tg.classList.add("clicable");
+      tg.setAttribute("tabindex", "0");
+      tg.setAttribute("role", "button");
+      tg.setAttribute("aria-label", "Tabla " + name);
+      const open = () => { state.focus = tid; syncHash(); renderER(); };
+      tg.addEventListener("click", (e) => { if (!state.dragged) { e.stopPropagation(); open(); } });
+      tg.addEventListener("keydown", (e) => { if (e.key === "Enter") open(); });
       g.appendChild(tg);
     }
+    // El panel se abre antes de encuadrar, así el ajuste usa el ancho final del lienzo.
+    const table = er.tables.find((t) => t.id === state.focus);
+    if (table) renderTablePanel(table, er);
     mount(svg, g, lay.w, lay.h, ["tabla"]);
+  }
+
+  function renderTablePanel(table, er) {
+    const panel = $("panel");
+    clear(panel);
+    panel.hidden = false;
+    appendAll(panel, [
+      h("h2", null, table.name),
+      h("div", { class: "meta" }, h("code", null, table.file + ":" + table.line)),
+    ]);
+    const rels = er.fks.filter((f) => f.table === table.name || f.ref_table === table.name);
+    if (rels.length) {
+      const ul = h("ul");
+      for (const f of rels) {
+        ul.appendChild(h("li", null, f.table + "(" + f.columns.join(", ") + ") → " + f.ref_table + "(" + f.ref_columns.join(", ") + ")"));
+      }
+      panel.appendChild(h("div", { class: "seccion" }, h("h3", null, "Relaciones"), ul));
+    }
+    for (const [mode, title] of [["lee", "Leída por (probable)"], ["escribe", "Escrita por (probable)"]]) {
+      const ids = (table.access && table.access[mode]) || [];
+      if (!ids.length) continue;
+      const ul = h("ul");
+      for (const id of ids) {
+        const sym = SYMBOLS[id];
+        if (sym) ul.appendChild(h("li", null, h("a", { href: buildHash("flujo", id) }, sym.qualname)));
+      }
+      panel.appendChild(h("div", { class: "seccion" }, h("h3", null, title), ul));
+    }
   }
 
   // ------------------------------------------------------------------ exportar

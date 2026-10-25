@@ -25,6 +25,26 @@ que conviene conocer (y explicar en la feria) en vez de esconder.
 - **El modo fácil reformula, no explica**: traduce operadores y usa plantillas en español
   ("¿total > 0?", "Para cada item en items"), pero no entiende la intención del código.
 
+## Diagrama de secuencia
+- Sale de las llamadas **en el orden en que aparecen en el código**, no del orden real de
+  ejecución (que depende de los datos).
+- Se corta en `--depth` niveles (4 por defecto) y en 200 mensajes.
+- En una llamada por interfaz se dibuja el mensaje a cada implementación conocida, pero
+  no se expande lo que hace cada una.
+
+## SQL y entidad-relación
+- Solo se leen archivos `.sql` con `CREATE TABLE` / `ALTER TABLE`. Las migraciones
+  escritas en código (Laravel `Schema::create`, Django `models.py`) no se convierten en
+  tablas.
+- El enlace función → tabla solo ve **SQL escrito en cadenas** (`"SELECT … FROM x"`). Las
+  consultas de un ORM (`Factura::where`, `session.query`) no se detectan.
+- SQL armado por partes (`"SELECT * FROM " . $tabla`) solo se reconoce si el nombre de la
+  tabla está escrito en la cadena.
+
+## Rutas
+- Solo rutas de Laravel en `routes/*.php`. Las rutas con closure
+  (`Route::get('/x', function () {…})`) no apuntan a ningún método y se ignoran.
+
 ## Errores de sintaxis
 - Los archivos con errores se analizan igual y se cuenta cuántos errores tienen.
 - La recuperación de errores de tree-sitter puede "tragarse" el código que sigue a un

@@ -7,9 +7,12 @@ from collections import defaultdict
 from desglosa import __version__
 from desglosa.flows_stage import cyclomatic
 from desglosa.ir import CONFIDENCE_RANK, Symbol
+from desglosa.layout.er import layout_er
+from desglosa.layout.sequence import layout_sequence
 from desglosa.pipeline import Analysis
 from desglosa.render.html import flow_payload
 from desglosa.scan import decode_bytes
+from desglosa.sequence import build_sequence, without_externals
 
 FUNC_KINDS = ("function", "method")
 
@@ -120,6 +123,7 @@ def build_payload(
     start: str | None = None,
     map_data: dict | None = None,
     extra: dict | None = None,
+    depth: int = 4,
 ) -> dict:
     project = analysis.project
     outgoing, incoming = call_maps(analysis)
@@ -170,6 +174,11 @@ def build_payload(
             if k in symbols
         }
 
+    routes = {r.symbol_id: f"{r.verb} {r.path}" for r in analysis.routes if r.symbol_id}
+    tables_of: dict[str, list[list[str]]] = defaultdict(list)
+    for acc in project.table_access:
+        if acc.symbol_id in symbols:
+            tables_of[acc.symbol_id].append([acc.table, acc.mode])
     payload = {
         "meta": {
             "name": project.root_name,
@@ -185,7 +194,87 @@ def build_payload(
         "impl": {k: v for k, v in sorted(impl.items()) if k in symbols},
         "sources": sources,
         "map": map_data,
+        "routes": {k: v for k, v in sorted(routes.items()) if k in symbols},
+        "tables_of": dict(sorted(tables_of.items())),
+        "sequence": sequence_payload(analysis, symbols, routes, depth),
+        "er": er_payload(analysis),
     }
     if extra:
         payload.update(extra)
     return payload
+
+
+def _sequence_layout(layout) -> dict:
+    return {
+        "w": layout.width,
+        "h": layout.height,
+        "participants": [list(p) for p in layout.participants],
+        "lifelines": [list(x) for x in layout.lifelines],
+        "messages": [list(m) for m in layout.messages],
+        "fragments": [list(f) for f in layout.fragments],
+        "confs": list(layout.confidences),
+    }
+
+
+def sequence_payload(
+    analysis: Analysis, symbols: dict, routes: dict[str, str], depth: int = 4
+) -> dict:
+    """Diagrama de secuencia de cada función que llama a otras del proyecto."""
+    project = analysis.project
+    by_id = {s.id: s for s in project.symbols}
+    callers: set[str] = set()
+    for c in project.calls:
+        target = by_id.get(c.resolved_id) if c.resolved_id else None
+        if (target is not None and target.kind in FUNC_KINDS) or c.candidates:
+            callers.add(c.caller_id)
+    flows = {k: v.graph for k, v in analysis.flows.items()}
+    new_calls = analysis.new_calls
+    out: dict[str, dict] = {}
+    for sid in sorted(callers):
+        sym = by_id.get(sid)
+        if sym is None or sym.kind not in FUNC_KINDS or sid not in symbols:
+            continue
+        diagram = build_sequence(
+            project, flows, sid, depth=depth, routes=routes, new_calls=new_calls
+        )
+        entry = {"layout": _sequence_layout(layout_sequence(without_externals(diagram)))}
+        if any(m.external for m in diagram.messages):
+            entry["layout_all"] = _sequence_layout(layout_sequence(diagram))
+        out[sid] = entry
+    return out
+
+
+def er_payload(analysis: Analysis) -> dict | None:
+    project = analysis.project
+    if not project.tables:
+        return None
+    readers: dict[str, dict[str, list[str]]] = {}
+    for acc in project.table_access:
+        readers.setdefault(acc.table, {"lee": [], "escribe": []})[acc.mode].append(acc.symbol_id)
+    tables = [
+        {
+            "id": t.id,
+            "name": t.name,
+            "file": t.file,
+            "line": t.line,
+            "access": readers.get(t.name, {"lee": [], "escribe": []}),
+        }
+        for t in project.tables
+    ]
+    fks = [
+        {
+            "table": fk.table,
+            "columns": list(fk.columns),
+            "ref_table": fk.ref_table,
+            "ref_columns": list(fk.ref_columns),
+            "form": fk.form,
+            "file": fk.file,
+            "line": fk.line,
+        }
+        for fk in project.fks
+    ]
+    return {
+        "tables": tables,
+        "fks": fks,
+        "layout": layout_er(list(project.tables), list(project.fks)),
+    }

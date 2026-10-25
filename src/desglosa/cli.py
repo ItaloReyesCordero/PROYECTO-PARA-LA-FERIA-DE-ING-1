@@ -138,6 +138,7 @@ def _analysis_options(args: argparse.Namespace):
         jobs=args.jobs,
         max_flow_nodes=getattr(args, "max_flow_nodes", 120),
         flow_max_height=getattr(args, "flow_max_height", 1600),
+        dialect=getattr(args, "dialect", None),
     )
 
 
@@ -238,23 +239,72 @@ def cmd_flow(args: argparse.Namespace) -> int:
 MAX_HTML_MB = 20
 
 
-def cmd_analyze(args: argparse.Namespace) -> int:
+def _write_app(args: argparse.Namespace, analysis, start: str, depth: int = 4) -> str:
+    """HTML completo (mapa, flujos, secuencias, ER) que abre en `start`."""
     from desglosa.macro import build_map
-    from desglosa.pipeline import summary
     from desglosa.render.html import render_html
     from desglosa.render.payload import build_payload
+
+    payload = build_payload(
+        analysis,
+        include_source=not args.no_source,
+        start=start,
+        map_data=build_map(analysis.project),
+        depth=depth,
+    )
+    page = render_html(payload, f"{analysis.project.root_name} — Desglosa")
+    _write_text(args.output, page)
+    return page
+
+
+def cmd_sequence(args: argparse.Namespace) -> int:
+    analysis, code = _run_analysis(args)
+    if analysis is None:
+        return code
+    cands = _find_symbol(analysis, args.entry)
+    if not cands:
+        print(f"No encontré la función {args.entry!r}.", file=sys.stderr)
+        return EXIT_USAGE
+    if len(cands) > 1:
+        print(f"{args.entry!r} es ambiguo. Usa archivo:Clase.metodo:", file=sys.stderr)
+        for s in cands:
+            print(f"  {s.file}:{s.qualname}", file=sys.stderr)
+        return EXIT_USAGE
+    sym = cands[0]
+    _write_app(args, analysis, f"#/secuencia/{sym.id}", args.depth)
+    print(f"Secuencia de {sym.qualname} (profundidad {args.depth}).")
+    print(f"HTML escrito en {args.output}")
+    return EXIT_OK
+
+
+def cmd_sql(args: argparse.Namespace) -> int:
+    analysis, code = _run_analysis(args)
+    if analysis is None:
+        return code
+    p = analysis.project
+    if not p.tables:
+        print("No se encontraron tablas SQL (archivos .sql con CREATE TABLE).", file=sys.stderr)
+        return EXIT_USAGE
+    _write_app(args, analysis, "#/er")
+    forms = {}
+    for fk in p.fks:
+        forms[fk.form] = forms.get(fk.form, 0) + 1
+    detail = ", ".join(f"{k} {v}" for k, v in sorted(forms.items()))
+    suffix = f" ({detail})" if detail else ""
+    print(f"Tablas: {len(p.tables)} · relaciones: {len(p.fks)}{suffix}")
+    for w in [w for w in p.warnings if ".sql:" in w][:10]:
+        print(f"  Aviso: {w}")
+    print(f"HTML escrito en {args.output}")
+    return EXIT_OK
+
+
+def cmd_analyze(args: argparse.Namespace) -> int:
+    from desglosa.pipeline import summary
 
     analysis, code = _run_analysis(args)
     if analysis is None:
         return code
-    payload = build_payload(
-        analysis,
-        include_source=not args.no_source,
-        start="#/mapa",
-        map_data=build_map(analysis.project),
-    )
-    page = render_html(payload, f"{analysis.project.root_name} — Desglosa")
-    _write_text(args.output, page)
+    page = _write_app(args, analysis, "#/mapa")
     print(summary(analysis))
     size_mb = len(page.encode("utf-8")) / (1024 * 1024)
     print(f"HTML escrito en {args.output} ({size_mb:.1f} MB)")
@@ -289,6 +339,9 @@ def _add_analysis_args(p: argparse.ArgumentParser) -> None:
     p.add_argument("--jobs", type=int, help="procesos en paralelo (por defecto: automático)")
     p.add_argument(
         "--max-file-kb", type=int, default=1024, help="tamaño máximo por archivo (KB, def. 1024)"
+    )
+    p.add_argument(
+        "--dialect", help="dialecto SQL: mysql, postgres, sqlite, tsql… (por defecto: probar)"
     )
 
 
@@ -331,6 +384,20 @@ def build_parser() -> argparse.ArgumentParser:
     _add_flow_args(p)
     p.add_argument("-o", "--output", default="desglosa.html", help="archivo HTML de salida")
     p.set_defaults(func=cmd_analyze)
+
+    p = sub.add_parser("sequence", help="genera el diagrama de secuencia desde una función")
+    _add_analysis_args(p)
+    p.add_argument("--entry", required=True, metavar="Clase.metodo", help="función de entrada")
+    p.add_argument("--depth", type=int, default=4, help="profundidad máxima (por defecto 4)")
+    _add_flow_args(p)
+    p.add_argument("-o", "--output", default="secuencia.html", help="archivo HTML de salida")
+    p.set_defaults(func=cmd_sequence)
+
+    p = sub.add_parser("sql", help="genera el diagrama entidad-relación de los .sql")
+    _add_analysis_args(p)
+    _add_flow_args(p)
+    p.add_argument("-o", "--output", default="er.html", help="archivo HTML de salida")
+    p.set_defaults(func=cmd_sql)
 
     p = sub.add_parser("export-ir", help="exporta el modelo intermedio en JSON")
     _add_analysis_args(p)
