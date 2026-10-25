@@ -80,6 +80,7 @@ needs_grammars = pytest.mark.skipif(
         "rust",
         "kotlin",
         "swift",
+        "csharp",
     ),
     reason="faltan gramáticas: ejecuta `desglosa setup`",
 )

@@ -13,6 +13,7 @@ from desglosa.ir import SourceFile
 
 # Extensión → lenguaje (nombre lógico; coincide con el nombre de gramática salvo .tsx).
 EXTENSIONS: dict[str, str] = {
+    ".cs": "csharp",
     ".py": "python",
     ".js": "javascript",
     ".mjs": "javascript",

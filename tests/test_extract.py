@@ -9,6 +9,7 @@ from tests.conftest import FIXTURES, needs_grammars
 LANGS_F1 = (
     "c",
     "cpp",
+    "csharp",
     "go",
     "java",
     "javascript",
@@ -67,7 +68,7 @@ def test_io_kinds_present(lang, projects):
 @pytest.mark.parametrize("lang", LANGS_F1)
 def test_entry_points(lang, projects):
     entries = [s.qualname for s in projects[lang].symbols if s.is_entry and s.kind != "module"]
-    assert any(q.endswith("main") for q in entries)
+    assert any(q.lower().endswith("main") for q in entries)  # C#: Main
 
 
 def test_interface_possible_implementation(projects):
@@ -78,6 +79,16 @@ def test_interface_possible_implementation(projects):
         assert call.confidence == "probable"
         assert by_id[call.resolved_id].qualname == "PagoService.cobrar"
         assert call.candidates == (call.resolved_id,)
+
+
+def test_csharp_interface_field_resolves_to_implementation(projects):
+    p = projects["csharp"]
+    by_id = {s.id: s for s in p.symbols}
+    call = next(c for c in p.calls if c.callee_text == "Cobrar")
+    assert call.confidence == "probable"
+    assert by_id[call.resolved_id].qualname == "PagoService.Cobrar"
+    emitir = next(s for s in p.symbols if s.name == "Emitir")
+    assert emitir.doc == "Calcula el total, cobra y guarda la factura."  # sin <summary>
 
 
 def test_c_header_pairing_is_exact(projects):

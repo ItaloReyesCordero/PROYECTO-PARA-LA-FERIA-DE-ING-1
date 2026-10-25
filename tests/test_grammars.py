@@ -6,7 +6,7 @@ from desglosa import grammars
 
 
 def test_thirteen_languages():
-    assert len(grammars.LANGS) == 13
+    assert len(grammars.LANGS) == 14  # los 13 de la SPEC + C#
     assert "tsx" not in grammars.LANGS
     assert list(grammars.LANGS) == sorted(grammars.LANGS)
 

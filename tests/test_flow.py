@@ -18,6 +18,7 @@ ROOT = Path(__file__).resolve().parent.parent
 FACTURACION = (
     "c",
     "cpp",
+    "csharp",
     "go",
     "java",
     "javascript",

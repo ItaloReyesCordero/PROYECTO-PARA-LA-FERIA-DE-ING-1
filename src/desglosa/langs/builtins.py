@@ -13,6 +13,23 @@ ESCRIBE = "archivo_escribe"
 
 # Nombre completo (receptor.nombre) → tipo
 _FULL: dict[str, dict[str, str]] = {
+    "csharp": {
+        "Console.WriteLine": PANTALLA,
+        "Console.Write": PANTALLA,
+        "Console.Error.WriteLine": PANTALLA,
+        "Console.ReadLine": TECLADO,
+        "Console.Read": TECLADO,
+        "Console.ReadKey": TECLADO,
+        "File.ReadAllText": LEE,
+        "File.ReadAllLines": LEE,
+        "File.ReadAllBytes": LEE,
+        "File.ReadLines": LEE,
+        "File.WriteAllText": ESCRIBE,
+        "File.WriteAllLines": ESCRIBE,
+        "File.WriteAllBytes": ESCRIBE,
+        "File.AppendAllText": ESCRIBE,
+        "File.AppendAllLines": ESCRIBE,
+    },
     "python": {
         "sys.stdout.write": PANTALLA,
         "sys.stdin.readline": TECLADO,
@@ -167,8 +184,13 @@ _NAME: dict[str, dict[str, str]] = {
 _NAME["typescript"] = _NAME["javascript"]
 _NAME["cpp"] = dict(_NAME["c"])
 
-# Constructores que implican E/S de archivo (Java).
+# Constructores que implican E/S de archivo (Java, C#).
 _NEW: dict[str, dict[str, str]] = {
+    "csharp": {
+        "StreamReader": LEE,
+        "StreamWriter": ESCRIBE,
+        "FileStream": LEE,
+    },
     "java": {
         "FileReader": LEE,
         "FileInputStream": LEE,

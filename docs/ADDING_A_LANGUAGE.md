@@ -107,3 +107,26 @@ Gramáticas de `tree-sitter-language-pack` 1.22.1.
 | Swift | `if_statement, guard_statement` | el `else` es un token seguido de `statements` o de otro `if_statement` (sin campo) |
 | Swift | `do_statement + catch_block` | correcto; `return/throw/break/continue` son `control_transfer_statement` |
 | Swift | — | `class_declaration` sirve para class/struct/enum/**extension** (campo `declaration_kind`); los métodos de una extension se atan al tipo extendido |
+
+### C# (Bloque 2, 25/10/2026)
+
+Agregado siguiendo esta misma guía; sirve de ejemplo completo (`langs/csharp.py`,
+`tests/fixtures/csharp/`).
+
+- Gramática `csharp` (no `c_sharp`); extensión `.cs`.
+- Llamadas: `invocation_expression` con campo `function`. El acceso a miembro es
+  `member_access_expression` con campos **`expression`** y **`name`** (no `object`/`field`
+  como en Java), así que C# tiene su propio `call_parts`.
+- `new X()`: `object_creation_expression` (campo `type`); `new double[] {…}` es
+  `array_creation_expression` y no cuenta como llamada.
+- `foreach (T x in xs)`: `foreach_statement` con campos `type`, `left` y `right` (el
+  `foreach` por defecto de `LangHooks` es el de PHP: se sobrescribe `loop_info`).
+- `switch`: `switch_statement` con la expresión en **`value`** (no `condition`) y cuerpo
+  `switch_body` de `switch_section`. El valor de un caso es un `constant_pattern` sin
+  campo; `default:` no tiene patrón. En C# un caso sin `break` no compila: `fallthrough`
+  es `False`.
+- `catch (Tipo e)`: `catch_clause` → `catch_declaration` (campos `type`, `name`).
+- Herencia e interfaces: `base_list`; modificadores: nodos `modifier`; el punto de entrada
+  es `static void Main` (con mayúscula).
+- Documentación: `/// <summary>…</summary>` llega como `comment`; se quitan las etiquetas
+  XML.

@@ -15,10 +15,11 @@ from collections.abc import Iterable
 import tree_sitter_language_pack as _tslp
 from tree_sitter import Language, Parser
 
-# Los 13 lenguajes de la SPEC (nombre de gramática).
+# Los 13 lenguajes de la SPEC más C# (Bloque 2), por nombre de gramática.
 LANGS: tuple[str, ...] = (
     "c",
     "cpp",
+    "csharp",
     "go",
     "java",
     "javascript",

@@ -139,7 +139,8 @@ class _Walker:
         qualname = f"{qualifier}.{name}" if qualifier else frame.prefix + name
         line = node.start_point[0] + 1
         is_entry = False
-        if name == "main" and (
+        # `main` (C, Java, Python…) o `Main` (C#: `static void Main`).
+        if (name == "main" or (name == "Main" and self.lang == "csharp")) and (
             frame.kind == "module" or (kind == "method" and self.hooks.is_static(node, self.src))
         ):
             is_entry = True

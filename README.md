@@ -61,7 +61,7 @@ git clone https://github.com/ItaloReyesCordero/PROYECTO-PARA-LA-FERIA-DE-ING-1.g
 cd desglosa
 uv sync
 uv run desglosa setup
-uv run desglosa doctor    # debe mostrar las 13 gramáticas en OK
+uv run desglosa doctor    # debe mostrar 14/14 lenguajes listos
 ```
 
 Funciona en Windows, Linux y macOS (el CI prueba Windows y Linux con Python 3.12 y 3.13).
@@ -165,6 +165,7 @@ Descarga el `.html` y ábrelo con doble clic.
 | TypeScript (y TSX) | ✔ | ✔ | completo |
 | PHP (con rutas de Laravel) | ✔ | ✔ | completo |
 | Java | ✔ | ✔ | completo |
+| C# | ✔ | ✔ | completo (nuevo) |
 | C | ✔ | ✔ | completo |
 | C++ | ✔ | ✔ | completo |
 | Go | ✔ | ✔ | mejor esfuerzo |
@@ -231,7 +232,7 @@ carpeta → escaneo → árbol sintáctico (tree-sitter) → símbolos y llamada
         → diagramas y coordenadas → un solo HTML
 ```
 
-Un único motor sirve a los 12 lenguajes: cada lenguaje solo describe la forma de su árbol
+Un único motor sirve a los 13 lenguajes: cada lenguaje solo describe la forma de su árbol
 sintáctico (`LangSpec`) y unos pocos ganchos (`LangHooks`). El resultado es determinista:
 el mismo código produce exactamente el mismo HTML.
 

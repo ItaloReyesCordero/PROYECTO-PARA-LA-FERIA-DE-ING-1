@@ -22,13 +22,13 @@ def test_doctor_reports_missing(monkeypatch, capsys):
     assert code == cli.EXIT_GRAMMARS
     assert "python       OK" in out
     assert "php          FALTA" in out
-    assert "2/13 lenguajes listos." in out
+    assert "2/14 lenguajes listos." in out
 
 
 def test_doctor_all_ok(monkeypatch, capsys):
     monkeypatch.setattr(grammars, "downloaded", lambda: set(grammars.ALL_GRAMMARS))
     assert cli.main(["doctor"]) == cli.EXIT_OK
-    assert "13/13 lenguajes listos." in capsys.readouterr().out
+    assert "14/14 lenguajes listos." in capsys.readouterr().out
 
 
 def test_debug_ast_python(tmp_path, capsys):
