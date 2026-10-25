@@ -183,6 +183,17 @@ class TableAccess:
 
 
 @dataclass(frozen=True, slots=True)
+class Note:
+    """Comentario marcado (TODO, FIXME, NOTE…): decisiones y pendientes escritos en el código."""
+
+    file: str
+    line: int
+    tag: str  # TODO | FIXME | HACK | XXX | BUG | NOTE | WHY
+    text: str
+    symbol_id: str | None = None  # función o clase que la contiene
+
+
+@dataclass(frozen=True, slots=True)
 class Project:
     root_name: str
     files: tuple[SourceFile, ...] = ()
@@ -194,6 +205,7 @@ class Project:
     fks: tuple[ForeignKey, ...] = ()
     table_access: tuple[TableAccess, ...] = ()
     warnings: tuple[str, ...] = field(default_factory=tuple)
+    notes: tuple[Note, ...] = ()
 
 
 # --------------------------------------------------------------------------- serialización

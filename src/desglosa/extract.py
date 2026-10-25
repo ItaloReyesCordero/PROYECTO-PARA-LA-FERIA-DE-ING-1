@@ -15,7 +15,7 @@ from pathlib import Path
 from tree_sitter import Node
 
 from desglosa import grammars, langs
-from desglosa.ir import Call, ControlCtx, Import, SourceFile, Symbol, stable_id
+from desglosa.ir import Call, ControlCtx, Import, Note, SourceFile, Symbol, stable_id
 from desglosa.langs.builtins import classify_io
 from desglosa.langs.spec import (
     Binding,
@@ -26,6 +26,7 @@ from desglosa.langs.spec import (
     normalize_type,
     one_line,
 )
+from desglosa.notes import find_notes
 from desglosa.scan import count_lines, decode_bytes, grammar_for
 
 RECURSION_LIMIT = 20000
@@ -47,6 +48,7 @@ class FileResult:
     qualifiers: dict[str, str] = field(default_factory=dict)  # método C++ → clase dueña
     extra_bases: list[tuple[str, str]] = field(default_factory=list)  # (tipo, base) externos
     warnings: list[str] = field(default_factory=list)
+    notes: list[Note] = field(default_factory=list)  # TODO, FIXME, NOTE… en comentarios
 
 
 class _Frame:
@@ -407,6 +409,7 @@ def extract_bytes(path: str, lang: str, data: bytes) -> FileResult:
         qualifiers=dict(sorted(walker.qualifiers.items())),
         extra_bases=sorted(set(walker.extra_bases)),
         warnings=warnings,
+        notes=find_notes(path, text),
     )
 
 

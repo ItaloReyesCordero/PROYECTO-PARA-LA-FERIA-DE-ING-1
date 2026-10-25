@@ -14,6 +14,7 @@ from desglosa.cache import Cache, fingerprint, from_jsonable, write_entry
 from desglosa.extract import FileResult, extract_file
 from desglosa.flows_stage import FlowOutput, FlowTask, make_tasks, run_task_groups
 from desglosa.ir import CONFIDENCES, FlowGraph, Project, SourceFile
+from desglosa.notes import attach_symbols
 from desglosa.resolve import resolve
 from desglosa.routes import Route, find_routes, is_route_file
 from desglosa.scan import ScanOptions, ScanResult, decode_bytes, grammar_for, scan
@@ -294,6 +295,7 @@ def _analyze(
         fks=tuple(sql.fks),
         table_access=tuple(access),
         warnings=tuple(sorted(warnings)),
+        notes=tuple(attach_symbols([n for r in results for n in r.notes], symbols)),
     )
     return Analysis(
         project, scanned, results, time.perf_counter() - start, flows, routes, cache_info

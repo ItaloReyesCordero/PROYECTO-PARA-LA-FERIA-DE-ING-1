@@ -181,6 +181,14 @@ button, input, select { font: inherit; color: inherit; }
 .panel .seccion ul { margin: 0; padding-left: 18px; }
 .panel .seccion a { color: var(--acento); cursor: pointer; text-decoration: none; }
 .panel .seccion a:hover { text-decoration: underline; }
+.panel .notas li { cursor: pointer; margin: 2px 0; }
+.nota-tag {
+  font: 11px var(--mono); padding: 0 5px; margin-right: 4px; border-radius: 4px;
+  border: 1px solid currentColor; color: var(--texto-suave);
+}
+.nota-tag.t-fixme, .nota-tag.t-bug { color: var(--c-excepcion); }
+.nota-tag.t-hack, .nota-tag.t-xxx { color: var(--c-decision); }
+.nota-tag.t-todo { color: var(--acento); }
 .codigo {
   flex: 1; overflow: auto; margin: 0; padding: 8px 0; font: 12px/1.5 var(--mono);
   background: var(--superficie-2); border-top: 1px solid var(--borde); counter-reset: none;

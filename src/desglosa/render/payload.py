@@ -205,12 +205,22 @@ def build_payload(
         "routes": {k: v for k, v in sorted(routes.items()) if k in symbols},
         "tables_of": dict(sorted(tables_of.items())),
         "seq_ids": sorted(sequences),
+        "notes_of": notes_of(project, symbols),
         "er": er_payload(analysis),
         "packs": build_packs(symbols, flows, sequences, sources),
     }
     if extra:
         payload.update(extra)
     return pack_index(payload)
+
+
+def notes_of(project, symbols: dict) -> dict[str, list]:
+    """Notas (TODO, FIXME…) de cada función o clase, para el panel del visor."""
+    out: dict[str, list] = defaultdict(list)
+    for n in project.notes:
+        if n.symbol_id in symbols:
+            out[n.symbol_id].append([n.line, n.tag, n.text])
+    return dict(sorted(out.items()))
 
 
 def build_packs(

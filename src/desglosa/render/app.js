@@ -849,6 +849,19 @@
       }
       panel.appendChild(h("div", { class: "seccion" }, h("h3", null, "Tablas (probable)"), ul));
     }
+    const notes = DATA.notes_of && DATA.notes_of[sid];
+    if (notes && notes.length) {
+      const ul = h("ul", { class: "notas" });
+      for (const [line, tag, text] of notes) {
+        const li = h("li", { tabindex: "0", title: "Ver la línea " + line },
+          h("span", { class: "nota-tag t-" + tag.toLowerCase() }, tag), " línea " + line + (text ? ": " + text : ""));
+        const show = () => highlightLines(line, line, true);
+        li.addEventListener("click", show);
+        li.addEventListener("keydown", (e) => { if (e.key === "Enter") show(); });
+        ul.appendChild(li);
+      }
+      panel.appendChild(h("div", { class: "seccion" }, h("h3", null, "Notas en el código"), ul));
+    }
     const incoming = linkList("Llamado por", DATA.calls_in && DATA.calls_in[sid]);
     const outgoing = linkList("Llama a", DATA.calls_out && DATA.calls_out[sid]);
     const impl = DATA.impl && DATA.impl[sid] ? linkList("Posibles implementaciones", DATA.impl[sid].map((i) => [i, "probable"])) : null;
@@ -880,7 +893,12 @@
         if (!first) first = el;
       }
     }
-    if (first && scroll) pre.scrollTop = Math.max(0, first.offsetTop - pre.clientHeight / 3);
+    if (first && scroll) {
+      // Posiciones reales en pantalla: offsetTop se mide desde el panel e incluía las
+      // secciones de arriba, así que la línea quedaba fuera de la vista.
+      const delta = first.getBoundingClientRect().top - pre.getBoundingClientRect().top;
+      pre.scrollTop = Math.max(0, pre.scrollTop + delta - pre.clientHeight / 3);
+    }
   }
 
   // ------------------------------------------------------------------ vista: código

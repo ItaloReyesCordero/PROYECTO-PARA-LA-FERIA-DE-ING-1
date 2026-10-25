@@ -142,6 +142,9 @@ def explain(analysis: Analysis, sym: Symbol, index: CallIndex | None = None) -> 
         )
         if tables:
             info["tables"] = [{"table": t, "mode": m} for t, m in tables]
+    notes = [n for n in project.notes if n.symbol_id == sym.id]
+    if notes:
+        info["notes"] = [{"line": n.line, "tag": n.tag, "text": n.text} for n in notes]
     else:
         members = [s for s in project.symbols if s.parent_id == sym.id]
         info["members"] = [ref(s.id) for s in sorted(members, key=_order)]
@@ -187,6 +190,10 @@ def format_explain(info: dict) -> str:
         lines.append("  Tablas (probable): " + ", ".join(
             f"{'lee' if t['mode'] == 'lee' else 'escribe'} {t['table']}" for t in info["tables"]
         ))
+    if info.get("notes"):
+        lines.append(f"  Notas ({len(info['notes'])}):")
+        for n in info["notes"]:
+            lines.append(f"    {n['tag']} (línea {n['line']}): {n['text']}")
     if "members" in info:
         lines.append(f"  Miembros ({len(info['members'])}):")
         for m in info["members"][:40]:

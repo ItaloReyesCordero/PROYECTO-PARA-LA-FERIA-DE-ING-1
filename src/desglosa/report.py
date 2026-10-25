@@ -27,7 +27,11 @@ SECTIONS = (
     "Ciclos de llamadas",
     "Archivos no parseados",
     "Complejidad más alta",
+    "Notas en el código",
 )
+# Orden de las notas en el reporte: primero lo que avisa de un problema.
+NOTE_ORDER = {"FIXME": 0, "BUG": 1, "HACK": 2, "XXX": 3, "TODO": 4, "WHY": 5, "NOTE": 6}
+MAX_NOTES = 40
 
 
 def _cell(text: str) -> str:
@@ -277,6 +281,33 @@ def build_report(analysis: Analysis, top: int = 10) -> str:
         out += _table(("Función", "Dónde", "Complejidad", "Líneas"), rows)
     else:
         out.append("No hay funciones con cuerpo.")
+    out.append("")
+
+    # ------------------------------------------------------------------ notas
+    out += ["## Notas en el código", ""]
+    if project.notes:
+        tags = Counter(n.tag for n in project.notes)
+        out.append(
+            "Comentarios marcados por el equipo: "
+            + ", ".join(f"{t} {tags[t]}" for t in sorted(tags, key=lambda t: NOTE_ORDER[t]))
+            + "."
+        )
+        out.append("")
+        ordered = sorted(project.notes, key=lambda n: (NOTE_ORDER[n.tag], n.file, n.line))
+        rows = [
+            (
+                n.tag,
+                _code(f"{n.file}:{n.line}"),
+                _code(by_id[n.symbol_id].qualname) if n.symbol_id in by_id else "–",
+                _cell(n.text) or "–",
+            )
+            for n in ordered[:MAX_NOTES]
+        ]
+        out += _table(("Etiqueta", "Dónde", "En", "Texto"), rows)
+        if len(ordered) > MAX_NOTES:
+            out.append(f"\n… y {len(ordered) - MAX_NOTES} más.")
+    else:
+        out.append("No hay comentarios TODO, FIXME, HACK, XXX, BUG, NOTE ni WHY.")
     out.append("")
 
     # ------------------------------------------------------------------ tablas
