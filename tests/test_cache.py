@@ -105,3 +105,16 @@ def test_cache_dir_per_project(tmp_path):
     a = Cache(tmp_path, tmp_path / "uno")
     b = Cache(tmp_path, tmp_path / "dos")
     assert a.dir != b.dir and a.dir.parent == b.dir.parent == tmp_path
+
+
+@needs_grammars
+def test_analysis_without_flows_keeps_cached_flows(tmp_path):
+    """`path`/`buscar` no dibujan flujos: no deben borrar los flujos guardados."""
+    cache_dir = tmp_path / "cache"
+    analyze(LARAVEL, AnalyzeOptions(cache_dir=cache_dir))
+    flows_before = sorted((cache_dir).rglob("flows/*.json.z"))
+    assert flows_before
+    analyze(LARAVEL, AnalyzeOptions(cache_dir=cache_dir, flows=False))
+    assert sorted(cache_dir.rglob("flows/*.json.z")) == flows_before
+    again = analyze(LARAVEL, AnalyzeOptions(cache_dir=cache_dir))
+    assert again.cache_info.endswith("6 de 6 con flujos ya dibujados")

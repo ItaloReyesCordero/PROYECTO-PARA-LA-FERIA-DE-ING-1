@@ -90,6 +90,9 @@ uv run desglosa sql examples/laravel-mini -o er.html
 | `flow <ruta> <archivo>:<función>` | el flujo de una función |
 | `sequence <ruta> --entry Clase.metodo` | la secuencia desde una función (`--depth`, 4 por defecto) |
 | `sql <ruta>` | el diagrama entidad-relación (`--dialect mysql\|postgres\|sqlite\|tsql`) |
+| `explain <ruta> <nombre>` | todo sobre una función o clase: dónde está, quién la llama, a quién llama, complejidad |
+| `path <ruta> <desde> <hasta>` | el camino de llamadas más corto entre dos funciones |
+| `buscar <ruta> "texto"` | busca funciones y clases por palabras (nombre, descripción, archivo) |
 | `export-ir <ruta>` | el modelo intermedio en JSON (ver [docs/IR.md](docs/IR.md)) |
 | `debug-ast <archivo>` | imprime el árbol sintáctico (para agregar lenguajes) |
 
@@ -106,7 +109,28 @@ se actualiza, la caché vieja deja de usarse sola.
 Desglosa respeta `.gitignore`, `.desglosaignore` y salta `vendor/`, `node_modules/`,
 archivos minificados, binarios y archivos de más de 1 MB.
 
-Códigos de salida: `0` bien, `1` error de uso, `2` faltan gramáticas (ejecuta `setup`).
+### Preguntarle al código (sin IA)
+
+```powershell
+desglosa explain . FacturacionService.emitir     # ¿qué es, quién la usa, qué usa?
+desglosa path . FacturaController.store MySqlFacturaRepository.guardar
+desglosa buscar . "calcular impuestos"
+```
+
+```
+Camino más corto (2 pasos):
+  FacturaController.store
+    --llama [probable]--> FacturacionService.emitir
+    --llama [probable]--> MySqlFacturaRepository.guardar
+```
+
+Con `--json` la respuesta sale en JSON, para scripts o para un asistente de IA. Si un
+nombre corresponde a varias funciones, Desglosa no elige: las lista y sale con código
+`3`; usa `archivo:Nombre` para precisar. En un proyecto normal cada consulta tarda 1–2 s;
+en uno de medio millón de líneas (Django), ~17 s con la caché llena.
+
+Códigos de salida: `0` bien, `1` error de uso, `2` faltan gramáticas (ejecuta `setup`),
+`3` nombre ambiguo, `4` no encontrado.
 
 ## Cómo se usa el visor
 

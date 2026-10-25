@@ -164,10 +164,12 @@ class Cache:
         root = os.path.normcase(str(Path(project_root).resolve()))
         self.dir = Path(base) / hashlib.sha1(root.encode("utf-8")).hexdigest()[:16]
         self.used: set[Path] = set()
+        self.kinds: set[str] = set()  # tipos consultados en este análisis
         self.hits = 0
         self.misses = 0
 
     def _path(self, kind: str, key: str) -> Path:
+        self.kinds.add(kind)
         return self.dir / kind / f"{key}.json.z"
 
     def get(self, kind: str, key: str) -> Any:
@@ -193,11 +195,24 @@ class Cache:
         write_entry(self.path_for(kind, key), data, plain)
 
     def prune(self) -> int:
-        """Borra las entradas de este proyecto que no se usaron en este análisis."""
+        """Borra las entradas de este proyecto que no se usaron en este análisis.
+
+        Solo dentro de los tipos que se consultaron: `desglosa path` no dibuja flujos, y no
+        por eso debe borrar los flujos guardados (el siguiente `analyze` los necesita).
+        """
         removed = 0
         if not self.dir.is_dir():
             return 0
-        for path in self.dir.rglob("*"):
+        for kind in sorted(self.kinds):
+            folder = self.dir / kind
+            if not folder.is_dir():
+                continue
+            removed += self._prune_folder(folder)
+        return removed
+
+    def _prune_folder(self, folder: Path) -> int:
+        removed = 0
+        for path in folder.rglob("*"):
             if path.is_file() and path not in self.used:
                 try:
                     path.unlink()

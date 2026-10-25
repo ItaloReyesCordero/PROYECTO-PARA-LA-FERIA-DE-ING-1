@@ -1,11 +1,13 @@
 """Interfaz de línea de comandos de Desglosa (argparse, SPEC §12).
 
-Códigos de salida: 0 ok, 1 error de uso, 2 faltan gramáticas.
+Códigos de salida: 0 ok, 1 error de uso, 2 faltan gramáticas; en las consultas
+(`explain`, `path`, `buscar`) además 3 = nombre ambiguo y 4 = no encontrado.
 """
 
 from __future__ import annotations
 
 import argparse
+import json
 import platform
 import sys
 from importlib import metadata
@@ -17,6 +19,8 @@ from desglosa.scan import detect_language, grammar_for
 EXIT_OK = 0
 EXIT_USAGE = 1
 EXIT_GRAMMARS = 2
+EXIT_AMBIGUOUS = 3  # consultas: el nombre corresponde a varios símbolos
+EXIT_NOT_FOUND = 4  # consultas: no hay símbolo, camino ni resultado
 
 
 def _pkg_version(name: str) -> str:
@@ -120,7 +124,7 @@ def cmd_debug_ast(args: argparse.Namespace) -> int:
 # --------------------------------------------------------------------------- análisis
 
 
-def _analysis_options(args: argparse.Namespace):
+def _analysis_options(args: argparse.Namespace, flows: bool = True):
     from desglosa.pipeline import AnalyzeOptions
     from desglosa.scan import ScanOptions
 
@@ -145,10 +149,11 @@ def _analysis_options(args: argparse.Namespace):
         flow_max_height=getattr(args, "flow_max_height", 1600),
         dialect=getattr(args, "dialect", None),
         cache_dir=cache_dir,
+        flows=flows,
     )
 
 
-def _run_analysis(args: argparse.Namespace):
+def _run_analysis(args: argparse.Namespace, flows: bool = True):
     """Ejecuta el pipeline; devuelve (Analysis, None) o (None, código de salida)."""
     from desglosa.pipeline import analyze
 
@@ -157,7 +162,7 @@ def _run_analysis(args: argparse.Namespace):
         print(f"No existe la ruta: {target}", file=sys.stderr)
         return None, EXIT_USAGE
     try:
-        return analyze(target, _analysis_options(args)), None
+        return analyze(target, _analysis_options(args, flows)), None
     except grammars.MissingGrammarError as exc:
         print(str(exc), file=sys.stderr)
         return None, EXIT_GRAMMARS
@@ -168,6 +173,109 @@ def _write_text(path: str, text: str) -> None:
         sys.stdout.write(text)
         return
     Path(path).write_text(text, encoding="utf-8", newline="\n")
+
+
+# --------------------------------------------------------------------------- consultas
+
+
+def _emit(args: argparse.Namespace, data, text: str) -> None:
+    if getattr(args, "json", False):
+        print(json.dumps(data, ensure_ascii=False, indent=2, sort_keys=True))
+    else:
+        print(text)
+
+
+def _pick_one(analysis, name: str, kinds=None):
+    """Un símbolo por nombre, o (None, código de salida) explicando el problema."""
+    from desglosa.query import find_symbols
+
+    cands = find_symbols(analysis.project, name, kinds)
+    if not cands:
+        print(f"No encontré {name!r}. Prueba: desglosa buscar <ruta> {name!r}", file=sys.stderr)
+        return None, EXIT_NOT_FOUND
+    if len(cands) > 1:
+        print(f"{name!r} corresponde a {len(cands)} símbolos; usa archivo:Nombre:", file=sys.stderr)
+        for s in cands[:20]:
+            print(f"  {s.file}:{s.qualname}", file=sys.stderr)
+        return None, EXIT_AMBIGUOUS
+    return cands[0], EXIT_OK
+
+
+def cmd_explain(args: argparse.Namespace) -> int:
+    from desglosa.flows_stage import build_file_flows, make_tasks
+    from desglosa.query import explain, format_explain
+
+    # Sin flujos de todo el proyecto: solo se dibuja el archivo de la función pedida (para
+    # su complejidad). En Django eso evita cargar 1 700 archivos de flujos.
+    analysis, code = _run_analysis(args, flows=False)
+    if analysis is None:
+        return code
+    sym, code = _pick_one(analysis, args.name)
+    if sym is None:
+        return code
+    if sym.kind in ("function", "method"):
+        tasks = make_tasks(
+            str(analysis.scan.root),
+            [s for s in analysis.project.symbols if s.file == sym.file],
+            list(analysis.project.calls),
+            args.max_flow_nodes,
+            args.flow_max_height,
+        )
+        for task in tasks:
+            for out in build_file_flows(task):
+                analysis.flows[out.graph.symbol_id] = out
+    info = explain(analysis, sym)
+    _emit(args, info, format_explain(info))
+    return EXIT_OK
+
+
+def cmd_path(args: argparse.Namespace) -> int:
+    from desglosa.query import CallIndex, format_path, shortest_path
+
+    analysis, code = _run_analysis(args, flows=False)
+    if analysis is None:
+        return code
+    a, code = _pick_one(analysis, args.source, ("function", "method"))
+    if a is None:
+        return code
+    b, code = _pick_one(analysis, args.target, ("function", "method"))
+    if b is None:
+        return code
+    index = CallIndex.of(analysis.project)
+    steps = shortest_path(index, a.id, b.id)
+    if steps is None:
+        back = shortest_path(index, b.id, a.id)
+        msg = f"No hay un camino de llamadas de {a.qualname} a {b.qualname}."
+        if back is not None:
+            msg += (
+                f" Sí lo hay al revés ({len(back)} pasos): "
+                f"desglosa path <ruta> {args.target} {args.source}"
+            )
+        print(msg, file=sys.stderr)
+        return EXIT_NOT_FOUND
+    data = [
+        {"from": index.by_id[x].qualname, "to": index.by_id[y].qualname,
+         "confidence": index.out[x][y][0], "at": f"{index.by_id[x].file}:{call.line}"}
+        for x, y, call in steps
+    ]
+    _emit(args, data, format_path(index, steps))
+    return EXIT_OK
+
+
+def cmd_search(args: argparse.Namespace) -> int:
+    from desglosa.query import format_search, search
+
+    analysis, code = _run_analysis(args, flows=False)
+    if analysis is None:
+        return code
+    hits = search(analysis.project, args.text, args.limit)
+    data = [
+        {"score": h.score, "qualname": h.symbol.qualname, "kind": h.symbol.kind,
+         "file": h.symbol.file, "line": h.symbol.line_start, "why": h.why}
+        for h in hits
+    ]
+    _emit(args, data, format_search(hits))
+    return EXIT_OK if hits else EXIT_NOT_FOUND
 
 
 def cmd_export_ir(args: argparse.Namespace) -> int:
@@ -425,6 +533,31 @@ def build_parser() -> argparse.ArgumentParser:
     _add_analysis_args(p)
     p.add_argument("-o", "--output", default="ir.json", help="archivo de salida ('-' = pantalla)")
     p.set_defaults(func=cmd_export_ir)
+
+    p = sub.add_parser(
+        "explain", help="explica una función o clase: dónde está, quién la llama, a quién llama"
+    )
+    _add_analysis_args(p)
+    p.add_argument("name", metavar="nombre", help="Clase.metodo, funcion o archivo:Nombre")
+    p.add_argument("--json", action="store_true", help="salida en JSON")
+    _add_flow_args(p)
+    p.set_defaults(func=cmd_explain)
+
+    p = sub.add_parser("path", help="camino de llamadas más corto entre dos funciones")
+    _add_analysis_args(p)
+    p.add_argument("source", metavar="desde", help="función de inicio")
+    p.add_argument("target", metavar="hasta", help="función de llegada")
+    p.add_argument("--json", action="store_true", help="salida en JSON")
+    p.set_defaults(func=cmd_path)
+
+    p = sub.add_parser(
+        "buscar", aliases=["search"], help="busca funciones y clases por palabras"
+    )
+    _add_analysis_args(p)
+    p.add_argument("text", metavar="texto", help='palabras a buscar, p. ej. "calcular total"')
+    p.add_argument("--limit", type=int, default=15, help="máximo de resultados (def. 15)")
+    p.add_argument("--json", action="store_true", help="salida en JSON")
+    p.set_defaults(func=cmd_search)
 
     p = sub.add_parser("flow", help="genera el diagrama de flujo de una función")
     _add_analysis_args(p)

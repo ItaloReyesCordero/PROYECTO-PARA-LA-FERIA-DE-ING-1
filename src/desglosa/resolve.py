@@ -110,6 +110,7 @@ class Resolver:
         self._base_stems = {posixpath.splitext(posixpath.basename(f))[0] for f in self.files}
         self._basenames = {posixpath.basename(f) for f in self.files}
         self._import_keys_cache: dict[str, tuple[set[str], set[str]]] = {}
+        self._imported_names_cache: dict[str, dict[str, Import]] = {}
 
         self.classes_by_name: dict[str, list[Symbol]] = defaultdict(list)
         for s in symbols:
@@ -280,7 +281,12 @@ class Resolver:
         return None
 
     def _imported_names(self, file: str) -> dict[str, Import]:
+        # Se pide una vez por llamada (111 000 veces en Django): se calcula una por archivo.
+        cached = self._imported_names_cache.get(file)
+        if cached is not None:
+            return cached
         out: dict[str, Import] = {}
+        self._imported_names_cache[file] = out
         for imp in self.imports_by_file.get(file, []):
             local = imp.alias or imp.name
             if local in (None, "*", "default"):
