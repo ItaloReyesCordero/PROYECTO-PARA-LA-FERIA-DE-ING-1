@@ -27,8 +27,8 @@ def _seg_rect(p, q, r) -> bool:
     return t1 - t0 > 1e-9
 
 
-def _check(nodes, edges):
-    lay = layout_layered(nodes, edges)
+def _check(nodes, edges, fixed=None):
+    lay = layout_layered(nodes, edges, fixed)
     rects = {n: (p.x, p.y, p.x + p.w, p.y + p.h) for n, p in lay.nodes.items()}
     assert set(rects) == {n.id for n in nodes}
     items = sorted(rects.items())
@@ -95,3 +95,30 @@ def test_deterministic():
     nodes = [LNode(x, 120, 40, x) for x in "dcba"]
     edges = [LEdge("a", "b"), LEdge("c", "d"), LEdge("a", "d")]
     assert layout_layered(nodes, edges) == layout_layered(list(reversed(nodes)), edges)
+
+
+def test_fixed_layers_keep_columns_and_drop_same_column_edges():
+    nodes = [LNode(x, 120, 40, x) for x in "abcde"]
+    fixed = {"a": 0, "b": 1, "c": 1, "d": 2, "e": 0}
+    edges = [LEdge("a", "b"), LEdge("b", "c"), LEdge("c", "d", "3 llamadas"), LEdge("d", "e")]
+    lay = _check(nodes, edges, fixed)
+    xs = {n: p.x + p.w / 2 for n, p in lay.nodes.items()}
+    assert xs["a"] == xs["e"] < xs["b"] == xs["c"] < xs["d"]
+    drawn = {(e.src, e.dst) for e in lay.edges}
+    assert ("b", "c") not in drawn  # misma columna: se omite
+    assert ("d", "e") in drawn  # hacia atrás: se dibuja (al revés)
+    back = next(e for e in lay.edges if (e.src, e.dst) == ("d", "e"))
+    assert back.points[0][0] > back.points[-1][0]  # sale de d (derecha) y llega a e
+
+
+def test_fixed_layers_random_graphs_are_clean():
+    rnd = random.Random(11)
+    for _ in range(25):
+        n = rnd.randint(2, 14)
+        nodes = [LNode(f"n{i}", rnd.choice([120, 180]), 36, f"{i:02d}") for i in range(n)]
+        fixed = {f"n{i}": rnd.randrange(4) for i in range(n)}
+        edges = [
+            LEdge(f"n{rnd.randrange(n)}", f"n{rnd.randrange(n)}", "1 llamada")
+            for _ in range(rnd.randint(0, n * 2))
+        ]
+        _check(nodes, edges, fixed)

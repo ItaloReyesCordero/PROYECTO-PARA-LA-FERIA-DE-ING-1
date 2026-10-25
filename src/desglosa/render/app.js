@@ -96,6 +96,7 @@
     entrada: "Punto de entrada",
     otros: "Agrupados",
     tabla: "Tabla",
+    bd: "Base de datos",
   };
   const CONF_NAMES = {
     exacta: "Relación exacta",
@@ -241,6 +242,7 @@
     else if (view === "codigo") renderCodeView(id);
     else if (view === "er") renderER();
     else if (view === "galaxia") renderGalaxy();
+    else if (view === "arquitectura") renderArch();
     else renderMap(null);
     renderCrumbs();
   }
@@ -339,6 +341,7 @@
     else if (state.view === "mapa" || !state.view) renderMap(state.id);
     else if (state.view === "secuencia") renderSequence(state.id);
     else if (state.view === "galaxia") renderGalaxy();
+    else if (state.view === "arquitectura") renderArch();
     state.selectedNode = keep;
   }
 
@@ -457,6 +460,8 @@
       items.push({ label: "Diagrama entidad-relación", hash: buildHash("er", null) });
     } else if (state.view === "galaxia") {
       items.push({ label: "Galaxia", hash: buildHash("galaxia", null) });
+    } else if (state.view === "arquitectura") {
+      items.push({ label: "Arquitectura", hash: buildHash("arquitectura", null) });
     }
     items.forEach((it, i) => {
       if (i > 0) nav.appendChild(h("span", { class: "sep", "aria-hidden": "true" }, "›"));
@@ -485,7 +490,7 @@
       go("mapa", parent && parent !== MAP.root ? parent : null);
       return;
     }
-    if (state.view === "er" || state.view === "galaxia") go("mapa", null);
+    if (["er", "galaxia", "arquitectura"].includes(state.view)) go("mapa", null);
   }
 
   // ------------------------------------------------------------------ pestañas e info
@@ -495,8 +500,9 @@
     clear(tabs);
     if (!sid) {
       const hasER = DATA.er && DATA.er.tables && DATA.er.tables.length;
-      if (hasER || DATA.galaxy) {
+      if (hasER || DATA.galaxy || DATA.arch) {
         tabs.appendChild(tabButton("Mapa", state.view === "mapa" || !state.view, () => go("mapa", null)));
+        if (DATA.arch) tabs.appendChild(tabButton("Arquitectura", state.view === "arquitectura", () => go("arquitectura", null)));
         if (DATA.galaxy) tabs.appendChild(tabButton("Galaxia", state.view === "galaxia", () => go("galaxia", null)));
         if (hasER) tabs.appendChild(tabButton("Entidad-relación", state.view === "er", () => go("er", null)));
       }
@@ -944,6 +950,7 @@
     const lay = group.layout;
     const focus = lay && state.focus && lay.nodes.some((n) => n[0] === state.focus) ? state.focus : null;
     const infoParts = [h("strong", null, group.name), group.summary ? "  ·  " + group.summary : ""];
+    if (group.doc) infoParts.push(h("div", { class: "doc", title: "Del README de esta carpeta" }, group.doc));
     if (focus) {
       const node = lay.nodes.find((n) => n[0] === focus);
       const off = h("button", { class: "boton", type: "button", onclick: () => toggleFocus(focus) }, "Quitar enfoque");
@@ -983,7 +990,8 @@
       if (kind === "interfaz") ng.appendChild(s("line", { class: "linea-interna", x1: x, y1: y + 6, x2: x + w, y2: y + 6 }));
       const lines = sub ? [label, sub] : [label];
       ng.appendChild(textBlock(lines, x + w / 2, y + hh / 2));
-      ng.appendChild(s("title", null, label + (sub ? "\n" + sub : "") + (link ? "\nClic: entrar · Alt+clic o E: enfocar" : "\nClic o E: enfocar")));
+      const doc = MAP.groups[nid] && MAP.groups[nid].doc ? "\n" + MAP.groups[nid].doc : "";
+      ng.appendChild(s("title", null, label + (sub ? "\n" + sub : "") + doc + (link ? "\nClic: entrar · Alt+clic o E: enfocar" : "\nClic o E: enfocar")));
       ng.setAttribute("tabindex", "0");
       ng.setAttribute("role", "button");
       ng.setAttribute("aria-label", label + (link ? "" : " (enfocar)"));
@@ -1090,6 +1098,86 @@
       g.appendChild(t);
     }
     mount(svg, g, lay.w, lay.h, lay.confs || []);
+  }
+
+  // ------------------------------------------------------------------ vista: arquitectura
+
+  function renderArch() {
+    renderTabs(null);
+    hidePanel();
+    const arch = DATA.arch;
+    if (!arch) { renderInfo([]); showEmpty("No se reconoció una arquitectura por capas en este proyecto."); return; }
+    const names = {};
+    for (const n of arch.nodes) names[n[0]] = n[6];
+    const focus = state.focus && names[state.focus] !== undefined ? state.focus : null;
+    const info = [h("strong", null, "Arquitectura"), "  ·  " + arch.columns.map((c) => c[0]).join(" → ")];
+    if (focus) {
+      const off = h("button", { class: "boton", type: "button", onclick: () => toggleFocus(focus) }, "Quitar enfoque");
+      info.push(h("div", { class: "aviso-foco" }, "Enfocado: ", h("strong", null, names[focus]), " — se resalta lo que usa y lo que lo usa. ", off));
+    } else {
+      info.push(h("div", { class: "pista" }, "Capas detectadas por nombres y carpetas (una convención, no una certeza): pasa el mouse para ver el motivo. Clic: verlo en el mapa · Alt+clic: enfocar."));
+    }
+    const notes = [];
+    if (arch.unclassified) {
+      notes.push(arch.unclassified === 1
+        ? "1 componente no sigue una convención conocida y no se muestra (está en el mapa)."
+        : arch.unclassified + " componentes no siguen una convención conocida y no se muestran (están en el mapa).");
+    }
+    if (arch.tests) notes.push("Las pruebas no son una capa: " + arch.tests + (arch.tests === 1 ? " componente de prueba no se muestra." : " componentes de prueba no se muestran."));
+    if (arch.same_layer) notes.push("Las llamadas dentro de una misma capa no se dibujan (" + arch.same_layer + ").");
+    if (arch.hidden) notes.push("Muy conectado: se dibujan las " + arch.edges.length + " relaciones más fuertes de " + (arch.edges.length + arch.hidden) + ".");
+    if (notes.length) info.push(h("div", { class: "pista" }, notes.join(" ")));
+    renderInfo(info);
+    const svg = s("svg", { role: "img", "aria-label": "Mapa de arquitectura" });
+    svg.appendChild(markers());
+    const g = s("g", { class: "vista" });
+    // Franja y título de cada columna.
+    for (const [title, cx, count] of arch.columns) {
+      let minX = Infinity;
+      let maxX = -Infinity;
+      for (const n of arch.nodes) {
+        if (Math.abs(n[2] + n[4] / 2 - cx) < 1) { minX = Math.min(minX, n[2]); maxX = Math.max(maxX, n[2] + n[4]); }
+      }
+      if (minX === Infinity) continue;
+      g.appendChild(s("rect", { class: "columna-banda", x: minX - 14, y: 4, width: maxX - minX + 28, height: arch.h - 8, rx: 10 }));
+      g.appendChild(s("text", { class: "columna-titulo", x: cx, y: 24, "text-anchor": "middle" }, title));
+      g.appendChild(s("text", { class: "columna-sub", x: cx, y: 40, "text-anchor": "middle" }, count));
+    }
+    const lit = focus ? neighborhood(arch.edges, focus) : null;
+    for (const [src, dst, pts, conf, label, lx, ly, lw, lh, mix, back, text] of arch.edges) {
+      const dim = lit && !(lit.has(src) && lit.has(dst)) ? " atenuado" : "";
+      const lightEdge = lit && !dim ? " resaltada" : "";
+      const parts = [];
+      for (const k of ["exacta", "probable", "ambigua"]) if (mix && mix[k]) parts.push(mix[k] + " " + MIX_NAMES[k][mix[k] === 1 ? 0 : 1]);
+      const tip = names[src] + " → " + names[dst] + (text ? "\n" + text : "") + (parts.length ? "\n" + parts.join(" · ") : "") + (back ? "\nVa hacia una capa anterior" : "");
+      g.appendChild(s("path", { class: "arista c-" + conf + dim + lightEdge + (back ? " hacia-atras" : ""), d: pathFrom(pts), "marker-end": lightEdge ? "url(#punta-foco)" : "url(#punta)" }));
+      g.appendChild(s("path", { class: "arista-hit", d: pathFrom(pts) }, s("title", null, tip)));
+      if (label) {
+        const lg = drawLabel(label, lx, ly, lw, lh, dim.trim());
+        lg.appendChild(s("title", null, tip));
+        g.appendChild(lg);
+      }
+    }
+    for (const [nid, kind, x, y, w, hh, label, sub, link, tip] of arch.nodes) {
+      const dim = lit && !lit.has(nid) ? " atenuado" : "";
+      const ng = s("g", { class: "nodo k-" + kind + (link ? " clicable" : "") + dim + (nid === focus ? " seleccionado" : ""), "data-id": nid, tabindex: "0", role: "button", "aria-label": label });
+      ng.appendChild(s("rect", { class: "forma", x, y, width: w, height: hh, rx: kind === "entrada" ? hh / 2 : kind === "bd" ? 10 : 4 }));
+      if (kind === "interfaz") ng.appendChild(s("line", { class: "linea-interna", x1: x, y1: y + 6, x2: x + w, y2: y + 6 }));
+      ng.appendChild(textBlock(sub ? [label, sub] : [label], x + w / 2, y + hh / 2));
+      ng.appendChild(s("title", null, tip + (link ? "\nClic: verlo en el mapa · Alt+clic o E: enfocar" : "\nClic o E: enfocar")));
+      ng.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && link) { e.preventDefault(); location.hash = withParams(link); }
+        else if (e.key === "e" || e.key === "E" || (e.key === "Enter" && !link)) { e.preventDefault(); e.stopPropagation(); toggleFocus(nid); }
+      });
+      ng.addEventListener("click", (e) => {
+        if (state.dragged) return;
+        e.stopPropagation();
+        if (e.altKey || e.shiftKey || !link) { toggleFocus(nid); return; }
+        location.hash = withParams(link);
+      });
+      g.appendChild(ng);
+    }
+    mount(svg, g, arch.w, arch.h, arch.legend || []);
   }
 
   // ------------------------------------------------------------------ vista: entidad-relación
@@ -1339,7 +1427,7 @@
       if (e.ctrlKey || e.metaKey || e.altKey) return;
       if (e.key === "/") { e.preventDefault(); const b = $("buscar"); if (b) b.focus(); }
       else if (e.key === "?") showHelp();
-      else if (e.key === "Escape" && state.focus && (state.view === "mapa" || state.view === "galaxia" || !state.view)) toggleFocus(state.focus);
+      else if (e.key === "Escape" && state.focus && (["mapa", "galaxia", "arquitectura"].includes(state.view) || !state.view)) toggleFocus(state.focus);
       else if (e.key === "Escape") goUp();
       else if (e.key === "t") toggleTheme();
       else if (e.key === "m") toggleMode();

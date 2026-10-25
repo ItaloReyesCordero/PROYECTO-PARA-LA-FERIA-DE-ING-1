@@ -14,7 +14,7 @@ from desglosa.cache import Cache, fingerprint, from_jsonable, write_entry
 from desglosa.extract import FileResult, extract_file
 from desglosa.flows_stage import FlowOutput, FlowTask, make_tasks, run_task_groups
 from desglosa.ir import CONFIDENCES, FlowGraph, Project, SourceFile
-from desglosa.notes import attach_symbols
+from desglosa.notes import attach_symbols, project_dirs, readme_notes
 from desglosa.resolve import resolve
 from desglosa.routes import Route, find_routes, is_route_file
 from desglosa.scan import ScanOptions, ScanResult, decode_bytes, grammar_for, scan
@@ -46,6 +46,7 @@ class Analysis:
     flows: dict[str, FlowOutput] = field(default_factory=dict)
     routes: list[Route] = field(default_factory=list)
     cache_info: str | None = None  # p. ej. "798 de 800 archivos sin cambios"
+    readmes: dict[str, str] = field(default_factory=dict)  # carpeta → resumen de su README
 
     @property
     def new_calls(self) -> set[str]:
@@ -297,8 +298,10 @@ def _analyze(
         warnings=tuple(sorted(warnings)),
         notes=tuple(attach_symbols([n for r in results for n in r.notes], symbols)),
     )
+    readmes = readme_notes(scanned.root, project_dirs(e.path for e in scanned.entries))
     return Analysis(
-        project, scanned, results, time.perf_counter() - start, flows, routes, cache_info
+        project, scanned, results, time.perf_counter() - start, flows, routes, cache_info,
+        readmes,
     )
 
 

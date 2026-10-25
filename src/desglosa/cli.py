@@ -397,7 +397,9 @@ def _write_app(args: argparse.Namespace, analysis, start: str, depth: int = 4) -
         include_source=not args.no_source,
         start=start,
         map_data=build_map(
-            analysis.project, [(r.file, r.symbol_id) for r in analysis.routes if r.symbol_id]
+            analysis.project,
+            [(r.file, r.symbol_id) for r in analysis.routes if r.symbol_id],
+            analysis.readmes,
         ),
         depth=depth,
     )

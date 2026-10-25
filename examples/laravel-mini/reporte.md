@@ -61,6 +61,56 @@ Complejidad ciclomática = decisiones + 1. Más de 10 suele indicar una función
 | `FacturaController.store` | `app/Http/Controllers/FacturaController.php:25` | 1 | 14 |
 | `Factura.__construct` | `app/Models/Factura.php:7` | 1 | 6 |
 
+## Subsistemas
+
+Grupos de archivos que se llaman mucho entre sí (algoritmo de Louvain, sin IA); el nombre sale de sus carpetas.
+
+| Subsistema | Archivos |
+|---|---|
+| app/Services | 3 |
+| grupos pequeños | 2 |
+| sin conexiones | 2 |
+
+## Archivos centrales
+
+Los archivos con más llamadas hacia y desde otros archivos: por ahí pasa todo.
+
+| Archivo | Llamadas con otros archivos | Subsistema |
+|---|---|---|
+| `app/Services/FacturacionService.php` | 8 | app/Services |
+| `app/Repositories/MySqlFacturaRepository.php` | 5 | grupos pequeños |
+| `app/Http/Controllers/FacturaController.php` | 3 | app/Services |
+| `app/Models/Factura.php` | 3 | grupos pequeños |
+| `app/Services/CalculadoraImpuestos.php` | 1 | app/Services |
+
+## Conexiones entre subsistemas
+
+Dónde una parte del proyecto depende de otra (las más fuertes).
+
+| Subsistema | Subsistema | Llamadas |
+|---|---|---|
+| app/Services | grupos pequeños | 4 |
+
+## Arquitectura
+
+Capas reconocidas por convenciones de nombre y carpeta (`…Controller`, `services/`, `models/`): es una convención, no una certeza.
+
+| Capa | Componentes |
+|---|---|
+| Entrada | FacturaController |
+| Lógica | CalculadoraImpuestos, FacturacionService |
+| Datos | Factura, FacturaRepository, MySqlFacturaRepository |
+
+Bases de datos y servicios externos (por sus imports):
+
+| Servicio | Archivos que lo importan |
+|---|---|
+| Base de datos SQL | `app/Repositories/MySqlFacturaRepository.php` |
+
+## Notas en el código
+
+No hay comentarios TODO, FIXME, HACK, XXX, BUG, NOTE ni WHY.
+
 ## Tablas SQL
 
 | Tabla | Columnas | Leída por (probable) | Escrita por (probable) |

@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections import defaultdict
 
 from desglosa import __version__
+from desglosa.architecture import build_architecture
 from desglosa.flows_stage import cyclomatic
 from desglosa.galaxy import build_galaxy
 from desglosa.ir import CONFIDENCE_RANK, Symbol
@@ -211,6 +212,10 @@ def build_payload(
         # La galaxia acompaña al mapa (comando analyze), no a un flujo suelto.
         "galaxy": build_galaxy(
             project, {p: f"#/mapa/{el}" for p, el in map_data.get("files", {}).items()}
+        ) if map_data else None,
+        # Igual que la galaxia: solo con el mapa (comando analyze).
+        "arch": build_architecture(
+            project, [(r.file, r.symbol_id) for r in analysis.routes if r.symbol_id], map_data
         ) if map_data else None,
         "packs": build_packs(symbols, flows, sequences, sources),
     }

@@ -23,6 +23,7 @@ NODE_GAP = 26
 GRID_GAP = 24
 MARGIN = 24
 VIRTUAL_H = 10
+VIRTUAL_GAP = 6  # entre puntos de paso, solo con columnas fijas
 
 
 @dataclass(frozen=True)
@@ -109,7 +110,13 @@ def _layers(order: list[str], dag: dict[str, list[str]]) -> dict[str, int]:
     return layer
 
 
-def layout_layered(nodes: list[LNode], edges: list[LEdge]) -> LayeredLayout:
+def layout_layered(
+    nodes: list[LNode], edges: list[LEdge], fixed: dict[str, int] | None = None
+) -> LayeredLayout:
+    """Layout por capas. Con `fixed` (nodo → columna) las capas no se calculan: cada nodo
+    va a su columna (mapa de arquitectura). Las aristas hacia una columna anterior se
+    dibujan al revés y las de una misma columna se omiten, porque cruzarían las cajas;
+    quien llama decide cómo mostrarlas."""
     nodes = sorted(nodes, key=lambda n: (n.key, n.id))
     by_id = {n.id: n for n in nodes}
     order = [n.id for n in nodes]
@@ -118,11 +125,15 @@ def layout_layered(nodes: list[LNode], edges: list[LEdge]) -> LayeredLayout:
     for e in sorted(edges, key=lambda e: (by_id[e.src].key, by_id[e.dst].key, e.src, e.dst)):
         if e.src == e.dst or e.src not in by_id or e.dst not in by_id:
             continue
+        if fixed is not None and fixed[e.src] == fixed[e.dst]:
+            continue
         if (e.src, e.dst) in seen_pairs:
             continue
         seen_pairs.add((e.src, e.dst))
         clean.append(e)
     connected = {e.src for e in clean} | {e.dst for e in clean}
+    if fixed is not None:  # con columnas fijas, nadie va a la grilla de aislados
+        connected = set(order)
     graph_ids = [n for n in order if n in connected]
     isolated = [n for n in order if n not in connected]
 
@@ -131,14 +142,17 @@ def layout_layered(nodes: list[LNode], edges: list[LEdge]) -> LayeredLayout:
         succ[e.src].append(e.dst)
     for n in graph_ids:
         succ[n].sort(key=lambda m: (by_id[m].key, m))
-    rev = _break_cycles(graph_ids, succ)
+    if fixed is None:
+        rev = _break_cycles(graph_ids, succ)
+    else:
+        rev = {(e.src, e.dst) for e in clean if fixed[e.src] > fixed[e.dst]}
     dag: dict[str, list[str]] = defaultdict(list)
     oriented: list[tuple[LEdge, str, str]] = []
     for e in clean:
         a, b = (e.dst, e.src) if (e.src, e.dst) in rev else (e.src, e.dst)
         dag[a].append(b)
         oriented.append((e, a, b))
-    layer = _layers(graph_ids, dag)
+    layer = _layers(graph_ids, dag) if fixed is None else {n: fixed[n] for n in graph_ids}
 
     # Nodos virtuales para aristas que saltan varias capas.
     sizes: dict[str, tuple[float, float]] = {n: (by_id[n].w, by_id[n].h) for n in graph_ids}
@@ -195,12 +209,24 @@ def layout_layered(nodes: list[LNode], edges: list[LEdge]) -> LayeredLayout:
         for n in row:
             h = sizes[n][1]
             desired = y
-            if li > 0:
+            # Con columnas fijas no se acerca cada nodo a sus vecinos: en proyectos grandes
+            # ese corrimiento se acumula y el diagrama queda altísimo (Laravel: 3 600 px).
+            if li > 0 and fixed is None:
                 ns = [pos_y[m] + sizes[m][1] / 2 for m in up[n] if m in pos_y]
                 if ns:
                     desired = max(y, sum(ns) / len(ns) - h / 2)
             pos_y[n] = desired
-            y = desired + h + NODE_GAP
+            # Los puntos de paso de las flechas largas van más juntos con columnas fijas.
+            gap = VIRTUAL_GAP if fixed is not None and n.startswith("~v") else NODE_GAP
+            y = desired + h + gap
+    if fixed is not None and layers:
+        # Columnas compactas y centradas en vertical respecto de la más alta.
+        bottoms = [max((pos_y[n] + sizes[n][1] for n in row), default=MARGIN) for row in layers]
+        tallest = max(bottoms)
+        for row, bottom in zip(layers, bottoms, strict=True):
+            shift = (tallest - bottom) / 2
+            for n in row:
+                pos_y[n] += shift
 
     placed: dict[str, Placed] = {}
     for li, row in enumerate(layers):

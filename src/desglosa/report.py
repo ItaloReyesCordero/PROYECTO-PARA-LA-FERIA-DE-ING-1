@@ -10,10 +10,12 @@ from __future__ import annotations
 from collections import Counter, defaultdict
 
 from desglosa import __version__
+from desglosa.architecture import LAYER_NAMES, analyze_architecture
 from desglosa.flows_stage import cyclomatic
 from desglosa.galaxy import build_galaxy
 from desglosa.ir import CONFIDENCES, Symbol, call_targets
 from desglosa.pipeline import Analysis
+from desglosa.services import BY_KEY
 
 FUNC_KINDS = ("function", "method")
 # Nombres que el lenguaje o el framework llaman solos: no cuentan como "nunca llamadas".
@@ -51,6 +53,58 @@ def _where(sym: Symbol) -> str:
 def _table(header: tuple[str, ...], rows: list[tuple[str, ...]]) -> list[str]:
     out = ["| " + " | ".join(header) + " |", "|" + "|".join("---" for _ in header) + "|"]
     out.extend("| " + " | ".join(row) + " |" for row in rows)
+    return out
+
+
+def _architecture_section(analysis: Analysis, limit: int = 8) -> list[str]:
+    """Capas reconocidas por nombre y carpeta, y servicios externos por sus imports."""
+    routes = [(r.file, r.symbol_id) for r in analysis.routes if r.symbol_id]
+    model = analyze_architecture(analysis.project, routes)
+    by_layer: dict[str, list[str]] = defaultdict(list)
+    for c in model.shown():
+        by_layer[c.layer].append(c.name)
+    used: dict[str, set[str]] = defaultdict(set)
+    for cid, found in model.services.items():
+        if cid in model.hidden or model.components[cid].layer is None:
+            continue
+        for key, pairs in found.items():
+            used[key].update(path for path, _ in pairs)
+    present = set(by_layer) | {BY_KEY[k].group for k in used} | ({"bd"} if model.tables else set())
+    if len(present) < 2:
+        return []
+    out = ["## Arquitectura", ""]
+    out.append(
+        "Capas reconocidas por convenciones de nombre y carpeta (`…Controller`, "
+        "`services/`, `models/`): es una convención, no una certeza."
+    )
+    out.append("")
+    rows = []
+    for key in ("entrada", "logica", "datos"):
+        names = sorted(by_layer.get(key, []), key=str.lower)
+        if names:
+            extra = f" y {len(names) - limit} más" if len(names) > limit else ""
+            rows.append((LAYER_NAMES[key], _cell(", ".join(names[:limit]) + extra)))
+    if rows:
+        out += _table(("Capa", "Componentes"), rows)
+        out.append("")
+    extra = []
+    if model.unclassified:
+        extra.append(f"sin capa reconocible: {len(model.unclassified)} componentes")
+    if model.tests:
+        extra.append(f"pruebas (no son una capa): {len(model.tests)}")
+    if extra:
+        out.append("No se muestran: " + "; ".join(extra) + ".")
+        out.append("")
+    if used:
+        out.append("Bases de datos y servicios externos (por sus imports):")
+        out.append("")
+        rows = []
+        for key in sorted(used, key=lambda k: (BY_KEY[k].group, BY_KEY[k].name)):
+            files = sorted(used[key])
+            extra = f" y {len(files) - 5} más" if len(files) > 5 else ""
+            rows.append((BY_KEY[key].name, ", ".join(_code(f) for f in files[:5]) + extra))
+        out += _table(("Servicio", "Archivos que lo importan"), rows)
+        out.append("")
     return out
 
 
@@ -317,6 +371,9 @@ def build_report(analysis: Analysis, top: int = 10) -> str:
             ]
             out += _table(("Subsistema", "Subsistema", "Llamadas"), rows)
             out.append("")
+
+    # ------------------------------------------------------------------ arquitectura
+    out += _architecture_section(analysis)
 
     # ------------------------------------------------------------------ notas
     out += ["## Notas en el código", ""]

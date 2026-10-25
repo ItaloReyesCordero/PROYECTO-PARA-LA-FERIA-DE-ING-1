@@ -61,6 +61,7 @@ class MapBuilder:
         self.file_element: dict[str, str] = {}  # archivo → elemento (archivo o clase)
         self.children_of: dict[str, list[Symbol]] = defaultdict(list)
         self.modules: dict[str, Symbol] = {}
+        self.root_path = ""  # carpeta que representa la raíz (salta carpetas únicas)
         for s in project.symbols:
             if s.parent_id:
                 self.children_of[s.parent_id].append(s)
@@ -102,6 +103,7 @@ class MapBuilder:
         start = ""
         while len(dir_children[start]) == 1 and dir_children[start][0] not in file_set:
             start = dir_children[start][0]
+        self.root_path = start
         self._fill_dir(start, "root", dir_children, file_set, add_dir)
 
     def _fill_dir(self, path, gid, dir_children, file_set, add_dir) -> None:
@@ -519,15 +521,39 @@ def _edge_label(calls: int, routes: int) -> str:
     return " · ".join(parts)
 
 
-def build_map(project: Project, routes: list[tuple[str, str]] | None = None) -> dict:
+def build_map(
+    project: Project,
+    routes: list[tuple[str, str]] | None = None,
+    readmes: dict[str, str] | None = None,
+) -> dict:
     """Datos del mapa para el visor: grupos con su layout y dueño de cada elemento.
 
     `routes`: pares (archivo de rutas, método destino) que se dibujan como aristas.
+    `readmes`: carpeta → resumen de su README; se muestra como nota de esa carpeta.
     """
     mb = MapBuilder(project)
     mb.build_tree()
     edges = mb.aggregate(routes)
     mb.limit_children(edges)
+    readmes = readmes or {}
+
+    def doc_of(g: Group) -> str | None:
+        if g.kind == "proyecto":
+            return readmes.get("") or readmes.get(mb.root_path)
+        if g.kind != "modulo" or g.path is None:
+            return None
+        # Una carpeta colapsada (`app/Http`) toma el README más cercano de su cadena.
+        parent = mb.groups.get(g.parent or "")
+        while parent is not None and parent.kind == "otros":  # "Otros" no es una carpeta
+            parent = mb.groups.get(parent.parent or "")
+        stop = parent.path if parent is not None and parent.path else mb.root_path
+        cur = g.path
+        while cur and cur != stop:
+            if cur in readmes:
+                return readmes[cur]
+            cur = posixpath.dirname(cur)
+        return None
+
     groups_out = {}
     for gid in sorted(mb.groups):
         g = mb.groups[gid]
@@ -538,6 +564,9 @@ def build_map(project: Project, routes: list[tuple[str, str]] | None = None) -> 
             "summary": mb.summary(gid),
             "layout": mb.group_layout(gid, edges),
         }
+        doc = doc_of(g)
+        if doc:
+            groups_out[gid]["doc"] = doc
     owner = {el: gid for el, gid in sorted(mb.owner.items())}
     # Archivo → su nivel en el mapa (lo usa la galaxia para "clic: ver en el mapa").
     files = {

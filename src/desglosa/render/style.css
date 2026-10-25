@@ -225,6 +225,7 @@ button, input, select { font: inherit; color: inherit; }
 .k-funcion { --c: var(--c-funcion); }
 .k-entrada { --c: var(--c-entrada); }
 .k-tabla { --c: var(--c-tabla); }
+.k-bd { --c: var(--c-tabla); } /* base de datos: mismo color que las tablas */
 .k-otros { --c: var(--c-externo); }
 .k-otros .forma { stroke-dasharray: 4 3; }
 
@@ -287,6 +288,12 @@ button, input, select { font: inherit; color: inherit; }
 .boton-limpio.activo { color: var(--texto); font-weight: 600; }
 .leyenda .muestra { width: 12px; height: 12px; border-radius: 50%; background: var(--c);
   display: inline-block; flex: none; }
+
+/* Arquitectura: una franja suave por capa, con su título arriba. */
+.columna-banda { fill: var(--superficie-2); fill-opacity: .55; stroke: var(--borde);
+  stroke-width: 1; }
+.columna-titulo { fill: var(--texto); font: 600 14px var(--sans); }
+.columna-sub { fill: var(--texto-suave); font: 11px var(--sans); }
 
 @media print {
   .barra, .panel, .pestanas, .leyenda, .herramientas, .ayuda, .info .pista { display: none !important; }

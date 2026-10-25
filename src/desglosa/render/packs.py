@@ -40,7 +40,7 @@ def unpack(text: str) -> Any:
 
 INDEX_KEYS = (
     "symbols", "files", "calls_out", "calls_in", "impl", "map", "routes", "tables_of",
-    "seq_ids", "er", "notes_of", "galaxy",
+    "seq_ids", "er", "notes_of", "galaxy", "arch",
 )
 
 
