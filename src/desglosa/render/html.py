@@ -17,7 +17,6 @@ from typing import Any
 from desglosa.ir import FlowGraph
 from desglosa.layout.flow import FlowLayout
 
-
 _ATOMS = (str, int, bool, type(None))
 
 
