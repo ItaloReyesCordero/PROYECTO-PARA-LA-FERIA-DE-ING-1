@@ -6,8 +6,8 @@
   algoritmo de Louvain (modularidad), implementado aquí, sin dependencias.
 - **Nodos centrales**: los archivos con más conexiones (por donde "pasa todo").
 - Layout determinista en Python: cada subsistema es un racimo en espiral (ángulo de oro)
-  con el archivo más conectado al centro; los racimos se acomodan con un algoritmo de
-  fuerzas sencillo y luego se separan para que no se encimen.
+  con el archivo más conectado al centro; los racimos se colocan uno a uno junto al
+  racimo con el que más se llaman, sin encimarse (ver `_place_clusters`).
 
 Sin IA: los nombres de los subsistemas salen de la carpeta donde están sus archivos.
 """

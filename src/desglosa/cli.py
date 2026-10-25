@@ -278,6 +278,38 @@ def cmd_search(args: argparse.Namespace) -> int:
     return EXIT_OK if hits else EXIT_NOT_FOUND
 
 
+# --------------------------------------------------------------------------- skill
+
+
+def cmd_skill_install(args: argparse.Namespace) -> int:
+    from desglosa.skill import SkillExistsError, default_skills_dir, install
+
+    skills_dir = Path(args.dir) if args.dir else default_skills_dir(args.project)
+    try:
+        target, state = install(skills_dir, force=args.force)
+    except SkillExistsError as exc:
+        print(
+            f"Ya existe otra versión de la skill en {exc}. "
+            "Usa --force para reemplazarla (se perderán los cambios que tenga).",
+            file=sys.stderr,
+        )
+        return EXIT_USAGE
+    except OSError as exc:
+        print(f"No pude escribir la skill: {exc}", file=sys.stderr)
+        return EXIT_USAGE
+    print(f"Skill {state}: {target}")
+    if state != "sin cambios":
+        print("Abre una sesión nueva del asistente para que la cargue.")
+    return EXIT_OK
+
+
+def cmd_skill_show(args: argparse.Namespace) -> int:
+    from desglosa.skill import skill_text
+
+    sys.stdout.write(skill_text())
+    return EXIT_OK
+
+
 def cmd_export_ir(args: argparse.Namespace) -> int:
     from desglosa.ir import dumps
     from desglosa.pipeline import summary
@@ -566,7 +598,31 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("-o", "--output", default="flujo.html", help="archivo HTML de salida")
     p.set_defaults(func=cmd_flow)
 
+    p = sub.add_parser("skill", help="skill para asistentes de IA (Claude Code y compatibles)")
+    p.set_defaults(func=_help_of(p))
+    skill = p.add_subparsers(dest="skill_command", metavar="acción")
+    q = skill.add_parser("install", help="copia SKILL.md a la carpeta de skills")
+    where = q.add_mutually_exclusive_group()
+    where.add_argument(
+        "--project", action="store_true", help="en este proyecto (.claude/skills), no en tu usuario"
+    )
+    where.add_argument("--dir", metavar="CARPETA", help="otra carpeta de skills de destino")
+    q.add_argument("--force", action="store_true", help="reemplazar una versión distinta")
+    q.set_defaults(func=cmd_skill_install)
+    q = skill.add_parser("show", help="muestra el SKILL.md (para copiarlo en otro asistente)")
+    q.set_defaults(func=cmd_skill_show)
+
     return parser
+
+
+def _help_of(p: argparse.ArgumentParser):
+    """Comando sin acción (p. ej. `desglosa skill`): muestra su ayuda."""
+
+    def show(args: argparse.Namespace) -> int:
+        p.print_help()
+        return EXIT_USAGE
+
+    return show
 
 
 def _configure_console() -> None:

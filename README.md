@@ -5,7 +5,7 @@ entidad-relación. Sin IA y sin internet.**
 
 [![CI](https://github.com/ItaloReyesCordero/PROYECTO-PARA-LA-FERIA-DE-ING-1/actions/workflows/ci.yml/badge.svg)](https://github.com/ItaloReyesCordero/PROYECTO-PARA-LA-FERIA-DE-ING-1/actions/workflows/ci.yml)
 
-![Diagrama de flujo generado del programa GPS en C](docs/img/flujo-detalle.png)
+![Diagrama de flujo generado del programa GPS en C](https://raw.githubusercontent.com/ItaloReyesCordero/PROYECTO-PARA-LA-FERIA-DE-ING-1/main/docs/img/flujo-detalle.png)
 
 Le das una carpeta con código y Desglosa genera **un solo archivo `.html`** que se abre
 con doble clic, sin servidor y sin conexión. Dentro puedes ir del panorama general al
@@ -20,6 +20,13 @@ detalle:
    orden, con bucles, condiciones y `try/catch`.
 4. **Diagrama entidad-relación** de los archivos `.sql`, y qué funciones leen o escriben
    cada tabla.
+5. **Galaxia**: todos los archivos del proyecto en una sola vista, agrupados en
+   *subsistemas* que se detectan solos (archivos que se llaman mucho entre sí), con los
+   archivos centrales marcados por su nombre.
+
+Además puedes **preguntarle al código** desde la consola (`explain`, `path`, `buscar`), ver
+las notas `TODO`/`FIXME` de cada función, usarlo en GitHub Actions o dárselo a tu asistente
+de IA como skill.
 
 Todo sale de **análisis estático**: Desglosa lee el código con
 [tree-sitter](https://tree-sitter.github.io/), nunca lo ejecuta.
@@ -28,11 +35,15 @@ Todo sale de **análisis estático**: Desglosa lee el código con
 
 | Mapa (tema oscuro) | Secuencia de `FacturaController.store()` |
 |---|---|
-| ![Mapa por niveles](docs/img/mapa.png) | ![Diagrama de secuencia](docs/img/secuencia.png) |
+| ![Mapa por niveles](https://raw.githubusercontent.com/ItaloReyesCordero/PROYECTO-PARA-LA-FERIA-DE-ING-1/main/docs/img/mapa.png) | ![Diagrama de secuencia](https://raw.githubusercontent.com/ItaloReyesCordero/PROYECTO-PARA-LA-FERIA-DE-ING-1/main/docs/img/secuencia.png) |
 
 | Diagrama entidad-relación | Flujo completo de `main()` en columnas |
 |---|---|
-| ![Diagrama entidad-relación](docs/img/er.png) | ![Flujo del GPS](docs/img/flujo-gps.png) |
+| ![Diagrama entidad-relación](https://raw.githubusercontent.com/ItaloReyesCordero/PROYECTO-PARA-LA-FERIA-DE-ING-1/main/docs/img/er.png) | ![Flujo del GPS](https://raw.githubusercontent.com/ItaloReyesCordero/PROYECTO-PARA-LA-FERIA-DE-ING-1/main/docs/img/flujo-gps.png) |
+
+| Galaxia: subsistemas y archivos centrales |
+|---|
+| ![Vista galaxia](https://raw.githubusercontent.com/ItaloReyesCordero/PROYECTO-PARA-LA-FERIA-DE-ING-1/main/docs/img/galaxia.png) |
 
 ## Instalación
 
@@ -64,7 +75,51 @@ uv run desglosa setup
 uv run desglosa doctor    # debe mostrar 14/14 lenguajes listos
 ```
 
-Funciona en Windows, Linux y macOS (el CI prueba Windows y Linux con Python 3.12 y 3.13).
+Funciona en Windows, Linux y macOS con Python 3.10 o más nuevo (el CI prueba Windows y
+Linux con 3.12 y 3.13, y Linux con 3.10).
+
+### En GitHub Actions
+
+Genera el HTML en cada push y guárdalo como artefacto descargable:
+
+```yaml
+# .github/workflows/desglosa.yml
+name: Mapa del código
+on: [push]
+jobs:
+  desglosa:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ItaloReyesCordero/PROYECTO-PARA-LA-FERIA-DE-ING-1@main
+        with:
+          path: .                  # carpeta a analizar
+          output: desglosa.html
+          report: reporte.md       # opcional
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mapa-del-codigo
+          path: |
+            desglosa.html
+            reporte.md
+```
+
+Entradas: `path`, `output`, `report`, `args` (opciones extra de `analyze`, p. ej.
+`--lang php`) y `python-version`. Las entradas pasan al comando como variables de entorno,
+nunca pegadas dentro del script, así que un valor malicioso no puede ejecutar comandos.
+
+### Como skill de tu asistente de IA
+
+```powershell
+desglosa skill install            # en tu usuario: ~/.claude/skills/desglosa/SKILL.md
+desglosa skill install --project  # solo en este proyecto: .claude/skills/desglosa/
+desglosa skill show               # imprime el SKILL.md para copiarlo en otro asistente
+```
+
+Con la skill, Claude Code (u otro asistente compatible) usa `explain`, `path` y `buscar
+--json` para responder preguntas sobre tu proyecto sin leer todos los archivos, y sabe
+distinguir una llamada `exacta` de una `probable`. Si ya existe una versión distinta, no
+la pisa salvo con `--force`.
 
 ## Uso
 
@@ -93,7 +148,8 @@ uv run desglosa sql examples/laravel-mini -o er.html
 | `explain <ruta> <nombre>` | todo sobre una función o clase: dónde está, quién la llama, a quién llama, complejidad |
 | `path <ruta> <desde> <hasta>` | el camino de llamadas más corto entre dos funciones |
 | `buscar <ruta> "texto"` | busca funciones y clases por palabras (nombre, descripción, archivo) |
-| `export-ir <ruta>` | el modelo intermedio en JSON (ver [docs/IR.md](docs/IR.md)) |
+| `export-ir <ruta>` | el modelo intermedio en JSON (ver [docs/IR.md](https://github.com/ItaloReyesCordero/PROYECTO-PARA-LA-FERIA-DE-ING-1/blob/main/docs/IR.md)) |
+| `skill install` / `skill show` | instala o muestra la skill para asistentes de IA |
 | `debug-ast <archivo>` | imprime el árbol sintáctico (para agregar lenguajes) |
 
 Opciones comunes: `--lang php,python` (solo esos lenguajes), `--ignore PATRON`
@@ -140,8 +196,12 @@ Códigos de salida: `0` bien, `1` error de uso, `2` faltan gramáticas (ejecuta 
 - **Modo fácil / técnico** (`M`): textos en español ("¿total > 0?", "Para cada item en
   items") o el código literal.
 - `/` buscar · `Esc` subir · `+` `−` `0` zoom · `F` encuadrar · `T` tema · `?` ayuda.
+- Pestañas **Mapa · Galaxia · Entidad-relación**. En la galaxia, el clic en un subsistema
+  de la leyenda lo resalta; el clic en un archivo abre su lugar en el mapa y Alt+clic lo
+  enfoca con sus conexiones.
 - Panel lateral con el código fuente, las líneas del nodo seleccionado resaltadas, las
-  llamadas entrantes y salientes, la complejidad y, si existen, la ruta HTTP y las tablas.
+  llamadas entrantes y salientes, la complejidad, las notas del código (`TODO`, `FIXME`,
+  `HACK`, `XXX`, `BUG`, `NOTE`, `WHY`) y, si existen, la ruta HTTP y las tablas.
 - Botones **SVG** y **PNG** para exportar la vista; también se puede imprimir.
 
 Las líneas sólidas son relaciones seguras; las punteadas, probables o ambiguas; las grises,
@@ -151,8 +211,8 @@ llamadas fuera del proyecto. Así nunca se presenta una suposición como un hech
 
 | Carpeta | Qué muestra | HTML ya generado |
 |---|---|---|
-| [`examples/gps-c/`](examples/gps-c/) | lectura de un GPS por puerto serie en C: bucles, decisiones, tramas NMEA; el flujo se parte en columnas con conectores | [`desglosa.html`](examples/gps-c/desglosa.html) |
-| [`examples/laravel-mini/`](examples/laravel-mini/) | un mini sistema de facturación en Laravel: rutas, controlador, servicio, interfaz de repositorio con implementación MySQL y esquema SQL | [`desglosa.html`](examples/laravel-mini/desglosa.html) · [`reporte.md`](examples/laravel-mini/reporte.md) |
+| [`examples/gps-c/`](https://github.com/ItaloReyesCordero/PROYECTO-PARA-LA-FERIA-DE-ING-1/tree/main/examples/gps-c/) | lectura de un GPS por puerto serie en C: bucles, decisiones, tramas NMEA; el flujo se parte en columnas con conectores | [`desglosa.html`](https://github.com/ItaloReyesCordero/PROYECTO-PARA-LA-FERIA-DE-ING-1/blob/main/examples/gps-c/desglosa.html) |
+| [`examples/laravel-mini/`](https://github.com/ItaloReyesCordero/PROYECTO-PARA-LA-FERIA-DE-ING-1/tree/main/examples/laravel-mini/) | un mini sistema de facturación en Laravel: rutas, controlador, servicio, interfaz de repositorio con implementación MySQL y esquema SQL | [`desglosa.html`](https://github.com/ItaloReyesCordero/PROYECTO-PARA-LA-FERIA-DE-ING-1/blob/main/examples/laravel-mini/desglosa.html) · [`reporte.md`](https://github.com/ItaloReyesCordero/PROYECTO-PARA-LA-FERIA-DE-ING-1/blob/main/examples/laravel-mini/reporte.md) |
 
 Descarga el `.html` y ábrelo con doble clic.
 
@@ -177,7 +237,7 @@ Descarga el `.html` y ábrelo con doble clic.
 
 "Mejor esfuerzo" quiere decir que pasan los mismos tests que los demás, pero sus
 construcciones menos comunes (macros, bloques, metaprogramación) se dibujan de forma más
-simple. Detalles por lenguaje en [docs/ADDING_A_LANGUAGE.md](docs/ADDING_A_LANGUAGE.md).
+simple. Detalles por lenguaje en [docs/ADDING_A_LANGUAGE.md](https://github.com/ItaloReyesCordero/PROYECTO-PARA-LA-FERIA-DE-ING-1/blob/main/docs/ADDING_A_LANGUAGE.md).
 
 ## Rendimiento
 
@@ -222,7 +282,7 @@ Es análisis estático, con límites que conviene conocer (y explicar):
   de Laravel). Si una llamada tiene más de 4 destinos posibles, no se cuenta ni se dibuja
   como llamada a ninguno.
 
-Lista completa en [docs/LIMITES.md](docs/LIMITES.md).
+Lista completa en [docs/LIMITES.md](https://github.com/ItaloReyesCordero/PROYECTO-PARA-LA-FERIA-DE-ING-1/blob/main/docs/LIMITES.md).
 
 ## Cómo funciona
 
@@ -232,15 +292,15 @@ carpeta → escaneo → árbol sintáctico (tree-sitter) → símbolos y llamada
         → diagramas y coordenadas → un solo HTML
 ```
 
-Un único motor sirve a los 13 lenguajes: cada lenguaje solo describe la forma de su árbol
+Un único motor sirve a los 14 lenguajes: cada lenguaje solo describe la forma de su árbol
 sintáctico (`LangSpec`) y unos pocos ganchos (`LangHooks`). El resultado es determinista:
 el mismo código produce exactamente el mismo HTML.
 
-- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): etapas, módulos y decisiones.
-- [docs/IR.md](docs/IR.md): el modelo intermedio.
-- [docs/DISENO.md](docs/DISENO.md): colores, símbolos y reglas visuales.
-- [docs/ADDING_A_LANGUAGE.md](docs/ADDING_A_LANGUAGE.md): cómo agregar un lenguaje.
-- [docs/PROGRESO.md](docs/PROGRESO.md): bitácora de las fases del proyecto.
+- [docs/ARCHITECTURE.md](https://github.com/ItaloReyesCordero/PROYECTO-PARA-LA-FERIA-DE-ING-1/blob/main/docs/ARCHITECTURE.md): etapas, módulos y decisiones.
+- [docs/IR.md](https://github.com/ItaloReyesCordero/PROYECTO-PARA-LA-FERIA-DE-ING-1/blob/main/docs/IR.md): el modelo intermedio.
+- [docs/DISENO.md](https://github.com/ItaloReyesCordero/PROYECTO-PARA-LA-FERIA-DE-ING-1/blob/main/docs/DISENO.md): colores, símbolos y reglas visuales.
+- [docs/ADDING_A_LANGUAGE.md](https://github.com/ItaloReyesCordero/PROYECTO-PARA-LA-FERIA-DE-ING-1/blob/main/docs/ADDING_A_LANGUAGE.md): cómo agregar un lenguaje.
+- [docs/PROGRESO.md](https://github.com/ItaloReyesCordero/PROYECTO-PARA-LA-FERIA-DE-ING-1/blob/main/docs/PROGRESO.md): bitácora de las fases del proyecto.
 
 ## Desarrollo
 
@@ -259,14 +319,21 @@ uv run desglosa analyze examples/gps-c -o examples/gps-c/desglosa.html
 uv run desglosa analyze examples/laravel-mini -o examples/laravel-mini/desglosa.html --report examples/laravel-mini/reporte.md
 ```
 
+Publicar una versión en PyPI (lo hace el mantenedor con su cuenta y un token de PyPI):
+
+```powershell
+uv build                  # crea dist/desglosa-X.Y.Z.tar.gz y el .whl
+uv publish                # pide el token; después: uv tool install desglosa
+```
+
 Seguridad: el código analizado nunca se ejecuta, el visor no usa `innerHTML` con datos del
 código y el JSON incrustado escapa `<`, `>`, `&` y los separadores de línea Unicode (hay
 un test con `</script><script>alert(1)</script>` dentro de una cadena).
 
 ## Licencia y créditos
 
-MIT © 2026 Italo Reyes Cordero. Ver [LICENSE](LICENSE).
+MIT © 2026 Italo Reyes Cordero. Ver [LICENSE](https://github.com/ItaloReyesCordero/PROYECTO-PARA-LA-FERIA-DE-ING-1/blob/main/LICENSE).
 
 Proyecto para la Feria de Ingeniería de la Universidad Continental. Inspirado
 conceptualmente en Graphify y Archify, sin código de ninguno de los dos; dependencias y
-licencias en [NOTICE.md](NOTICE.md).
+licencias en [NOTICE.md](https://github.com/ItaloReyesCordero/PROYECTO-PARA-LA-FERIA-DE-ING-1/blob/main/NOTICE.md).

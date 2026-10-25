@@ -365,12 +365,86 @@ Abre `demo.html`, pulsa `?` para ver la ayuda y Alt+clic sobre una carpeta para 
 1. Más de 4 destinos posibles = la llamada no se cuenta ni se dibuja (honesto: no dice
    a dónde va).
 2. Mapa denso → esqueleto de relaciones más fuertes (1,5 por elemento).
-3. **Pendiente de tu decisión:** la SPEC dice que una flecha agrupada lleva la *peor*
-   confianza. En proyectos grandes eso deja casi todas las flechas punteadas (basta una
-   llamada dudosa entre 744). Opciones: (a) mantener la regla, (b) usar la confianza de
-   la mayoría y mostrar el desglose al pasar el mouse.
+3. La SPEC decía que una flecha agrupada lleva la *peor* confianza. En proyectos grandes
+   eso deja casi todas las flechas punteadas (basta una llamada dudosa entre 744).
+   Opciones: (a) mantener la regla, (b) usar la confianza de la mayoría y mostrar el
+   desglose al pasar el mouse. **Decidido por Italo (2026-10-25): (b)**, hecho al inicio
+   del Bloque 2.
 
 **Probar**
 ```powershell
 uv run desglosa analyze C:\ruta\a\un\proyecto\grande -o grande.html
+```
+
+## Bloque 2 — Preguntarle al código, galaxia y distribución ✅
+
+**Qué se hizo**
+- **Flechas del mapa con la confianza de la mayoría** (tu decisión del Bloque 1) y
+  desglose al pasar el mouse: "12 exactas · 3 probables · 1 ambigua".
+- **Consultas sin IA** desde la consola, en texto o `--json`:
+  - `explain`: dónde está, firma, descripción, quién la llama y a quién llama (en el
+    orden del código), complejidad, notas, tablas y ruta web.
+  - `path`: el camino de llamadas más corto entre dos funciones; si no hay, avisa si
+    existe al revés.
+  - `buscar`: por palabras, separando `camelCase`/`snake_case` y con raíces comunes
+    ("factura" encuentra `FacturacionService`).
+  - Códigos de salida nuevos: 3 = nombre ambiguo (lista los candidatos), 4 = no
+    encontrado.
+- **Notas del código** (`TODO`, `FIXME`, `HACK`, `XXX`, `BUG`, `NOTE`, `WHY`): en el
+  panel de cada función y en una sección del reporte.
+- **Vista galaxia**: todos los archivos en una vista, agrupados en subsistemas con un
+  Louvain propio (sin dependencias nuevas) y con los 10 archivos más conectados
+  marcados. El reporte añade subsistemas, archivos centrales y conexiones entre
+  subsistemas.
+- **C#** (14 lenguajes): clases, structs, records, interfaces, constructores, `using`,
+  `switch`, `foreach`, `try/catch/finally`, `Main` como punto de entrada.
+- **Distribución**:
+  - **GitHub Action** (`action.yml`): instala con `uvx`, descarga las gramáticas y
+    ejecuta `analyze`. El CI la prueba en Windows y Linux con `examples/laravel-mini`
+    y guarda el HTML como artefacto.
+  - **Skill para asistentes de IA**: `desglosa skill install` copia un `SKILL.md` que
+    enseña a usar `explain`, `path` y `buscar --json` y a distinguir una llamada
+    `exacta` de una `probable`.
+  - **PyPI**: metadatos completos, enlaces absolutos en el README y CI con Python 3.10
+    (la mínima declarada). `uv build` genera el wheel con todo lo necesario (verificado:
+    incluye `SKILL.md`, `app.js` y `style.css`).
+
+**Qué falló / encontré (y se corrigió)**
+- Una llamada ambigua con 2 destinos en la misma carpeta se contaba dos veces en la
+  misma flecha. Ahora cada llamada cuenta una vez por flecha.
+- `path` analiza sin flujos, y al terminar la caché borraba los flujos guardados por
+  `analyze`. Ahora la limpieza solo toca lo que se consultó en esa ejecución (con test).
+- La galaxia fallaba (`KeyError`) con llamadas desde código suelto fuera de funciones.
+- El primer layout de la galaxia (fuerzas) dejaba 7 archivos en un lienzo de 1411×3616.
+  Se cambió por un empaquetado codicioso: cada racimo se pega al que más llama.
+- Nombres de subsistema poco útiles (".") y leyenda partida en dos columnas.
+- El panel de código movía la línea marcada fuera de la vista al hacer scroll.
+- Dos commits salieron con errores de ruff (una regex larga); se corrigieron en el
+  siguiente. Desde entonces hago commit solo con ruff **y** pytest en verde.
+- El docstring de `galaxy.py` seguía describiendo el layout de fuerzas; ya está
+  corregido.
+- Al probar la Action, un argumento malicioso (`$(touch PWNED)`) llegó como texto y no
+  se ejecutó: las entradas van por variables de entorno. Un test lo vigila.
+
+**Decisiones (revísalas)**
+1. Cada consulta vuelve a cargar el proyecto con la caché (1–2 s normal, ~17 s en
+   Django), sin servidor ni índice permanente: más simple y sin estado escondido.
+2. `buscar` compara palabras, no significados (regla "sin IA"): "cobrar" no encuentra
+   `pagar`.
+3. Louvain implementado aquí y no con `networkx` (las dependencias están cerradas).
+4. `skill install` no reemplaza un `SKILL.md` distinto sin `--force`, porque podría
+   tener cambios tuyos. Por defecto va a `~/.claude/skills/`; con `--project`, al
+   proyecto.
+5. **PyPI no está publicado**: necesita tu cuenta y un token. El nombre `desglosa`
+   estaba libre el 2026-10-25. Pasos en el README (`uv build`, `uv publish`).
+6. La Action apunta a `@main`; cuando haya una versión estable conviene crear la etiqueta
+   `v0.2.0` y recomendar `@v0.2.0`, para que un cambio en `main` no rompa a nadie.
+
+**Probar**
+```powershell
+uv run desglosa explain examples/laravel-mini FacturacionService.emitir
+uv run desglosa path examples/laravel-mini FacturaController.store MySqlFacturaRepository.guardar
+uv run desglosa buscar examples/laravel-mini "calcular impuestos"
+uv run desglosa skill install --dir $env:TEMP\skills-prueba
+uv run desglosa analyze examples/laravel-mini -o demo.html   # pestaña Galaxia
 ```

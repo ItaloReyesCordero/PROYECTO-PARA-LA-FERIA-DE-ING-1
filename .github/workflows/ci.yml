@@ -11,6 +11,10 @@ jobs:
       matrix:
         os: [windows-latest, ubuntu-latest]
         python: ["3.12", "3.13"]
+        include:
+          # La versión mínima que declara pyproject.toml.
+          - os: ubuntu-latest
+            python: "3.10"
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -27,3 +31,38 @@ jobs:
         run: uv run ruff check .
       - name: Tests
         run: uv run pytest -q
+
+  action:
+    name: GitHub Action (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Ejecutar la Action de este repositorio
+        id: desglosa
+        uses: ./
+        with:
+          path: examples/laravel-mini
+          output: laravel-mini.html
+          report: laravel-mini.md
+      - name: Comprobar que generó el HTML y el reporte
+        shell: bash
+        env:
+          HTML: ${{ steps.desglosa.outputs.html }}
+          REPORT: ${{ steps.desglosa.outputs.report }}
+        run: |
+          test -s "$HTML"
+          test -s "$REPORT"
+          grep -q "<!doctype html>" "$HTML"
+          grep -q "FacturaController" "$REPORT"
+      - name: Guardar el ejemplo como artefacto
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: desglosa-laravel-mini
+          path: |
+            laravel-mini.html
+            laravel-mini.md

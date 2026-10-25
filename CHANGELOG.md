@@ -2,6 +2,26 @@
 
 ## [Sin publicar]
 
+### Bloque 2 — Preguntarle al código, galaxia y distribución
+- Mapa: cada flecha agrupada lleva la confianza de la **mayoría** de sus llamadas; al
+  pasar el mouse se ve el desglose (exactas, probables, ambiguas).
+- Consultas sin IA: `explain` (qué es, quién la llama, a quién llama, complejidad, notas,
+  tablas, ruta), `path` (camino de llamadas más corto) y `buscar` (por palabras, con
+  `camelCase`, `snake_case` y raíces comunes). Todas con `--json` y códigos de salida 3
+  (nombre ambiguo) y 4 (no encontrado).
+- Notas `TODO`, `FIXME`, `HACK`, `XXX`, `BUG`, `NOTE` y `WHY`: en el panel de cada función
+  y en una sección del reporte.
+- Vista **galaxia**: todos los archivos agrupados en subsistemas (Louvain propio,
+  determinista) y los archivos centrales marcados; el reporte añade "Subsistemas",
+  "Archivos centrales" y "Conexiones entre subsistemas".
+- Lenguaje nuevo: **C#** (14 en total).
+- **GitHub Action** (`uses: ItaloReyesCordero/PROYECTO-PARA-LA-FERIA-DE-ING-1@main`),
+  probada en el CI con Windows y Linux.
+- **Skill para asistentes de IA**: `desglosa skill install [--project | --dir]` y
+  `desglosa skill show`.
+- Listo para PyPI: metadatos, enlaces del README absolutos (PyPI no abre los relativos) y
+  CI también con Python 3.10, la versión mínima declarada.
+
 ### Bloque 1 — Proyectos grandes
 - Probado con proyectos reales: Laravel (581 000 líneas, 72 s), Django (530 000 líneas,
   90 s), Express y Spring Petclinic.

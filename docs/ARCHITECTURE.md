@@ -32,12 +32,17 @@ flowchart LR
 | Secuencia | `sequence.py`, `layout/sequence.py` | una función de entrada → mensajes numerados, fragmentos y participantes. |
 | SQL | `sqlmodel.py`, `layout/er.py` | `.sql` → tablas, PK, FK; cadenas SQL del código → qué función lee/escribe cada tabla. |
 | Rutas | `routes.py` | `routes/*.php` de Laravel → puntos de entrada. |
+| Notas | `notes.py` | comentarios `TODO`, `FIXME`… → `Note` unida a la función o clase que la contiene. |
+| Galaxia | `galaxy.py` | llamadas entre archivos → subsistemas (Louvain) y posiciones de cada archivo. |
 | Visor | `render/` | todo lo anterior → JSON incrustado en `template.html` con `app.js` y `style.css`. |
 | Reporte | `report.py` | análisis → Markdown con métricas. |
+| Consultas | `query.py` | análisis → `explain`, `path` (BFS) y `buscar` (por palabras). |
 
-`pipeline.py` orquesta las etapas y `cli.py` expone los comandos.
+`pipeline.py` orquesta las etapas y `cli.py` expone los comandos. Fuera del análisis:
+`skill/` guarda el `SKILL.md` para asistentes de IA (`desglosa skill install`) y
+`action.yml`, en la raíz, es la GitHub Action.
 
-## Un motor, doce lenguajes
+## Un motor, trece lenguajes
 
 La extracción y el diagrama de flujo son **genéricos**. Cada lenguaje aporta:
 

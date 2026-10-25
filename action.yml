@@ -1,0 +1,75 @@
+name: "Desglosa"
+description: "Convierte tu código en un HTML interactivo (mapa, diagramas de flujo, secuencia y ER), sin IA."
+author: "Italo Reyes Cordero"
+branding:
+  icon: "map"
+  color: "blue"
+
+inputs:
+  path:
+    description: "Carpeta del proyecto a analizar."
+    required: false
+    default: "."
+  output:
+    description: "Archivo HTML que se genera."
+    required: false
+    default: "desglosa.html"
+  report:
+    description: "Si se indica, escribe también un reporte Markdown con ese nombre."
+    required: false
+    default: ""
+  args:
+    description: "Argumentos extra para `desglosa analyze`, separados por espacios (p. ej. --no-cache)."
+    required: false
+    default: ""
+  python-version:
+    description: "Versión de Python con la que se ejecuta Desglosa."
+    required: false
+    default: "3.12"
+
+outputs:
+  html:
+    description: "Ruta del HTML generado."
+    value: ${{ steps.analyze.outputs.html }}
+  report:
+    description: "Ruta del reporte Markdown (vacía si no se pidió)."
+    value: ${{ steps.analyze.outputs.report }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Instalar uv
+      uses: astral-sh/setup-uv@v6
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    # Las entradas llegan por variables de entorno y nunca se pegan dentro del
+    # script: así un valor con comillas o `$(...)` no puede ejecutar comandos.
+    - name: Descargar gramáticas (único paso con red)
+      shell: bash
+      env:
+        DESGLOSA_SRC: ${{ github.action_path }}
+      run: uvx --from "$DESGLOSA_SRC" desglosa setup
+
+    - name: Analizar el proyecto
+      id: analyze
+      shell: bash
+      env:
+        DESGLOSA_SRC: ${{ github.action_path }}
+        IN_PATH: ${{ inputs.path }}
+        IN_OUTPUT: ${{ inputs.output }}
+        IN_REPORT: ${{ inputs.report }}
+        IN_ARGS: ${{ inputs.args }}
+      run: |
+        set -euo pipefail
+        cmd=(uvx --from "$DESGLOSA_SRC" desglosa analyze "$IN_PATH" -o "$IN_OUTPUT")
+        if [ -n "$IN_REPORT" ]; then
+          cmd+=(--report "$IN_REPORT")
+        fi
+        if [ -n "$IN_ARGS" ]; then
+          read -r -a extra <<< "$IN_ARGS"
+          cmd+=("${extra[@]}")
+        fi
+        "${cmd[@]}"
+        echo "html=$IN_OUTPUT" >> "$GITHUB_OUTPUT"
+        echo "report=$IN_REPORT" >> "$GITHUB_OUTPUT"
