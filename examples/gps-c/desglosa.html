@@ -304,6 +304,18 @@ button, input, select { font: inherit; color: inherit; }
 .columna-titulo { fill: var(--texto); font: 600 14px var(--sans); }
 .columna-sub { fill: var(--texto-suave); font: 11px var(--sans); }
 
+/* Trazar ruta: selectores "Desde → Hasta", controles de paso y numeración. */
+.pickers-ruta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 6px; }
+.campo-ruta { display: flex; align-items: center; gap: 6px; color: var(--texto); }
+.selector-ruta input { width: min(320px, 70vw); }
+.flecha-ruta { color: var(--texto-suave); font-size: 18px; }
+.controles-ruta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 6px; }
+.paso-actual { color: var(--texto); margin-left: 6px; }
+.numero-paso { fill: var(--texto-suave); font: 600 13px var(--sans); }
+.nodo.visitado .forma { stroke-width: 2.5; }
+.panel .acciones { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 14px 8px; }
+.panel .acciones .boton { text-decoration: none; font-size: 12px; }
+
 @media print {
   .barra, .panel, .pestanas, .leyenda, .herramientas, .ayuda, .info .pista { display: none !important; }
   body { overflow: visible; height: auto; background: #fff; }
@@ -326,7 +338,7 @@ button, input, select { font: inherit; color: inherit; }
   </main>
   <aside class="panel" id="panel" aria-label="Detalle" hidden></aside>
 </div>
-<script type="application/json" id="desglosa-data">{"index":"eNrFWU1v3DYQ_SuEekkKxdH3x96MJPClaY049cUIDK5EbdhopQ0lpTEM_5gee-6tV_-xDqXVroaidhWn2wIGvCsNZ8jHNzOP3HuDiuSjsSiaPDeNhOZ5dcsLY3Fv2FZisSjw0mVoGYubG8OzrMjKlrGXBa5hGuwrTWpqfPhgGnYSZlHq09gPwyOmjpeErps6VsS8I6ZBvKSOFzo08I-Zhlnmxb6dBHYaHDGNUhbFFqWxu0yPmNIoiOkS7NLlsQksA5f5gcWCgHZgoXXuTc0bvCz0Bq0CvUGTRm_QHNGbJFjCVKkfZmmoTDZmjmWnydKKjqGFnBwyfejJUza1ZM9onxFCKAZyKU0R89CaENHQm_8fb4TqzJ0YUXwapRHFp01HFJ82HVF82nREhSlToAITfUXJeM4qSYjVpjpL5AcmRCngkWUaOS1WxsJIYHTOC2ln-7FpVJ_4ZsPSzsUDuFvRnH69613y9SYHR_B8TTfSoxqjffDCCmJmwZ54mSFdiLLZVL318CU8-sQLiNZWQv6llLOhd1ses3Qlfd-MdhGv_sZzHdO2HdP3HdMJwg87PKA6kjyna5rCZ8-PzlzTjhwzCM880_bN-95uYT9o2KqLEnqzoji2OxlF4bcmiuMG86J43mQUJb90UeJoXpTQn4yiZKQmihtYs6K4VjAZRakvmiieM2_3XTecjKJUV1wIb-wQIlgA2vYf7JA1EcqOZSjPOfNnx0KldRjLi7xhFLePUskwvun4MUQJlRiuLgYukWg9XjCM4agxYksTw9HFwGk6jAHpeRCt0J2PFk5TFCX0DkaxLW9-GJynwzCQn4fDuP78MDhRUZg4OhwmCOaHwZk6DAMZejhMHM4Pg1MVMdk5zADHiabCwDhQyX4UwX-epqzoGhhbMdk6boysKRJeFrIPFrVofe4lgFGU6baLKNpmN0xmsyzubbkCqJaCi9tNw0RdPnsOhvD3w8ssb34rXyIXGlU08AlLDgLT9qzWac6YuE2ogFkxMfI6dKLRM8ir70Q7rwk0dDo1V-Sk9YpFw85rWzm9GHD3Wq_Q5AVfcznf9aasRn6HbjQaC8029naTfc2qVV5W9OLy3dtXqlPkQ9OMkVPbDzReLy7OVa_Iiab5Iq-OHem8Xo28IieaZou9RtbI6-XFu7dvVK_Iiaa5Iq-u52i9XqtekRNNM8WEtXS7df3-QvWKnGjKwC4PHU_-2R5IDUdqRl60rjZNUZckZWSfsL1r5Emm_u_GInQtkJEFXTNQip3QBB9UwGh4IMqyhu9Vs15TAUrVsG2yXRYkPgxsDfZScyPKO5bUeq3Z1RrbsiZqTZLTiuGyoopac2vUL96x2sX380azk-sGJU1fqk62K7eDCK38xXDlnSQfrJv0KloK9_L3Qh4F1MsEzXTxFYLGAB8oNQb4GKkxwIctjQE-YmkM8MFKY4CPUxoDfE-gM0Bnc92-omOYxmB0vum4t-Pg7mtR1gzO61l3loLzUd2eouBzxT7f8lQyS03VgzJIrUFKoVNqiVJtjepuvSzzasyWeyMt5anufCkgWXPSdRpSMcEZecYK-Yx9bvimJILRnCRlkfFVI6h88ev5u_eEEi-yLLKkTcrL6vnZFqVBImd5CUyvRcOg9VS3siQAmzOaV_Bgm7MyY-quxysH19s2MR1r-62qqahl3kC1YbXgSbuo_d2aje5KYFSSSI2xy7Fh89-lGmyIjJgBg9wQtsCVbe5zQ3P9oIqvClo3Qr7iRU2QoACEqpokH6kgPxblGnB9LgmBc7CH_SfGSFMQ0A2Pf0jhACUT78GJ4HQVOB33W-B09nAi2TMbT3XUENAWOaymvpQ8bUHEdaoHse1gCyIa4Di5I19YXiY8pSmpyi2rqwaenQhKOEEhKGNnFpT2iJmoIc-GUh01hFLiRnCfl3TlBYfu1AKK63oP6KUoVwLEOwGZCI1sQ_OF3BGJ5MXlFUCcbn0CsBWppWlFfn775nw2xN33mQi391YI4mgCYgtBHG8h9vcYS4EyG9qtsZrtrcjZURI3vj0lQawuCIhrgPrxr8KEFM9bTsoEz_hXALF4_HvNRKuSKlo__plz6BEnImloYwSD6LtJCgt8Akm7UQdIKkW-QlIsHXYklRp7QdobT8KqmsNhswVzBzp5BkpwwxksmVNyQcWaF6fqT5GLAYZDwfcB3C7vmwHuR00C3J1MFICx9Bpw-Ao4vOcmgWoM4rMC7m4ES3jVgfz6l8tToRqGGFW4pPpu2l49ibZXx2h7NaIt1qtD2l4vBk0KNJb7-j-lqlJNo-BfoOr1k6h6fYyq1yqoWOP3oL5toACAJoVhpLvTAPUE04GKUEE9ECBbZYtKpdiiXcM6Ebhww4LAdeMJcAOdsHL34Cp3NLPhHY8bAaxe_4wVq0lU2NHJqYf9FZfXUySnEt8GrGlXd8HhViucSr4GCsruE08D6H5tNsbqqBHC-NpupxXw8XJfZ-G6bEE-loKaspEBaU3AtOZ1k8KHslh1n_Yl445kDLbrROAGiqD1w2-pD46u6MICn1B0u1EHiq68ZlSIivz2EO9_LR1BtYVmCqt1mTYwaq4wtWfp0i0N2x9gJ269WpC6aQ-g6W2GkHTP5H1QTZf57s7h4R8Z4kZU","meta":{"format":2,"generator":"Desglosa","name":"gps-c","sources":true,"start":"#\/mapa","version":"0.1.0"},"packs":{"gps.c":"eNrtPV2PHDdyf6VvEp-0vo2u-dHs5vqcg86WhQDWWdDaiwArQeid6ZVHnp3ZzOz4znD0GiCv-QW5xzzk6d7yEiD6J_dLUqxik-zP6emZPSS29mG2P8hiFVlVrCKL1T9OrherP2wmZz9OWDyNi0zJ2VUam_tF_sNqe2eupqvF9mYJhdgpXC-XxfRutYbby1enk28nZzzLHsWnUP6qWNini-JNsZzB9eSuWN_Ml_licjq5Xa-mxWZlrvLlXb5Y5BNTdL4sTK3LS4ZwEvNDl-YHSixX6xsD4G69LV6dluWYUK4gU6qnJI9jV5KLuFkS72eExWQZT065NEXNj-CmljCXl5N_WM6n89VZlF-t5-vXt9tifbd6uFzdXK2LEyClowD02OYumn6br6OPXWFTeslsS4gZtSQzbOnZttjcrfOz6OXkMcCCvlxFH22iPJJZDPhNrvLtbL7avJycRgQSm79dz5d31w_b6kRljZdLqDQxBIeY8Mkpk3HZk6daeaJfFDDYyzxi2MS6uNuul-YG64myHvZrpd4X8yXWwP-mi_8wORMpFHjnevtH09nwmwNnKSCK_n03N5wTMs5dvn5TACcut4sF3BVTYLrhfW3aY2UzGTWTuWYcK3Y0M7hPo7A9XranqT3t23NC0Nqc618DRVgoPEYo5t_AzjGd_g5AAHsvp_ldAXWu88WmgEdsml5nsyTXSZruJeYJSypiDsO_MsOPssK5-WWP-ClLzKhv3v8nMHds3rFUBO92K4dZMZ1v5qvlBKlZ5LNVTU1I5tQEXnaoCR6bl0wjeyJnhtc8idtr0dtMupKCyXblgo1zHjtEhBKVktjlvigTvihTcQ9QBFQC1aKnpOSpKymTdC_dxlFSa7ptURTr19N8nU9hcB5W1Vr13fer-SzQZKocCqINMEO4XxZFNCsWkR3K6C__8m_RFKGCXEXT6NMIuNcI7MNAF2Wui04Z9i9eXk7-579NhSdfffFbhAA3eOeVEacxSbAmi5ta7MHLl_GDUJPZBwhAGgBZOeQ92swUTianaVKOD4wtbzb20NB1Mg2bc48QhpqcYm0cuQHaM-nQnlyQghB7a8-2IQ0VJk8IchJAJpnsANwc1VAfclLz3Kv5UNrb4LkxrijElMCke6pVGmwDSXZCGqRaT834Wwik4vm-Kr7kBANLWViCFL04iqLncpoKMeNxVsj97DnUDrvtuc32qiS1qqCV4eaUowyjeop5uwqjt2TI0XWbIdenwjLljSbL04DZ58XmzWK1yZ8-v_j66cM5Pq-qsnqJu8iVKhUaSjSifsrTQJV8uchvcjAB5jdgG9zMjfjc3K42VlfWn76cYBPGQKi2YEwupltNrlbhN-9ahV9zZBrzb0_h7-6EUAVoSfClgx8MvG9hcqVEkai4UCqPJ14f7O6PUEFo0jc6OYYEyDjO4usrLa-V6JAAUZOAywmMPFNot3CV4DRihsI8jZlhUeEfcvdQofHunyoy6W1REism0RBqGFDI-EJkLQaUIO7LdMs7K2U4cwTvPEjNWJtNhoZTpnizGkcc0rgNE5ADcqJk98sGDYhLrFkbDfjOTtQ8baUPK3a0qBMkQIg2EqXyuqFOI7cOXU9FGYvOihItkY6KCY87K4K13V1RibSzotKybYSpV3Xc3TlZX-dkPZ2j-zqHxT29w2IVdyKb6bZ3mgzYCgvs9hEqGigwIQJvDsQapbo-N0nnPCjZs8ZAxCpfkOkON0Mbzhax6c8E-6Zy3bEyQW8l2pn2Wsq-kmnmSiZxH87CTqcIueYReIeEJET6ojxVPUARUAk0S3tKKlKadK2TnpJp4kumWXtJjmWyFLtYZ7VrLXRrLfsW1S1dE9d2FmUxCmB5o_oI1LH2PMGY6uvgjPmymdR9nIaQHFipestq6ctyxIfEL7hWWezHISNnc41-yer11Xa6KAJkOU5UKU9Qh6W1a0b2YNkcl30UKxEMv0r6itbgJh1eNk2wKfYOXbNY9RVlGfdlOeN9Za2w2BvVC1fSMqK9YV20xTT1ow4AF7RxgzUHgCH0ZYBfp4gGsBxgmfSWRSmyN0ms-8pa2bc3aNan6OyH1zRXUxlz3cNtjEtas5C0JsLqN6hgXINZ2ttDYQelqrdoBa5iXUKO40f8Rted_GZfE7_RTSe_aandygTMlknjRnVoQIn9K2jWVbiiVr1hHfOSfU2Gkr0hsy8lc03x9u6yGAm7vkU3Ge9DT5LlQ61Ub0TSh55UOiiLXGnRw5se9CRO4uWN1n3oJWRfUSvVm4T3oZeQmWRvaGmQ0MObHvQSXByyN4qpPvRUIn0r1Rul-9BLQ0ZImfDo4U0Pekpzj15aYyFfOOAUDzkbUjN47wrLDk61r7MQJcIvNTM83bRPJCR0dtmRNo36JTALha560y-BOuzr6k2_BOpQAnXYlXqHBOpQAnW_BFofzDZTv-sXQlBwOiwdiiHd9SDJ4lAQYY6TvbxU6QAqPaBuWMAVZx0L8-69DBFjhCZxFN31sFQWshTYZl3SFDCoh02r97vqVgr44l3L_fY9J5usvMNVdtiCY407mpGp3K4ZWZMlRls5acoaNzyptNrtVmSZm5P9RNpHfQ1y1jsrwyp7QBUTCesvnSVB6bqt1b62SLxP-1Zxc3vkJp8va7si-Ki2GULWPPU9XtH-BW5Mfp7fGa8Vl9tgoTy212_hmtnr7_D5q_1ruJXFOCldVsAl2FjG5fkV_Hgw5pa5BvsLuH0WXdqjdm3UbdAsV9Ud2ZeTz756Jl5OTmjL5hftL_0GjEAZQlO8c0v896toU0S325ltC_CEHSaC-XJS3Qqvl418SbNte-J3cyT6muiGD98AV2U9dMp3bBmlk9PEedB259BSVy4q17bfzHaZWc82DGBAmAsYicYmHYLP7G4Sut3A7zwcF6z5l3_99-jB3z74rYf1i0_NAwtAl4yL7niFmO9-9SushP-Jy42wiNKxtVawa87w47PH__j6yfnzJy8eU4Pfma0c_7CEY6IgEGN052HTWDXX2qfFep07tiH5azwjcMD9gpYVaaWqbSjjcChLtmbC11TpzsFk0o4meevHH05mdhgz5_DapUeUOdwJNUL6m-j33zx7_fWLx88en0c_gHb4DYD_-vGz17_75osvnryw26SNkr_8pSka-YJlk2ZDUjq_2cZ22C743fb6ulhfzl8Bxo6C5kMClBpAyimJNmb8tMaKn4asyAwzK68KwrEw9Fh2LC-pji7roPdbqTO3FeauNAf-1bHzf48_ftzMAzLhfgCtv2w74W1lBGD0SM-aEfRDRf1TKwrDZ8sGg1q2iqE83I9hwiut2gF7G_1dxF7RGEQ_QJPlc3z21I5LrTCVhtaDwli6bNuEA2la6cdlwBrFoL-X05vbh7909U0kktkRevHsM7MjlJyYaYbabikc1YoGU57Zuk_Q7hHkcrRpEb_fBUCsFqk-e-sGL3GkoOs7nJSnTx8PJSUoGpCiHCnoO-8iBYA0SDHPPCmpIwXd5D1IOR9OynkbKZkjJSEnaAcp5y2knIekaEcKutTDSbFbjkNICYoGNk_sSFFK7ybFbKjWSTHPHCnCTHsMN4XQL25oOBaoOOa0lvDinY0W7-d7iffzUryFF-9sH_F-_vTFsyfDer9SNOh9L956t3gjkFrv0zPf-1689T7ibcBcDCflooUUL97klu-m5aKFlouAltRxErnEQ1kpw53u2HmdlXpvbZ23vrwRvoRcKk4W7GGmmow9AujKDbfVJPNVad17V_wEz0yftwdQUFCozvYOoAhcv0qUaUxxPDDAQ4OCnJ_3cuncPLpEL48uycnDllzcbBk4y4aHVNXtcATocGepBZjuivfQBYRYzqZXcaZ8vEd9qBG4C4ct42_DANxB0VKWbNEDaGjgFitjv5iNq2VBYG07qZWYWQeww_rDNhLXhrRtyOEhbwPsdWxEuUYS20gytFsbdjsCTB1Ay1V7BOqFNjwCyxwwy1HDw_WsWY9gtANjY6mHR9rNLQzHfrEdjHhwP4XLISSEfjUEQTtBtLF7TBydmbiTTWHxF8OZaZDrgK24XhKWm0QyuJXBjgK25KRYWDYTw9lsoFuA7ThBF5YDxS6dNlVXEC-WJ-n1LBybuo-A0J2IC6uLRHYwFTWPANtxUi6sAAi9gwqlr3LYZOU57CW1UWHdA4TuRF5a_pXx4VScN6lw2kAy2w7bQUU2KyBkKM-1uJq1UnHuqXBKQnILnR9MRc0PCOOPYVPEKpK0r5nqkSrXYNcaKLbg9IkUlhKxo58qcb4t_WTdDoTuNIm0Mi6TfXQyswpVOF0hrQRLdWRd8Zx0hXBdLm2Xy_TAkW34GNiO0xXSSrPMdvR7en0tdcKmis1Us9-dw4HQna6QVoalPgIVFw0qnK5IrDQnu2ajPFM6vwIRm13JdiouHBVOVyRWyhI-inucLkjsfJbIoXDeljCcxCeWL5Lj2auOF2LLC_GI82I7Nx6wJSfuiW0qGWcZSyfZieWwRI8-0gAxu5bucefWVA-cobg4XmNWDzJxbLvKsSGzbMjkftbuL7y169iRWcXKBitWs6XSEcBemch_rkc4jLXSf4SDStzrEQ5rmN3TEQ5Fwq-yA45w1DshXJBIaTZI46Md4aj1R-hlpWTgpewYRzgqk-zPUwLIkuiTgLLEPUqAM5ruSQIy4tAsHi0BzU4IJSAjiyXjR5KARn-EEpDRlJWJY0hAxQ362c4B5zvngPP7nwPO73MOSMkISeUhc8B5zxxAnlqqjjcHnHfPAWSUp-kxJKDiovx854CLnXPAxf3PARf3OQcQh2bqoDngonsOICsry444B1x0zgHk-mT6GBJQwWgfCcgSXTtySmf56MyaajvpSe9sdH31sJ7QdDyy5ShnQrkqKkdO90r10Z4SiDJwUJA3pfDoirWmt8iBZbIP1ZfgQwWpQHRfKhARwBS9MO3xT7ruTS8iEw9TZqrjZBodrCDIon6d9WISpC9JdEf8NgEipO01Dv2OasFrW1Rx3YOLwvBme51m7nyav-R0VMKerkh6Q5UT4XMlKeK54FrpoC0t-gighEUBM3QXDaGmXPTQStHSlmljNmAGsLGDdKoHA2llbQqo6x1KM3SKsbnN6aBe2idEggo2JZJRWC3TBKWDoWhhhhiFMcMGXBATfAvXBMFHDfcUcRMFngFm1OssSJkSRPd-tDnrymtVeXXiw5HpyIymAD4ZBnLc1oPs7CLq7SvAEsNhP34QPqUQWRsfc9vYO_PlzNrPx2bd2gfX2KewvBcmlKGgtCD_kIuC9NWg1mk1JueWVsFPH_j4ZEpNg4JfjfAw_V5GeJTXZXAyx5k5obDWRLZ2ePTPUT1qGh-d-LBlKZhrm07k18H4fkVAW8r-4p4GMcpEByqNCh23loZbhz8GnKSl1IFuaA8Hjx5-NCPu25xQcjO8qVEUFqKEXXh3EoQzE2ZZzAaYMSrtCiex23RC723GdAtv1Cq6oXFjt9Uk32tnuxRZ2toOJLYSZGKX6RO59ypuaQ3ZzaxgL2vwOnpN5sNtOEl4yeHLtoMkOmqR53BbwO6dyb23x71Qh6vtdgst2EHbtZdihTxcare7Y8Hm2OAOtrIeLrrbXapgk2ontKbAh0vsCXFnwobSeGvpK9fVE2KgZAQDdUt-l7UdbhTdh7_Zkf5SKZ-aQvWlplCBs6kGO5tS9yZ-a4vba39XO-vkU1hS1rymgv5sdbMFSPmURAShzfL6nBOWisoy4RkddDSzPRxN3qWhiZnE_unS2joi1MI2dCaInBnMpj3kh5rUhswIdQy_shLuslcuSK3bUhmldJy21a2kwNFUHzfPy7j1Gk5H9sn_ouOzwTVP2n2r8iS-dCVxLaO7pMp8SZ31rBxx7leOpOw8XDlokcmVlJRmga7TtKdkwpgriY78MZduTchU_9ItlWjxSMhZwIWriu1atVWiX0XKOSH1x6XioGM4ynt-DSscyqdoiV_ULHH7At94l0NQxlNy5DsMUyTtLJrBXvEmMgIy-T5fzGdwc7ea5d_PGyqwViGyxY1k2wqhPgTvQuKZf2TDtuDpIHQ6OOfIfF6c_iNuyq4dSspdddjquQ3Qqw5yWq4d0vrRTqObd60d2iiQJD1g9bzOh6Fit1EVid7HvK4xY6jGFe13qXhvG7LCjqE1rMjGUmz_uaeD76Iq14U2sKL9NMX3CxCpGL5NGEPditLqVeQAqOOlJqxxaWgUK5rb1RFSE8KzTfFP22I5LQzwvkydy2ujdSfFHyFyBae763X-5qZY3vnJmAnKvz6_LtxcSMf3IZiIkiRAwZtis8nfhG_pF222CTtrEWWAacR8Zhio1oUWHzs7vTIz8voO-sywHDaR4uSAR0hPTWDsm9vNoylUvFnNtgtcEaJTGRkKNFH8Gpi1jWrTHPT1skH_pS7NwQzPfHJzAgZ-J4vV6ja6HOvtmbUhA2FyaoYTlBCd3zTmTWZVPoSSm3byxV10WffuTPX5tUmKp6nrvzW5e3n3GAlKjHIpeOXBPQ_aqYVIrVKe5Ql7BECtXqjAIsYux6E0IEIIlGYfIPDREHB-BggCIGzL_MF7gaDTnwBCDkdiBPeeXvKkVuQJwlw5ZnU8noBdxd_tSEfaK-aXZGBwwCpDSygzeTM8nwfBaA3WtVkwAQBUAgAKkDU1V7fAubWTQCXjllXJrOGG6wUYDdzk5XaNDjil0kSGshiivAqY9zNMAuhADjmr0EFggrJpkkco0ATKUTj0YEKddNzpSrDDiXQJoEuBH3YGoQSpKAXKJSVzTeG3hCnibCfM6omAEmYWxwQTc5xnwg-ROQi4E-Z5G0xNmf0sTJ1knnbfn8OC5eu9SevGDDnJ2vPak14YbYQ5PDZFbQSY2Ygox5Vptue4Pq-PK40BQPXEmeXs_g6rB4yXMBm6ba7HmJkZSqiJ2NFl9fjtCqIuYbDqmdglpS7zs4Z90jptUCE3bdg0NuFcUdFOzbnCqtfGXFE5y1CFWDv90AsRJ1W762fq2v0_r7B76mLyJZp36mG-FXSq8cF9IGkJYxw6Is7cJFZfU6vMzdVw9F6QCXeT2pEoFNl4CmVCbPQoORo6El39ceio0u5QZ40MDyE6tbNdvSCFNUTUo0NtrBBsym3HpWeNBA4hyNr5rV6QyhKfHhXTTFomzs4a-RlCkLUzWr0grfJ5lB0VU51a2dBnjfQLIcjaKalehRKXIqyPiiqcCSj1ZnzWyFYQAq0dLeoHmqkS6HGx5akdMMbOGvkIQqC1I0S9QGmqRKDHxVa4buBH0Lulr4WLfEPV0gA_4pvNNl_PjZOQ29zkTUei3VNWsBGuDvCUrQvBjInCUWbQXyYTpeNEYrs_wLgDwXS6jxciqXWc61O5lxeiQhOXpcdwQ1IdOzcEkmiKo_ghqQ7sVcXkcRyRLLAswf8b64lQ5mVnBptUKkB6uZZfw7Sy0NhuRsfoVdLCC3Tm8dddrGEdZ8hyqJUzsXPdBcx7HZAJSSMD3jGwxvlcTNHWSImVsc5L6jNxf9TDp-Yc9anaTX1CIWpl9ZR5X0eRAz_COeQ2hWwJNUPXmIgnpO6H-AxZjIhXejfxmqUBmpwxLziQAeYwN9bCNKqvJJ1QuhfSOUf-sqTz3auNGHzrV3yk9quVxkoc4G1DHa-90sCFPcjbhm84qIADs5HeNqQcqgxtyvhfQ_ygHbWP-EEAqw7R1IkMODA9ZFWghCnMl-3-CsInzN7BHsInWCL8gjclUu1c8eZxfcnbPkni6pP_X8sZhL1dzgCI-y2ntyxr7OkSU_s8GbMUX1kB0dKtYhzs4xNSQlikhOkU_33AvfCiaPyR6xZSuWWUgz0Eoklm5crM-IFOuDrecoqVHmXRSg7o6kSPXyJSSro1mSPRlLplngNoSoUaLVRZsHpTau89m89KdsmOsFRFWGkZB8sq4zhQ-6UZfhSfPAk_QkBwx2BnwbA4AMPHgyl3Fw2Y_XYYK3B4ucVo4MjR6PCy0_VodoI8YLy5oHTgiiIkycqOvKBkKaavnVnAB_CD1CGc8QyRqDiAcwBHKMYDQONZQrmeZ-N5IhXBQtiR1m5hU7GkkB-XJ7JyqdUAPoAn6HsdJZzxPKHLvQ2EM54nIBhCBYBG8wSPXc-L0TzBWWl6MXm0VXLu9CmTR-UJSMTOPeDxPMF5FsIZzRNclJshCOcAnpBxHAAazxOJc1iS8TyROGWjjrYZwZVT8eq4PKHc1ok6iCdSEcIZzxOpVgGcA3jC7bQhoPE8oV3PjzdPudtMY9nRtnyE201j2VF5AgLxpQc8nicE4yEcPh6OjgM443lCcGfWZeN4wv66YDimj-bxCuFmSD2mz-36jdhrw_-edtZOL6UYGsWXwskVjOLry8n2IVj3Q7Duh2Ddn0Swbl_iuQ9i_kHMP4j5T0LM-7LrfRDzD2L-Qcx_EmLel0Lwg5h_EPMPYv6TEPO-fBYfxHynmKe8LTh4QDwo1uaC_1WUBBdqPyVhPi5slYTsG2HJZFVJyO4hL08KKDvm-4qj_aVVbX5MLUNx8PwALaMshNFaBjPvGAgHaBmSJv5_T8uYs_ur7dqc3J_8-uOXy-jj6EvIjrNd59GsiCDzx02-iX7_7Mljc7tdRk-fn0e3q7X99gd8E2Q9Lx5htSdvi5vbxSoCpP0HH8-idQEZDGbbaREt4APE7__8BpICWVizef7GNGBurxfbt6tounj_p818ukKA30LaAfjaCITDQQ6Hh8XmtkCkFiZcE5JerW7nkLJjEV2hoEDWwxm1WRhwU-hWwv4Esfv1y-XfzJfTxRbe_WZzN5uvHn3799VnMCxv8CE8nhXXIE-hmCeM--c-uj-CaI7Yvwji9pUBhMnurCQHEfyfmHe__jh6DDng_IdUqDOB0qV5BgkV5pDNbl0AiUbxzd-YMYEX3zx-8TX0CsRRx9FVvgVSNiePkEKTpKMS8dfMuHfycvkj9Af8uWwZgMQckhatoo82NbA2vZit-QnVKz-NArfvLBlfFjicEBT1_k8mKgoHqcIgiB7iUQ2fwpRTDiXM4QdJRlw0lG1yfh09nBo1-OSrL04iWzjABdRr_MCWfVfB8qGBczINcP1sbjYODC9OXYaq939emi42nQvsTcgazNryYzX7rzvTVdCsTaMTAX_a5G3QM0ZSTF4SI0-ADQgayoVl3ACPPTMpVju0TIr4iX_mM7l8UiOmmp7Qvv3Dt_MF8OXYia8yZGYs61NbpYD5sykBP6k-raX4C96-i0z4dx1KM4lfWMVf3rqW3tV6I-pMthcMrc028-1qnZ9GMMowpKfAX3fzu-0MLlbLN3T1fbFYTeezfAaq6hpUWzjAnVl7KkNZTcATCEebTVPp1P1S43xSl7Bq9-xONFPpHQjfgklvBWrdCJrpwAX2glES1_M_Qm8s3__XTbFeGe7f5Hfv_2Mxvys2rb1T-yqM752d33SponQOKPmmIlBG8--hF36AjsK8RUYjPPz8q-cn7Vic74HFeQcWGJtwFoG-AOkHtpmDJYBd4LoKJG4Nk1wByXhgpnuam-w8bQg1PhXSg1D9Qx81hC7OAjaFeUh8vg8SF3sgcdE1NhDFA0bD9uZqBcPhkdms7Fy52cKz1mEx8T9Dh8WejGnphfWKbBIjMsb0WmDIr50bvJWRAyKb0D7yU7D_jLJDwX0POVDC85pSxi8jB_ff1d6X322tPWL2mdcGHccf2xXCru-6NXSBw_Fd2Sb0GnsUPUH7DOtbHRVOZtg5pnD7B8yqE01w9LKC9HeVKcGQWjtr2ZxIqlECtQml_ORc-7TQi2lIPH8UfWaM0bWd3amoUSvOODUDlRsbyzJM2RuW4AGnPiuk1T93XOuV4NvFzR7BbxG3UzyvvBhMv3gECG2gSGB1B4KyXuR1eoecSO2yGnYeOW2QbCoPO1naqIr9UPtcbo2JrO3R10j1AOaORuhrtiMaOd-nkfNxjVQPFO5ohL7UWm-kyY6syo8ei6Hn9PYY8fpxvF4Syo-e7ttP9WNvOxu5GNNP_vJtaMDaCadV8QUKD0pO3v0vjH-Rxg=="}}</script>
+<script type="application/json" id="desglosa-data">{"index":"eNq9WcuO3LgV_RVC2diBpk29KKl2xnjQmzhpuCe9aRgNlkSVmVFJZUryuGH4Y7LMOrts_WO5lEpVuixKI7fTARroKunyXPLw3AdZXxyusg_OpurK0nUyXpbNg6yczRfHoxkVCQvzbUydzf29E1Ka0GKbhgULHNcRn3nWcsf1aPz-vet4WVwkecTTKI4Xzb1Am_thFgdB7tNEhIvmYW_O0i33w9jnLFo2D1JtHhdFmEZexrycLaMn2jzJRZJSztNgmy-be9qcJyzlW7DNt8uTiag237JARIwKxvhAJFr72TwN37v3eKXnlzHVL9G6zi8TX79Eq5iMZPolmvNkZKJfZmwLs-dRXOTx5CUL--mnwqdenm1pssyl1-sAYS3uFJh_HSVXd63W3IUqEHeIKnCFkLU1kixWKKwSKRQL0p3dFK2_-V3RcpvfFq2u-X3RYprfGK0deIvIx1zP71tPrSVmZsiMqTVkZqxBa7aImcNm1oCZw06sCpqx1vIEAQk1Zq9ClqLRMtodmqtMfxBK1QoeUdcpebVzNk4GAKWstJ0Xpa7T_CYPB5EPEF8BbsdL_vlxhJT7QwlA8HzPDxrR9NE_-ImyVFDYqrBwNISqu0MzWk9fwqPfZAXe-qwrP9V6NvzxqH6R7zT2_cXGYgLuw8AHBfhuFPmuz0AJJ0ocj5Ql3_McPodRchW4XuK7LL4KQVDul9Fu4321iNrmJQ5XefG9YNaLIX-LFz9g67yE4awXIwRtXtJknZc4mvViBKvFS8DoKi8BZbNejFRk8RL663Y_COJZL0Zexrnz3ovBAwXSjv9gh-iMKy_VrkL_KlrtC2Xiqa8wCadegtFLo91Erh-l4CU2fAQ2HzhzovWEbOrDN32k1OLDt_nAYTr1AeG5yFYcrGcLhynyEoeLXjwarneD43TqBuJz2U0QrXeDAxW5SZNlN4ytd4MjdeoGInTZTRqvd4NDFSnZX1aA7ydzbmAcdORRksB_meeiGgqY2AldOu6doqsyWVe6FFat6jHH4TC0qvNjFTHaodMwHc06uffpCqjaKqkeDp1Qbf3iJRjC359eFWX3j_oVgrA0URNMWDJj0NXQHrQUQj1kXMGshLpAnYJY2hyEGvnJCTWDgs7n5opAelTcN5xQ-8wZpsB72KNCkVdyL_V894e6ucCdwljaLjTbNDxN9o1odmXd8Oubd29_NkERhqUYI1AvYhbU6-vXJioCsRRfhOp7iQ319gIVgViKLUZN6AXqzfW7t7-YqAjEUlwRahD6VtQ7ExWBWIopFiy17dbdr9cmKgKxpIFTHPqh_oPGH2Sre0ZZ9VCHrmprkgtyDtgRGiHp0P_d2cQBhTay4nsBneLQaAIGVzAaHqi6buF70-33XEGn6ngeOS4LAh8G9gbnVvOg6keRtfZec8g1HqUzuSYreSNwWjGbWvdoNC7ep_3ix3mj2el1QyfNX5kgx5V7LEEr_2m68qEln6ybjF20btzr3yt9FDAvLizTxVcVFgN8DLUY4JOnxQCfvSwG-LhlMcAnLIsBPlRZDPC9g80Anext-4pOYhaDi_PNoL2TBk9fq7oVcMovhrMUnI_a_hQFnxvx8UHmWllmqC62QWYOMhKdkUuMbOs0j_ttXTaXavni5LU-1b3eKgjWkgyVhjRCSUFeiEo_Ex87eaiJErwkWV0Vctcprl_8_fW7XwknYUIp2fIul3Xz8urI0iSQi7IGpbeqE1B6mgedEkDNBS8beHCMWR0x7VDjjYPrQx-YPj1-a1quWh03kG1Eq2TWL-p8j-ehGxYYlWW6xzjF2LT4n0INNkR7LEBBQQxbEOgy97HjpX1QI3cVbzulX8mqJaihAIaalmQfuCJ_ruo98PpSCwLH4Ej7X4QgXUWgb_j2T904QMrEe_BMdAYGnX7wPXT6ZzpR27OaT3PUlNCeOdxNfapl3pOI89RIYl_BNkR1oHHySD6Jss5kznPS1EdVNx08eyYq4QSFqEz9VVR6F8pEBXk1leaoKZWaN4LrvJarrCRUp55QnNdHQm9UvVPQvBNoE6GQHXi50Tuimby-uQWK8yMmENuQVps25K9vf3m9muLh-0qG-3srRHEyQzFFFKdHiqMzx7pBWU3t0diM9r7JOUkSF76zJKFZ3RBoroHqb_-uXAjxstekDvBCfgYSq2__2QvVd0kNb7_9q5RQI55JpLGHGWTJD4sUFvgEkQ6jFkSqm3xDpLh1OIlU99gb0t94EtG0Eg6bPZkn0skL6AQPUsCSJSfXXO1l9Vz1KQkwwXAo-DGC--V9N8HjqFmCh5OJQTBuvSYavgUNn7VJIBtD89mAdg9KZLIZSH7zt5vnYjWOMatwSfXDsr19kmxv_0i2txeyxf3qVLZ3m0mRgh4rePN_laqRTRP2P5Dq3ZOkevdHUr0zScU9_kjq2w4SAPSkMIwMdxrQPcF0ICM0kA8UtK26ROW62eJDwXomcuGGBZEbpDPkMltjFZzJNe5oVtN7Oe6CYPP657JjdYlJOzo5jbT_LPX1FCm55rcDaz7kXQA89grP1b4yg-XgiacBdL-2mmNz1AXD-Nru1Cvg4-U5z8J12YZ8qBV3dSED0brAaSvbLocPdbUbPp1TxiMpBGzXM5HLjIY2ir8nP_i2pAsLfELSHUYtJF19zWgIFeGOFJ9_Lb2g6kjNHFf7Ou9g1NrG1FvVlx5l2P8AO3Pr1ZM0THtCzWgzpWR4pu-DWr4tT3cOX_8LVc1bRA==","meta":{"format":2,"generator":"Desglosa","name":"gps-c","sources":true,"start":"#\/mapa","version":"0.1.0"},"packs":{"gps.c":"eNrtPV2PHDdyf6VvEp-0vo2u-dHs5vqcg86WhQDWWdDaiwArQeid6ZVHnp3ZzOz4znD0GiCv-QW5xzzk6d7yEiD6J_dLUqxik-zP6emZPSS29mG2P8hiFVlVrCKL1T9OrherP2wmZz9OWDyNi0zJ2VUam_tF_sNqe2eupqvF9mYJhdgpXC-XxfRutYbby1enk28nZzzLHsWnUP6qWNini-JNsZzB9eSuWN_Ml_licjq5Xa-mxWZlrvLlXb5Y5BNTdL4sTK3LS4ZwEvNDl-YHSixX6xsD4G69LV6dluWYUK4gU6qnJI9jV5KLuFkS72eExWQZT065NEXNj-CmljCXl5N_WM6n89VZlF-t5-vXt9tifbd6uFzdXK2LEyClowD02OYumn6br6OPXWFTeslsS4gZtSQzbOnZttjcrfOz6OXkMcCCvlxFH22iPJJZDPhNrvLtbL7avJycRgQSm79dz5d31w_b6kRljZdLqDQxBIeY8Mkpk3HZk6daeaJfFDDYyzxi2MS6uNuul-YG64myHvZrpd4X8yXWwP-mi_8wORMpFHjnevtH09nwmwNnKSCK_n03N5wTMs5dvn5TACcut4sF3BVTYLrhfW3aY2UzGTWTuWYcK3Y0M7hPo7A9XranqT3t23NC0Nqc618DRVgoPEYo5t_AzjGd_g5AAHsvp_ldAXWu88WmgEdsml5nsyTXSZruJeYJSypiDsO_MsOPssK5-WWP-ClLzKhv3v8nMHds3rFUBO92K4dZMZ1v5qvlBKlZ5LNVTU1I5tQEXnaoCR6bl0wjeyJnhtc8idtr0dtMupKCyXblgo1zHjtEhBKVktjlvigTvihTcQ9QBFQC1aKnpOSpKymTdC_dxlFSa7ptURTr19N8nU9hcB5W1Vr13fer-SzQZKocCqINMEO4XxZFNCsWkR3K6C__8m_RFKGCXEXT6NMIuNcI7MNAF2Wui04Z9i9eXk7-579NhSdfffFbhAA3eOeVEacxSbAmi5ta7MHLl_GDUJPZBwhAGgBZOeQ92swUTianaVKOD4wtbzb20NB1Mg2bc48QhpqcYm0cuQHaM-nQnlyQghB7a8-2IQ0VJk8IchJAJpnsANwc1VAfclLz3Kv5UNrb4LkxrijElMCke6pVGmwDSXZCGqRaT834Wwik4vm-Kr7kBANLWViCFL04iqLncpoKMeNxVsj97DnUDrvtuc32qiS1qqCV4eaUowyjeop5uwqjt2TI0XWbIdenwjLljSbL04DZ58XmzWK1yZ8-v_j66cM5Pq-qsnqJu8iVKhUaSjSifsrTQJV8uchvcjAB5jdgG9zMjfjc3K42VlfWn76cYBPGQKi2YEwupltNrlbhN-9ahV9zZBrzb0_h7-6EUAVoSfClgx8MvG9hcqVEkai4UCqPJ14f7O6PUEFo0jc6OYYEyDjO4usrLa-V6JAAUZOAywmMPFNot3CV4DRihsI8jZlhUeEfcvdQofHunyoy6W1REism0RBqGFDI-EJkLQaUIO7LdMs7K2U4cwTvPEjNWJtNhoZTpnizGkcc0rgNE5ADcqJk98sGDYhLrFkbDfjOTtQ8baUPK3a0qBMkQIg2EqXyuqFOI7cOXU9FGYvOihItkY6KCY87K4K13V1RibSzotKybYSpV3Xc3TlZX-dkPZ2j-zqHxT29w2IVdyKb6bZ3mgzYCgvs9hEqGigwIQJvDsQapbo-N0nnPCjZs8ZAxCpfkOkON0Mbzhax6c8E-6Zy3bEyQW8l2pn2Wsq-kmnmSiZxH87CTqcIueYReIeEJET6ojxVPUARUAk0S3tKKlKadK2TnpJp4kumWXtJjmWyFLtYZ7VrLXRrLfsW1S1dE9d2FmUxCmB5o_oI1LH2PMGY6uvgjPmymdR9nIaQHFipestq6ctyxIfEL7hWWezHISNnc41-yer11Xa6KAJkOU5UKU9Qh6W1a0b2YNkcl30UKxEMv0r6itbgJh1eNk2wKfYOXbNY9RVlGfdlOeN9Za2w2BvVC1fSMqK9YV20xTT1ow4AF7RxgzUHgCH0ZYBfp4gGsBxgmfSWRSmyN0ms-8pa2bc3aNan6OyH1zRXUxlz3cNtjEtas5C0JsLqN6hgXINZ2ttDYQelqrdoBa5iXUKO40f8Rted_GZfE7_RTSe_aandygTMlknjRnVoQIn9K2jWVbiiVr1hHfOSfU2Gkr0hsy8lc03x9u6yGAm7vkU3Ge9DT5LlQ61Ub0TSh55UOiiLXGnRw5se9CRO4uWN1n3oJWRfUSvVm4T3oZeQmWRvaGmQ0MObHvQSXByyN4qpPvRUIn0r1Rul-9BLQ0ZImfDo4U0Pekpzj15aYyFfOOAUDzkbUjN47wrLDk61r7MQJcIvNTM83bRPJCR0dtmRNo36JTALha560y-BOuzr6k2_BOpQAnXYlXqHBOpQAnW_BFofzDZTv-sXQlBwOiwdiiHd9SDJ4lAQYY6TvbxU6QAqPaBuWMAVZx0L8-69DBFjhCZxFN31sFQWshTYZl3SFDCoh02r97vqVgr44l3L_fY9J5usvMNVdtiCY407mpGp3K4ZWZMlRls5acoaNzyptNrtVmSZm5P9RNpHfQ1y1jsrwyp7QBUTCesvnSVB6bqt1b62SLxP-1Zxc3vkJp8va7si-Ki2GULWPPU9XtH-BW5Mfp7fGa8Vl9tgoTy212_hmtnr7_D5q_1ruJXFOCldVsAl2FjG5fkV_Hgw5pa5BvsLuH0WXdqjdm3UbdAsV9Ud2ZeTz756Jl5OTmjL5hftL_0GjEAZQlO8c0v896toU0S325ltC_CEHSaC-XJS3Qqvl418SbNte-J3cyT6muiGD98AV2U9dMp3bBmlk9PEedB259BSVy4q17bfzHaZWc82DGBAmAsYicYmHYLP7G4Sut3A7zwcF6z5l3_99-jB3z74rYf1i0_NAwtAl4yL7niFmO9-9SushP-Jy42wiNKxtVawa87w47PH__j6yfnzJy8eU4Pfma0c_7CEY6IgEGN052HTWDXX2qfFep07tiH5azwjcMD9gpYVaaWqbSjjcChLtmbC11TpzsFk0o4meevHH05mdhgz5_DapUeUOdwJNUL6m-j33zx7_fWLx88en0c_gHb4DYD_-vGz17_75osvnryw26SNkr_8pSka-YJlk2ZDUjq_2cZ22C743fb6ulhfzl8Bxo6C5kMClBpAyimJNmb8tMaKn4asyAwzK68KwrEw9Fh2LC-pji7roPdbqTO3FeauNAf-1bHzf48_ftzMAzLhfgCtv2w74W1lBGD0SM-aEfRDRf1TKwrDZ8sGg1q2iqE83I9hwiut2gF7G_1dxF7RGEQ_QJPlc3z21I5LrTCVhtaDwli6bNuEA2la6cdlwBrFoL-X05vbh7909U0kktkRevHsM7MjlJyYaYbabikc1YoGU57Zuk_Q7hHkcrRpEb_fBUCsFqk-e-sGL3GkoOs7nJSnTx8PJSUoGpCiHCnoO-8iBYA0SDHPPCmpIwXd5D1IOR9OynkbKZkjJSEnaAcp5y2knIekaEcKutTDSbFbjkNICYoGNk_sSFFK7ybFbKjWSTHPHCnCTHsMN4XQL25oOBaoOOa0lvDinY0W7-d7iffzUryFF-9sH_F-_vTFsyfDer9SNOh9L956t3gjkFrv0zPf-1689T7ibcBcDCflooUUL97klu-m5aKFlouAltRxErnEQ1kpw53u2HmdlXpvbZ23vrwRvoRcKk4W7GGmmow9AujKDbfVJPNVad17V_wEz0yftwdQUFCozvYOoAhcv0qUaUxxPDDAQ4OCnJ_3cuncPLpEL48uycnDllzcbBk4y4aHVNXtcATocGepBZjuivfQBYRYzqZXcaZ8vEd9qBG4C4ct42_DANxB0VKWbNEDaGjgFitjv5iNq2VBYG07qZWYWQeww_rDNhLXhrRtyOEhbwPsdWxEuUYS20gytFsbdjsCTB1Ay1V7BOqFNjwCyxwwy1HDw_WsWY9gtANjY6mHR9rNLQzHfrEdjHhwP4XLISSEfjUEQTtBtLF7TBydmbiTTWHxF8OZaZDrgK24XhKWm0QyuJXBjgK25KRYWDYTw9lsoFuA7ThBF5YDxS6dNlVXEC-WJ-n1LBybuo-A0J2IC6uLRHYwFTWPANtxUi6sAAi9gwqlr3LYZOU57CW1UWHdA4TuRF5a_pXx4VScN6lw2kAy2w7bQUU2KyBkKM-1uJq1UnHuqXBKQnILnR9MRc0PCOOPYVPEKpK0r5nqkSrXYNcaKLbg9IkUlhKxo58qcb4t_WTdDoTuNIm0Mi6TfXQyswpVOF0hrQRLdWRd8Zx0hXBdLm2Xy_TAkW34GNiO0xXSSrPMdvR7en0tdcKmis1Us9-dw4HQna6QVoalPgIVFw0qnK5IrDQnu2ajPFM6vwIRm13JdiouHBVOVyRWyhI-inucLkjsfJbIoXDeljCcxCeWL5Lj2auOF2LLC_GI82I7Nx6wJSfuiW0qGWcZSyfZieWwRI8-0gAxu5bucefWVA-cobg4XmNWDzJxbLvKsSGzbMjkftbuL7y169iRWcXKBitWs6XSEcBemch_rkc4jLXSf4SDStzrEQ5rmN3TEQ5Fwq-yA45w1DshXJBIaTZI46Md4aj1R-hlpWTgpewYRzgqk-zPUwLIkuiTgLLEPUqAM5ruSQIy4tAsHi0BzU4IJSAjiyXjR5KARn-EEpDRlJWJY0hAxQ362c4B5zvngPP7nwPO73MOSMkISeUhc8B5zxxAnlqqjjcHnHfPAWSUp-kxJKDiovx854CLnXPAxf3PARf3OQcQh2bqoDngonsOICsry444B1x0zgHk-mT6GBJQwWgfCcgSXTtySmf56MyaajvpSe9sdH31sJ7QdDyy5ShnQrkqKkdO90r10Z4SiDJwUJA3pfDoirWmt8iBZbIP1ZfgQwWpQHRfKhARwBS9MO3xT7ruTS8iEw9TZqrjZBodrCDIon6d9WISpC9JdEf8NgEipO01Dv2OasFrW1Rx3YOLwvBme51m7nyav-R0VMKerkh6Q5UT4XMlKeK54FrpoC0t-gighEUBM3QXDaGmXPTQStHSlmljNmAGsLGDdKoHA2llbQqo6x1KM3SKsbnN6aBe2idEggo2JZJRWC3TBKWDoWhhhhiFMcMGXBATfAvXBMFHDfcUcRMFngFm1OssSJkSRPd-tDnrymtVeXXiw5HpyIymAD4ZBnLc1oPs7CLq7SvAEsNhP34QPqUQWRsfc9vYO_PlzNrPx2bd2gfX2KewvBcmlKGgtCD_kIuC9NWg1mk1JueWVsFPH_j4ZEpNg4JfjfAw_V5GeJTXZXAyx5k5obDWRLZ2ePTPUT1qGh-d-LBlKZhrm07k18H4fkVAW8r-4p4GMcpEByqNCh23loZbhz8GnKSl1IFuaA8Hjx5-NCPu25xQcjO8qVEUFqKEXXh3EoQzE2ZZzAaYMSrtCiex23RC723GdAtv1Cq6oXFjt9Uk32tnuxRZ2toOJLYSZGKX6RO59ypuaQ3ZzaxgL2vwOnpN5sNtOEl4yeHLtoMkOmqR53BbwO6dyb23x71Qh6vtdgst2EHbtZdihTxcare7Y8Hm2OAOtrIeLrrbXapgk2ontKbAh0vsCXFnwobSeGvpK9fVE2KgZAQDdUt-l7UdbhTdh7_Zkf5SKZ-aQvWlplCBs6kGO5tS9yZ-a4vba39XO-vkU1hS1rymgv5sdbMFSPmURAShzfL6nBOWisoy4RkddDSzPRxN3qWhiZnE_unS2joi1MI2dCaInBnMpj3kh5rUhswIdQy_shLuslcuSK3bUhmldJy21a2kwNFUHzfPy7j1Gk5H9sn_ouOzwTVP2n2r8iS-dCVxLaO7pMp8SZ31rBxx7leOpOw8XDlokcmVlJRmga7TtKdkwpgriY78MZduTchU_9ItlWjxSMhZwIWriu1atVWiX0XKOSH1x6XioGM4ynt-DSscyqdoiV_ULHH7At94l0NQxlNy5DsMUyTtLJrBXvEmMgIy-T5fzGdwc7ea5d_PGyqwViGyxY1k2wqhPgTvQuKZf2TDtuDpIHQ6OOfIfF6c_iNuyq4dSspdddjquQ3Qqw5yWq4d0vrRTqObd60d2iiQJD1g9bzOh6Fit1EVid7HvK4xY6jGFe13qXhvG7LCjqE1rMjGUmz_uaeD76Iq14U2sKL9NMX3CxCpGL5NGEPditLqVeQAqOOlJqxxaWgUK5rb1RFSE8KzTfFP22I5LQzwvkydy2ujdSfFHyFyBae763X-5qZY3vnJmAnKvz6_LtxcSMf3IZiIkiRAwZtis8nfhG_pF222CTtrEWWAacR8Zhio1oUWHzs7vTIz8voO-sywHDaR4uSAR0hPTWDsm9vNoylUvFnNtgtcEaJTGRkKNFH8Gpi1jWrTHPT1skH_pS7NwQzPfHJzAgZ-J4vV6ja6HOvtmbUhA2FyaoYTlBCd3zTmTWZVPoSSm3byxV10WffuTPX5tUmKp6nrvzW5e3n3GAlKjHIpeOXBPQ_aqYVIrVKe5Ql7BECtXqjAIsYux6E0IEIIlGYfIPDREHB-BggCIGzL_MF7gaDTnwBCDkdiBPeeXvKkVuQJwlw5ZnU8noBdxd_tSEfaK-aXZGBwwCpDSygzeTM8nwfBaA3WtVkwAQBUAgAKkDU1V7fAubWTQCXjllXJrOGG6wUYDdzk5XaNDjil0kSGshiivAqY9zNMAuhADjmr0EFggrJpkkco0ATKUTj0YEKddNzpSrDDiXQJoEuBH3YGoQSpKAXKJSVzTeG3hCnibCfM6omAEmYWxwQTc5xnwg-ROQi4E-Z5G0xNmf0sTJ1knnbfn8OC5eu9SevGDDnJ2vPak14YbYQ5PDZFbQSY2Ygox5Vptue4Pq-PK40BQPXEmeXs_g6rB4yXMBm6ba7HmJkZSqiJ2NFl9fjtCqIuYbDqmdglpS7zs4Z90jptUCE3bdg0NuFcUdFOzbnCqtfGXFE5y1CFWDv90AsRJ1W762fq2v0_r7B76mLyJZp36mG-FXSq8cF9IGkJYxw6Is7cJFZfU6vMzdVw9F6QCXeT2pEoFNl4CmVCbPQoORo6El39ceio0u5QZ40MDyE6tbNdvSCFNUTUo0NtrBBsym3HpWeNBA4hyNr5rV6QyhKfHhXTTFomzs4a-RlCkLUzWr0grfJ5lB0VU51a2dBnjfQLIcjaKalehRKXIqyPiiqcCSj1ZnzWyFYQAq0dLeoHmqkS6HGx5akdMMbOGvkIQqC1I0S9QGmqRKDHxVa4buBH0Lulr4WLfEPV0gA_4pvNNl_PjZOQ29zkTUei3VNWsBGuDvCUrQvBjInCUWbQXyYTpeNEYrs_wLgDwXS6jxciqXWc61O5lxeiQhOXpcdwQ1IdOzcEkmiKo_ghqQ7sVcXkcRyRLLAswf8b64lQ5mVnBptUKkB6uZZfw7Sy0NhuRsfoVdLCC3Tm8dddrGEdZ8hyqJUzsXPdBcx7HZAJSSMD3jGwxvlcTNHWSImVsc5L6jNxf9TDp-Yc9anaTX1CIWpl9ZR5X0eRAz_COeQ2hWwJNUPXmIgnpO6H-AxZjIhXejfxmqUBmpwxLziQAeYwN9bCNKqvJJ1QuhfSOUf-sqTz3auNGHzrV3yk9quVxkoc4G1DHa-90sCFPcjbhm84qIADs5HeNqQcqgxtyvhfQ_ygHbWP-EEAqw7R1IkMODA9ZFWghCnMl-3-CsInzN7BHsInWCL8gjclUu1c8eZxfcnbPkni6pP_X8sZhL1dzgCI-y2ntyxr7OkSU_s8GbMUX1kB0dKtYhzs4xNSQlikhOkU_33AvfCiaPyR6xZSuWWUgz0Eoklm5crM-IFOuDrecoqVHmXRSg7o6kSPXyJSSro1mSPRlLplngNoSoUaLVRZsHpTau89m89KdsmOsFRFWGkZB8sq4zhQ-6UZfhSfPAk_QkBwx2BnwbA4AMPHgyl3Fw2Y_XYYK3B4ucVo4MjR6PCy0_VodoI8YLy5oHTgiiIkycqOvKBkKaavnVnAB_CD1CGc8QyRqDiAcwBHKMYDQONZQrmeZ-N5IhXBQtiR1m5hU7GkkB-XJ7JyqdUAPoAn6HsdJZzxPKHLvQ2EM54nIBhCBYBG8wSPXc-L0TzBWWl6MXm0VXLu9CmTR-UJSMTOPeDxPMF5FsIZzRNclJshCOcAnpBxHAAazxOJc1iS8TyROGWjjrYZwZVT8eq4PKHc1ok6iCdSEcIZzxOpVgGcA3jC7bQhoPE8oV3PjzdPudtMY9nRtnyE201j2VF5AgLxpQc8nicE4yEcPh6OjgM443lCcGfWZeN4wv66YDimj-bxCuFmSD2mz-36jdhrw_-edtZOL6UYGsWXwskVjOLry8n2IVj3Q7Duh2Ddn0Swbl_iuQ9i_kHMP4j5T0LM-7LrfRDzD2L-Qcx_EmLel0Lwg5h_EPMPYv6TEPO-fBYfxHynmKe8LTh4QDwo1uaC_1WUBBdqPyVhPi5slYTsG2HJZFVJyO4hL08KKDvm-4qj_aVVbX5MLUNx8PwALaMshNFaBjPvGAgHaBmSJv5_T8uYs_ur7dqc3J_8-uOXy-jj6EvIjrNd59GsiCDzx02-iX7_7Mljc7tdRk-fn0e3q7X99gd8E2Q9Lx5htSdvi5vbxSoCpP0HH8-idQEZDGbbaREt4APE7__8BpICWVizef7GNGBurxfbt6tounj_p818ukKA30LaAfjaCITDQQ6Hh8XmtkCkFiZcE5JerW7nkLJjEV2hoEDWwxm1WRhwU-hWwv4Esfv1y-XfzJfTxRbe_WZzN5uvHn3799VnMCxv8CE8nhXXIE-hmCeM--c-uj-CaI7Yvwji9pUBhMnurCQHEfyfmHe__jh6DDng_IdUqDOB0qV5BgkV5pDNbl0AiUbxzd-YMYEX3zx-8TX0CsRRx9FVvgVSNiePkEKTpKMS8dfMuHfycvkj9Af8uWwZgMQckhatoo82NbA2vZit-QnVKz-NArfvLBlfFjicEBT1_k8mKgoHqcIgiB7iUQ2fwpRTDiXM4QdJRlw0lG1yfh09nBo1-OSrL04iWzjABdRr_MCWfVfB8qGBczINcP1sbjYODC9OXYaq939emi42nQvsTcgazNryYzX7rzvTVdCsTaMTAX_a5G3QM0ZSTF4SI0-ADQgayoVl3ACPPTMpVju0TIr4iX_mM7l8UiOmmp7Qvv3Dt_MF8OXYia8yZGYs61NbpYD5sykBP6k-raX4C96-i0z4dx1KM4lfWMVf3rqW3tV6I-pMthcMrc028-1qnZ9GMMowpKfAX3fzu-0MLlbLN3T1fbFYTeezfAaq6hpUWzjAnVl7KkNZTcATCEebTVPp1P1S43xSl7Bq9-xONFPpHQjfgklvBWrdCJrpwAX2glES1_M_Qm8s3__XTbFeGe7f5Hfv_2Mxvys2rb1T-yqM752d33SponQOKPmmIlBG8--hF36AjsK8RUYjPPz8q-cn7Vic74HFeQcWGJtwFoG-AOkHtpmDJYBd4LoKJG4Nk1wByXhgpnuam-w8bQg1PhXSg1D9Qx81hC7OAjaFeUh8vg8SF3sgcdE1NhDFA0bD9uZqBcPhkdms7Fy52cKz1mEx8T9Dh8WejGnphfWKbBIjMsb0WmDIr50bvJWRAyKb0D7yU7D_jLJDwX0POVDC85pSxi8jB_ff1d6X322tPWL2mdcGHccf2xXCru-6NXSBw_Fd2Sb0GnsUPUH7DOtbHRVOZtg5pnD7B8yqE01w9LKC9HeVKcGQWjtr2ZxIqlECtQml_ORc-7TQi2lIPH8UfWaM0bWd3amoUSvOODUDlRsbyzJM2RuW4AGnPiuk1T93XOuV4NvFzR7BbxG3UzyvvBhMv3gECG2gSGB1B4KyXuR1eoecSO2yGnYeOW2QbCoPO1naqIr9UPtcbo2JrO3R10j1AOaORuhrtiMaOd-nkfNxjVQPFO5ohL7UWm-kyY6syo8ei6Hn9PYY8fpxvF4Syo-e7ttP9WNvOxu5GNNP_vJtaMDaCadV8QUKD0pO3v0vjH-Rxg=="}}</script>
 <script>
 /* Desglosa — visor interactivo. Sin dependencias externas.
  * Seguridad: todo texto que viene del código analizado se pinta con textContent o
@@ -450,6 +462,9 @@ button, input, select { font: inherit; color: inherit; }
     selectedNode: null,
     showExternal: false,
     legendClosed: false,
+    route: null, // vista "Trazar ruta": cadena dibujada y controles
+    routeStep: null,
+    routeTimer: null,
   };
 
   // ------------------------------------------------------------------ utilidades DOM
@@ -549,7 +564,8 @@ button, input, select { font: inherit; color: inherit; }
     state.view = view;
     state.id = id;
     if (["flujo", "secuencia", "codigo"].includes(view) && id) updateTrail(id);
-    if (!sameView) state.selectedNode = null;
+    if (!sameView) { state.selectedNode = null; state.routeStep = null; }
+    if (view !== "ruta") { stopRoutePlay(); state.route = null; }
 
     renderToolbar();
     // Vistas de una función: primero se abre el paquete de su archivo.
@@ -573,6 +589,7 @@ button, input, select { font: inherit; color: inherit; }
     else if (view === "er") renderER();
     else if (view === "galaxia") renderGalaxy();
     else if (view === "arquitectura") renderArch();
+    else if (view === "ruta") renderRoute(id);
     else renderMap(null);
     renderCrumbs();
   }
@@ -624,6 +641,8 @@ button, input, select { font: inherit; color: inherit; }
     ["F", "Encuadrar el diagrama en la pantalla"],
     ["Arrastrar / rueda", "Mover y hacer zoom"],
     ["M", "Modo fácil (español) o técnico (código)"],
+    ["Trazar ruta", "Botón del panel de una función: el camino de llamadas hasta otra función o la base de datos"],
+    ["←  →  espacio", "En «Trazar ruta»: paso anterior, siguiente y reproducir"],
     ["T", "Tema claro u oscuro"],
     ["?", "Mostrar esta ayuda"],
   ];
@@ -672,6 +691,7 @@ button, input, select { font: inherit; color: inherit; }
     else if (state.view === "secuencia") renderSequence(state.id);
     else if (state.view === "galaxia") renderGalaxy();
     else if (state.view === "arquitectura") renderArch();
+    else if (state.view === "ruta") renderRoute(state.id);
     state.selectedNode = keep;
   }
 
@@ -792,6 +812,8 @@ button, input, select { font: inherit; color: inherit; }
       items.push({ label: "Galaxia", hash: buildHash("galaxia", null) });
     } else if (state.view === "arquitectura") {
       items.push({ label: "Arquitectura", hash: buildHash("arquitectura", null) });
+    } else if (state.view === "ruta") {
+      items.push({ label: "Trazar ruta", hash: buildHash("ruta", state.id) });
     }
     items.forEach((it, i) => {
       if (i > 0) nav.appendChild(h("span", { class: "sep", "aria-hidden": "true" }, "›"));
@@ -818,6 +840,12 @@ button, input, select { font: inherit; color: inherit; }
     if (state.view === "mapa" && state.id && MAP && MAP.groups[state.id]) {
       const parent = MAP.groups[state.id].parent;
       go("mapa", parent && parent !== MAP.root ? parent : null);
+      return;
+    }
+    if (state.view === "ruta") {
+      const from = (state.id || "").split("/")[0];
+      if (SYMBOLS[from]) go("flujo", from, { trail: [from] });
+      else go("mapa", null);
       return;
     }
     if (["er", "galaxia", "arquitectura"].includes(state.view)) go("mapa", null);
@@ -1182,6 +1210,14 @@ button, input, select { font: inherit; color: inherit; }
       "Complejidad: " + (m.cc !== undefined ? m.cc : "–") + " · Líneas: " + (sym.line_end - sym.line_start + 1) +
       " · Llamadas entrantes: " + (m.calls_in || 0) + " · salientes: " + (m.calls_out || 0));
     appendAll(panel, [h("h2", null, sym.qualname), meta, metrics]);
+    if (sym.kind === "function" || sym.kind === "method") {
+      const acts = h("div", { class: "acciones" },
+        h("a", { class: "boton", href: buildHash("ruta", sid), title: "Elegir un destino y ver el camino de llamadas" }, "Trazar ruta…"));
+      if (state.view !== "ruta" && tracePath(sid, ANY_TABLE)) {
+        acts.appendChild(h("a", { class: "boton", href: buildHash("ruta", sid + "/" + encodeURIComponent(ANY_TABLE)), title: "El camino más corto hasta una función que lee o escribe una tabla" }, "¿Cómo llega a la base de datos?"));
+      }
+      panel.appendChild(acts);
+    }
     const route = DATA.routes && DATA.routes[sid];
     if (route) panel.appendChild(h("div", { class: "meta" }, "Ruta: ", h("code", null, route)));
     const tables = DATA.tables_of && DATA.tables_of[sid];
@@ -1510,6 +1546,243 @@ button, input, select { font: inherit; color: inherit; }
     mount(svg, g, arch.w, arch.h, arch.legend || []);
   }
 
+  // ------------------------------------------------------------------ vista: trazar una ruta
+
+  // "¿Cómo llega esta función a otra, o a la base de datos?": el camino de llamadas más
+  // corto (búsqueda en anchura sobre las llamadas resueltas), dibujado paso a paso.
+  const ANY_TABLE = "t:*";
+
+  function tablesHit(sid, goal) {
+    const all = (DATA.tables_of && DATA.tables_of[sid]) || [];
+    return goal === ANY_TABLE ? all : all.filter(([name]) => "t:" + name === goal);
+  }
+
+  /** Pasos [{from, to, conf, line}] de `from` a `goal` (función o tabla), o null. */
+  function tracePath(from, goal) {
+    const isTable = goal.startsWith("t:");
+    const reached = (sid) => (isTable ? tablesHit(sid, goal).length > 0 : sid === goal);
+    const prev = new Map([[from, null]]);
+    const queue = [from];
+    let end = null;
+    while (queue.length) {
+      const cur = queue.shift();
+      if (reached(cur)) { end = cur; break; }
+      for (const [next, conf, line] of (DATA.calls_out && DATA.calls_out[cur]) || []) {
+        if (prev.has(next) || !SYMBOLS[next]) continue;
+        prev.set(next, { from: cur, to: next, conf, line });
+        queue.push(next);
+      }
+      // Un método de interfaz o abstracto "sigue" en sus implementaciones (probable).
+      for (const next of (DATA.impl && DATA.impl[cur]) || []) {
+        if (prev.has(next) || !SYMBOLS[next]) continue;
+        prev.set(next, { from: cur, to: next, conf: "probable", line: null, impl: true });
+        queue.push(next);
+      }
+    }
+    if (end === null) return null;
+    const steps = [];
+    for (let s = prev.get(end); s; s = prev.get(s.from)) steps.unshift(s);
+    if (isTable) {
+      const [name, mode] = tablesHit(end, goal)[0];
+      steps.push({ from: end, to: "t:" + name, conf: "probable", line: null, mode });
+    }
+    return steps;
+  }
+
+  function goalLabel(goal) {
+    if (goal === ANY_TABLE) return "cualquier tabla (base de datos)";
+    if (goal.startsWith("t:")) return "tabla " + goal.slice(2);
+    return SYMBOLS[goal] ? SYMBOLS[goal].qualname : goal;
+  }
+
+  function routeCandidates(withTables) {
+    if (!searchIndex) searchIndex = buildIndex();
+    const out = searchIndex.filter((r) => r.kind === "function" || r.kind === "method" || (withTables && r.kind === "tabla"));
+    return withTables ? [{ id: ANY_TABLE, label: "Cualquier tabla (base de datos)", name: "base de datos", q: "base de datos tabla", kind: "tabla", file: "" }].concat(out) : out;
+  }
+
+  /** Cuadro de búsqueda para elegir una función (o tabla) del trazado. */
+  function routePicker(label, current, withTables, onChoose) {
+    const box = h("div", { class: "buscador selector-ruta" });
+    const input = h("input", { type: "search", placeholder: current ? current : "Elige…", "aria-label": label, autocomplete: "off" });
+    const list = h("ul", { class: "resultados", role: "listbox", hidden: true });
+    let results = [];
+    const paint = () => {
+      clear(list);
+      for (const r of results) {
+        list.appendChild(h("li", { role: "option", onmousedown: (e) => { e.preventDefault(); onChoose(r.kind === "tabla" && r.id !== ANY_TABLE ? "t:" + r.label : r.id); } },
+          r.label, h("small", null, r.id === ANY_TABLE ? "cualquier tabla que el código lea o escriba" : kindLabel(r.kind) + " · " + (r.file || ""))));
+      }
+      list.hidden = results.length === 0;
+    };
+    input.addEventListener("input", () => {
+      const q = input.value.trim().toLowerCase();
+      const all = routeCandidates(withTables);
+      if (!q) { results = all.slice(0, withTables ? 8 : 0); paint(); return; }
+      const starts = all.filter((r) => r.name.startsWith(q));
+      const contains = all.filter((r) => !r.name.startsWith(q) && r.q.includes(q));
+      results = starts.concat(contains).slice(0, 12);
+      paint();
+    });
+    input.addEventListener("focus", () => input.dispatchEvent(new Event("input")));
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && results.length) { e.preventDefault(); const r = results[0]; onChoose(r.kind === "tabla" && r.id !== ANY_TABLE ? "t:" + r.label : r.id); }
+      else if (e.key === "Escape") { list.hidden = true; input.blur(); e.stopPropagation(); }
+    });
+    input.addEventListener("blur", () => setTimeout(() => { list.hidden = true; }, 120));
+    appendAll(box, [input, list]);
+    return h("label", { class: "campo-ruta" }, h("span", null, label), box);
+  }
+
+  function stopRoutePlay() {
+    if (state.routeTimer) { clearInterval(state.routeTimer); state.routeTimer = null; }
+  }
+
+  function renderRoute(id) {
+    renderTabs(null);
+    stopRoutePlay();
+    const [from, goalRaw] = (id || "").split("/");
+    const goal = goalRaw ? decodeURIComponent(goalRaw) : null;
+    const pick = (f, g) => go("ruta", f + (g ? "/" + encodeURIComponent(g) : ""));
+    const fromName = SYMBOLS[from] ? SYMBOLS[from].qualname : null;
+    const pickers = h("div", { class: "pickers-ruta" },
+      routePicker("Desde", fromName, false, (f) => pick(f, goal)),
+      h("span", { class: "flecha-ruta", "aria-hidden": "true" }, "→"),
+      routePicker("Hasta", goal ? goalLabel(goal) : null, true, (g) => pick(from, g)));
+    const info = [h("strong", null, "Trazar una ruta"), "  ·  el camino de llamadas más corto, paso a paso", pickers];
+    if (!fromName) {
+      renderInfo(info);
+      hidePanel();
+      showEmpty("Elige la función de inicio («Desde») y el destino («Hasta»): otra función, una tabla o cualquier tabla.");
+      return;
+    }
+    if (!goal) {
+      renderInfo(info);
+      hidePanel();
+      showEmpty("Elige el destino («Hasta»): otra función, una tabla o «Cualquier tabla» para ver cómo " + fromName + " llega a la base de datos.");
+      return;
+    }
+    const steps = tracePath(from, goal);
+    if (!steps) {
+      const back = !goal.startsWith("t:") && tracePath(goal, from);
+      if (back) info.push(h("div", { class: "pista" }, "Sí hay un camino al revés (" + back.length + " pasos). ", h("a", { href: buildHash("ruta", goal + "/" + from) }, "Ver al revés")));
+      renderInfo(info);
+      hidePanel();
+      showEmpty("No hay un camino de llamadas de " + fromName + " a " + goalLabel(goal) + ". Solo se siguen llamadas resueltas (exactas o probables); las dinámicas no se ven.");
+      return;
+    }
+    if (!steps.length) {
+      renderInfo(info);
+      showEmpty("Es la misma función.");
+      return;
+    }
+    const total = steps.length;
+    if (state.routeStep === null || state.routeStep > total) state.routeStep = 0;
+    const controls = h("div", { class: "controles-ruta" });
+    info.push(controls);
+    renderInfo(info);
+    // Cadena vertical: una caja por función y, si el destino es una tabla, la tabla al final.
+    const chain = [from].concat(steps.map((st) => st.to));
+    const labels = chain.map((sid) => (sid.startsWith("t:") ? "Tabla " + sid.slice(2) : SYMBOLS[sid].qualname));
+    const subs = chain.map((sid) => (sid.startsWith("t:") ? (steps[steps.length - 1].mode === "lee" ? "la lee (SQL en el código)" : "la escribe (SQL en el código)") : SYMBOLS[sid].file + ":" + SYMBOLS[sid].line_start));
+    const w = Math.max(220, ...labels.map((l) => l.length * 7.2 + 36), ...subs.map((l) => l.length * 6.6 + 36));
+    const BOX_H = 52;
+    const GAP = 70;
+    const x = 40;
+    const svg = s("svg", { role: "img", "aria-label": "Ruta de " + fromName + " a " + goalLabel(goal) });
+    svg.appendChild(markers());
+    const g = s("g", { class: "vista" });
+    const boxes = [];
+    const arrows = [];
+    steps.forEach((st, i) => {
+      const y1 = 40 + i * (BOX_H + GAP) + BOX_H;
+      const y2 = y1 + GAP;
+      const cx = x + w / 2;
+      const path = s("path", { class: "arista c-" + st.conf, d: "M" + cx + "," + y1 + " L" + cx + "," + (y2 - 2), "marker-end": "url(#punta)" });
+      g.appendChild(path);
+      const text = st.impl ? "posible implementación · probable"
+        : st.line ? "llama en la línea " + st.line + (st.conf !== "exacta" ? " · " + st.conf : "")
+        : (st.mode === "lee" ? "lee" : "escribe") + " · probable";
+      const lw = text.length * 6.6 + 12;
+      g.appendChild(drawLabel(text, cx + 10, y1 + GAP / 2 - 8, lw, 16));
+      arrows.push(path);
+    });
+    chain.forEach((sid, i) => {
+      const y = 40 + i * (BOX_H + GAP);
+      const isTable = sid.startsWith("t:");
+      const kind = isTable ? "bd" : SYMBOLS[sid].is_entry ? "entrada" : "funcion";
+      const node = s("g", { class: "nodo k-" + kind + (isTable ? "" : " clicable"), tabindex: "0", role: "button", "aria-label": "Paso " + (i + 1) + ": " + labels[i] });
+      node.appendChild(s("rect", { class: "forma", x, y, width: w, height: BOX_H, rx: kind === "funcion" || kind === "entrada" ? BOX_H / 2 : 10 }));
+      node.appendChild(textBlock([labels[i], subs[i]], x + w / 2, y + BOX_H / 2));
+      node.appendChild(s("text", { class: "numero-paso", x: x - 12, y: y + BOX_H / 2 + 4, "text-anchor": "end" }, String(i + 1)));
+      node.appendChild(s("title", null, labels[i] + "\n" + subs[i] + (isTable ? "" : "\nClic: ver este paso · doble clic: abrir su flujo")));
+      node.addEventListener("click", (e) => { if (state.dragged) return; e.stopPropagation(); stopRoutePlay(); showRouteStep(i); });
+      node.addEventListener("dblclick", (e) => { e.stopPropagation(); if (!isTable) openSub(sid); });
+      node.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); if (!isTable) openSub(sid); } });
+      g.appendChild(node);
+      boxes.push(node);
+    });
+    state.route = { chain, steps, boxes, arrows, controls };
+    mount(svg, g, w + 80, 40 + chain.length * (BOX_H + GAP) - GAP + 40, ["entrada", "funcion"].concat(goal.startsWith("t:") ? ["bd"] : []).concat([...new Set(steps.map((st) => st.conf))]));
+    showRouteStep(state.routeStep);
+  }
+
+  function paintRouteControls() {
+    const r = state.route;
+    if (!r) return;
+    clear(r.controls);
+    const n = r.chain.length;
+    const i = state.routeStep;
+    const prev = h("button", { class: "boton", type: "button", title: "Paso anterior (←)", disabled: i === 0, onclick: () => { stopRoutePlay(); showRouteStep(i - 1); } }, "◀");
+    const play = h("button", { class: "boton", type: "button", title: "Recorrer la ruta (espacio)", onclick: toggleRoutePlay }, state.routeTimer ? "⏸ Pausa" : "▶ Reproducir");
+    const next = h("button", { class: "boton", type: "button", title: "Paso siguiente (→)", disabled: i === n - 1, onclick: () => { stopRoutePlay(); showRouteStep(i + 1); } }, "▶");
+    const sid = r.chain[i];
+    const what = sid.startsWith("t:") ? "llega a la tabla " + sid.slice(2) : SYMBOLS[sid].qualname + (i < n - 1 && r.steps[i].line ? " llama en la línea " + r.steps[i].line : "");
+    appendAll(r.controls, [prev, play, next, h("span", { class: "paso-actual", "aria-live": "polite" }, "Paso " + (i + 1) + " de " + n + ": " + what)]);
+  }
+
+  function showRouteStep(i) {
+    const r = state.route;
+    if (!r) return;
+    state.routeStep = Math.max(0, Math.min(i, r.chain.length - 1));
+    r.boxes.forEach((b, k) => {
+      b.classList.toggle("seleccionado", k === state.routeStep);
+      b.classList.toggle("visitado", k < state.routeStep);
+    });
+    r.arrows.forEach((a, k) => {
+      a.classList.toggle("resaltada", k < state.routeStep);
+      a.setAttribute("marker-end", k < state.routeStep ? "url(#punta-foco)" : "url(#punta)");
+    });
+    paintRouteControls();
+    const sid = r.chain[state.routeStep];
+    if (sid.startsWith("t:")) {
+      const table = DATA.er && DATA.er.tables ? DATA.er.tables.find((t) => t.name === sid.slice(2)) : null;
+      if (table) renderTablePanel(table, DATA.er);
+      else hidePanel();
+      return;
+    }
+    const line = state.routeStep < r.steps.length ? r.steps[state.routeStep].line : null;
+    const want = location.hash;
+    loadPack(SYMBOLS[sid].file).then(() => {
+      if (location.hash !== want || !state.route || r.chain[state.routeStep] !== sid) return;
+      renderPanel(sid);
+      if (line) highlightLines(line, line, true);
+    }, () => renderPanel(sid));
+  }
+
+  function toggleRoutePlay() {
+    const r = state.route;
+    if (!r) return;
+    if (state.routeTimer) { stopRoutePlay(); paintRouteControls(); return; }
+    if (state.routeStep >= r.chain.length - 1) showRouteStep(0);
+    state.routeTimer = setInterval(() => {
+      if (!state.route || state.view !== "ruta") { stopRoutePlay(); return; }
+      if (state.routeStep >= state.route.chain.length - 1) { stopRoutePlay(); paintRouteControls(); return; }
+      showRouteStep(state.routeStep + 1);
+    }, 1400);
+    paintRouteControls();
+  }
+
   // ------------------------------------------------------------------ vista: entidad-relación
 
   // ------------------------------------------------------------------ vista: galaxia
@@ -1755,6 +2028,12 @@ button, input, select { font: inherit; color: inherit; }
       if (tag === "INPUT" || tag === "TEXTAREA") return;
       if (helpDialog && helpDialog.open) return; // el diálogo maneja Esc solo
       if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (state.view === "ruta" && state.route && ["ArrowRight", "ArrowLeft", " "].includes(e.key)) {
+        e.preventDefault();
+        if (e.key === " ") toggleRoutePlay();
+        else { stopRoutePlay(); showRouteStep(state.routeStep + (e.key === "ArrowRight" ? 1 : -1)); }
+        return;
+      }
       if (e.key === "/") { e.preventDefault(); const b = $("buscar"); if (b) b.focus(); }
       else if (e.key === "?") showHelp();
       else if (e.key === "Escape" && state.focus && (["mapa", "galaxia", "arquitectura"].includes(state.view) || !state.view)) toggleFocus(state.focus);

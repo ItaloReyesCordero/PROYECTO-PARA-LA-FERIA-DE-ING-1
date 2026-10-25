@@ -25,10 +25,11 @@ FUNC_KINDS = ("function", "method")
 
 
 def call_maps(analysis: Analysis) -> tuple[dict, dict]:
-    """Llamadas resueltas entre funciones: entrantes y salientes, con la peor confianza."""
+    """Llamadas resueltas entre funciones: entrantes y salientes, con la peor confianza y
+    la primera línea (en quien llama) donde ocurren: (confianza, línea)."""
     by_id = {s.id: s for s in analysis.project.symbols}
-    out: dict[str, dict[str, str]] = defaultdict(dict)
-    inc: dict[str, dict[str, str]] = defaultdict(dict)
+    out: dict[str, dict[str, tuple[str, int]]] = defaultdict(dict)
+    inc: dict[str, dict[str, tuple[str, int]]] = defaultdict(dict)
     for c in analysis.project.calls:
         if not c.resolved_id:
             continue
@@ -40,8 +41,11 @@ def call_maps(analysis: Analysis) -> tuple[dict, dict]:
             continue
         for table, a, b in ((out, caller.id, target.id), (inc, target.id, caller.id)):
             prev = table[a].get(b)
-            if prev is None or CONFIDENCE_RANK[c.confidence] > CONFIDENCE_RANK[prev]:
-                table[a][b] = c.confidence
+            if prev is None:
+                table[a][b] = (c.confidence, c.line)
+                continue
+            worse = CONFIDENCE_RANK[c.confidence] > CONFIDENCE_RANK[prev[0]]
+            table[a][b] = (c.confidence if worse else prev[0], min(prev[1], c.line))
     return out, inc
 
 
@@ -176,9 +180,10 @@ def build_payload(
         for f in project.files
     }
 
-    def table(m: dict[str, dict[str, str]]) -> dict[str, list]:
+    def table(m: dict[str, dict[str, tuple[str, int]]]) -> dict[str, list]:
+        # [destino, confianza, línea de la llamada en quien llama]
         return {
-            k: [[t, conf] for t, conf in sorted(v.items(), key=lambda kv: kv[0])]
+            k: [[t, conf, line] for t, (conf, line) in sorted(v.items(), key=lambda kv: kv[0])]
             for k, v in sorted(m.items())
             if k in symbols
         }

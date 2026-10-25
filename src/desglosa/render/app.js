@@ -120,6 +120,9 @@
     selectedNode: null,
     showExternal: false,
     legendClosed: false,
+    route: null, // vista "Trazar ruta": cadena dibujada y controles
+    routeStep: null,
+    routeTimer: null,
   };
 
   // ------------------------------------------------------------------ utilidades DOM
@@ -219,7 +222,8 @@
     state.view = view;
     state.id = id;
     if (["flujo", "secuencia", "codigo"].includes(view) && id) updateTrail(id);
-    if (!sameView) state.selectedNode = null;
+    if (!sameView) { state.selectedNode = null; state.routeStep = null; }
+    if (view !== "ruta") { stopRoutePlay(); state.route = null; }
 
     renderToolbar();
     // Vistas de una función: primero se abre el paquete de su archivo.
@@ -243,6 +247,7 @@
     else if (view === "er") renderER();
     else if (view === "galaxia") renderGalaxy();
     else if (view === "arquitectura") renderArch();
+    else if (view === "ruta") renderRoute(id);
     else renderMap(null);
     renderCrumbs();
   }
@@ -294,6 +299,8 @@
     ["F", "Encuadrar el diagrama en la pantalla"],
     ["Arrastrar / rueda", "Mover y hacer zoom"],
     ["M", "Modo fácil (español) o técnico (código)"],
+    ["Trazar ruta", "Botón del panel de una función: el camino de llamadas hasta otra función o la base de datos"],
+    ["←  →  espacio", "En «Trazar ruta»: paso anterior, siguiente y reproducir"],
     ["T", "Tema claro u oscuro"],
     ["?", "Mostrar esta ayuda"],
   ];
@@ -342,6 +349,7 @@
     else if (state.view === "secuencia") renderSequence(state.id);
     else if (state.view === "galaxia") renderGalaxy();
     else if (state.view === "arquitectura") renderArch();
+    else if (state.view === "ruta") renderRoute(state.id);
     state.selectedNode = keep;
   }
 
@@ -462,6 +470,8 @@
       items.push({ label: "Galaxia", hash: buildHash("galaxia", null) });
     } else if (state.view === "arquitectura") {
       items.push({ label: "Arquitectura", hash: buildHash("arquitectura", null) });
+    } else if (state.view === "ruta") {
+      items.push({ label: "Trazar ruta", hash: buildHash("ruta", state.id) });
     }
     items.forEach((it, i) => {
       if (i > 0) nav.appendChild(h("span", { class: "sep", "aria-hidden": "true" }, "›"));
@@ -488,6 +498,12 @@
     if (state.view === "mapa" && state.id && MAP && MAP.groups[state.id]) {
       const parent = MAP.groups[state.id].parent;
       go("mapa", parent && parent !== MAP.root ? parent : null);
+      return;
+    }
+    if (state.view === "ruta") {
+      const from = (state.id || "").split("/")[0];
+      if (SYMBOLS[from]) go("flujo", from, { trail: [from] });
+      else go("mapa", null);
       return;
     }
     if (["er", "galaxia", "arquitectura"].includes(state.view)) go("mapa", null);
@@ -852,6 +868,14 @@
       "Complejidad: " + (m.cc !== undefined ? m.cc : "–") + " · Líneas: " + (sym.line_end - sym.line_start + 1) +
       " · Llamadas entrantes: " + (m.calls_in || 0) + " · salientes: " + (m.calls_out || 0));
     appendAll(panel, [h("h2", null, sym.qualname), meta, metrics]);
+    if (sym.kind === "function" || sym.kind === "method") {
+      const acts = h("div", { class: "acciones" },
+        h("a", { class: "boton", href: buildHash("ruta", sid), title: "Elegir un destino y ver el camino de llamadas" }, "Trazar ruta…"));
+      if (state.view !== "ruta" && tracePath(sid, ANY_TABLE)) {
+        acts.appendChild(h("a", { class: "boton", href: buildHash("ruta", sid + "/" + encodeURIComponent(ANY_TABLE)), title: "El camino más corto hasta una función que lee o escribe una tabla" }, "¿Cómo llega a la base de datos?"));
+      }
+      panel.appendChild(acts);
+    }
     const route = DATA.routes && DATA.routes[sid];
     if (route) panel.appendChild(h("div", { class: "meta" }, "Ruta: ", h("code", null, route)));
     const tables = DATA.tables_of && DATA.tables_of[sid];
@@ -1180,6 +1204,243 @@
     mount(svg, g, arch.w, arch.h, arch.legend || []);
   }
 
+  // ------------------------------------------------------------------ vista: trazar una ruta
+
+  // "¿Cómo llega esta función a otra, o a la base de datos?": el camino de llamadas más
+  // corto (búsqueda en anchura sobre las llamadas resueltas), dibujado paso a paso.
+  const ANY_TABLE = "t:*";
+
+  function tablesHit(sid, goal) {
+    const all = (DATA.tables_of && DATA.tables_of[sid]) || [];
+    return goal === ANY_TABLE ? all : all.filter(([name]) => "t:" + name === goal);
+  }
+
+  /** Pasos [{from, to, conf, line}] de `from` a `goal` (función o tabla), o null. */
+  function tracePath(from, goal) {
+    const isTable = goal.startsWith("t:");
+    const reached = (sid) => (isTable ? tablesHit(sid, goal).length > 0 : sid === goal);
+    const prev = new Map([[from, null]]);
+    const queue = [from];
+    let end = null;
+    while (queue.length) {
+      const cur = queue.shift();
+      if (reached(cur)) { end = cur; break; }
+      for (const [next, conf, line] of (DATA.calls_out && DATA.calls_out[cur]) || []) {
+        if (prev.has(next) || !SYMBOLS[next]) continue;
+        prev.set(next, { from: cur, to: next, conf, line });
+        queue.push(next);
+      }
+      // Un método de interfaz o abstracto "sigue" en sus implementaciones (probable).
+      for (const next of (DATA.impl && DATA.impl[cur]) || []) {
+        if (prev.has(next) || !SYMBOLS[next]) continue;
+        prev.set(next, { from: cur, to: next, conf: "probable", line: null, impl: true });
+        queue.push(next);
+      }
+    }
+    if (end === null) return null;
+    const steps = [];
+    for (let s = prev.get(end); s; s = prev.get(s.from)) steps.unshift(s);
+    if (isTable) {
+      const [name, mode] = tablesHit(end, goal)[0];
+      steps.push({ from: end, to: "t:" + name, conf: "probable", line: null, mode });
+    }
+    return steps;
+  }
+
+  function goalLabel(goal) {
+    if (goal === ANY_TABLE) return "cualquier tabla (base de datos)";
+    if (goal.startsWith("t:")) return "tabla " + goal.slice(2);
+    return SYMBOLS[goal] ? SYMBOLS[goal].qualname : goal;
+  }
+
+  function routeCandidates(withTables) {
+    if (!searchIndex) searchIndex = buildIndex();
+    const out = searchIndex.filter((r) => r.kind === "function" || r.kind === "method" || (withTables && r.kind === "tabla"));
+    return withTables ? [{ id: ANY_TABLE, label: "Cualquier tabla (base de datos)", name: "base de datos", q: "base de datos tabla", kind: "tabla", file: "" }].concat(out) : out;
+  }
+
+  /** Cuadro de búsqueda para elegir una función (o tabla) del trazado. */
+  function routePicker(label, current, withTables, onChoose) {
+    const box = h("div", { class: "buscador selector-ruta" });
+    const input = h("input", { type: "search", placeholder: current ? current : "Elige…", "aria-label": label, autocomplete: "off" });
+    const list = h("ul", { class: "resultados", role: "listbox", hidden: true });
+    let results = [];
+    const paint = () => {
+      clear(list);
+      for (const r of results) {
+        list.appendChild(h("li", { role: "option", onmousedown: (e) => { e.preventDefault(); onChoose(r.kind === "tabla" && r.id !== ANY_TABLE ? "t:" + r.label : r.id); } },
+          r.label, h("small", null, r.id === ANY_TABLE ? "cualquier tabla que el código lea o escriba" : kindLabel(r.kind) + " · " + (r.file || ""))));
+      }
+      list.hidden = results.length === 0;
+    };
+    input.addEventListener("input", () => {
+      const q = input.value.trim().toLowerCase();
+      const all = routeCandidates(withTables);
+      if (!q) { results = all.slice(0, withTables ? 8 : 0); paint(); return; }
+      const starts = all.filter((r) => r.name.startsWith(q));
+      const contains = all.filter((r) => !r.name.startsWith(q) && r.q.includes(q));
+      results = starts.concat(contains).slice(0, 12);
+      paint();
+    });
+    input.addEventListener("focus", () => input.dispatchEvent(new Event("input")));
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && results.length) { e.preventDefault(); const r = results[0]; onChoose(r.kind === "tabla" && r.id !== ANY_TABLE ? "t:" + r.label : r.id); }
+      else if (e.key === "Escape") { list.hidden = true; input.blur(); e.stopPropagation(); }
+    });
+    input.addEventListener("blur", () => setTimeout(() => { list.hidden = true; }, 120));
+    appendAll(box, [input, list]);
+    return h("label", { class: "campo-ruta" }, h("span", null, label), box);
+  }
+
+  function stopRoutePlay() {
+    if (state.routeTimer) { clearInterval(state.routeTimer); state.routeTimer = null; }
+  }
+
+  function renderRoute(id) {
+    renderTabs(null);
+    stopRoutePlay();
+    const [from, goalRaw] = (id || "").split("/");
+    const goal = goalRaw ? decodeURIComponent(goalRaw) : null;
+    const pick = (f, g) => go("ruta", f + (g ? "/" + encodeURIComponent(g) : ""));
+    const fromName = SYMBOLS[from] ? SYMBOLS[from].qualname : null;
+    const pickers = h("div", { class: "pickers-ruta" },
+      routePicker("Desde", fromName, false, (f) => pick(f, goal)),
+      h("span", { class: "flecha-ruta", "aria-hidden": "true" }, "→"),
+      routePicker("Hasta", goal ? goalLabel(goal) : null, true, (g) => pick(from, g)));
+    const info = [h("strong", null, "Trazar una ruta"), "  ·  el camino de llamadas más corto, paso a paso", pickers];
+    if (!fromName) {
+      renderInfo(info);
+      hidePanel();
+      showEmpty("Elige la función de inicio («Desde») y el destino («Hasta»): otra función, una tabla o cualquier tabla.");
+      return;
+    }
+    if (!goal) {
+      renderInfo(info);
+      hidePanel();
+      showEmpty("Elige el destino («Hasta»): otra función, una tabla o «Cualquier tabla» para ver cómo " + fromName + " llega a la base de datos.");
+      return;
+    }
+    const steps = tracePath(from, goal);
+    if (!steps) {
+      const back = !goal.startsWith("t:") && tracePath(goal, from);
+      if (back) info.push(h("div", { class: "pista" }, "Sí hay un camino al revés (" + back.length + " pasos). ", h("a", { href: buildHash("ruta", goal + "/" + from) }, "Ver al revés")));
+      renderInfo(info);
+      hidePanel();
+      showEmpty("No hay un camino de llamadas de " + fromName + " a " + goalLabel(goal) + ". Solo se siguen llamadas resueltas (exactas o probables); las dinámicas no se ven.");
+      return;
+    }
+    if (!steps.length) {
+      renderInfo(info);
+      showEmpty("Es la misma función.");
+      return;
+    }
+    const total = steps.length;
+    if (state.routeStep === null || state.routeStep > total) state.routeStep = 0;
+    const controls = h("div", { class: "controles-ruta" });
+    info.push(controls);
+    renderInfo(info);
+    // Cadena vertical: una caja por función y, si el destino es una tabla, la tabla al final.
+    const chain = [from].concat(steps.map((st) => st.to));
+    const labels = chain.map((sid) => (sid.startsWith("t:") ? "Tabla " + sid.slice(2) : SYMBOLS[sid].qualname));
+    const subs = chain.map((sid) => (sid.startsWith("t:") ? (steps[steps.length - 1].mode === "lee" ? "la lee (SQL en el código)" : "la escribe (SQL en el código)") : SYMBOLS[sid].file + ":" + SYMBOLS[sid].line_start));
+    const w = Math.max(220, ...labels.map((l) => l.length * 7.2 + 36), ...subs.map((l) => l.length * 6.6 + 36));
+    const BOX_H = 52;
+    const GAP = 70;
+    const x = 40;
+    const svg = s("svg", { role: "img", "aria-label": "Ruta de " + fromName + " a " + goalLabel(goal) });
+    svg.appendChild(markers());
+    const g = s("g", { class: "vista" });
+    const boxes = [];
+    const arrows = [];
+    steps.forEach((st, i) => {
+      const y1 = 40 + i * (BOX_H + GAP) + BOX_H;
+      const y2 = y1 + GAP;
+      const cx = x + w / 2;
+      const path = s("path", { class: "arista c-" + st.conf, d: "M" + cx + "," + y1 + " L" + cx + "," + (y2 - 2), "marker-end": "url(#punta)" });
+      g.appendChild(path);
+      const text = st.impl ? "posible implementación · probable"
+        : st.line ? "llama en la línea " + st.line + (st.conf !== "exacta" ? " · " + st.conf : "")
+        : (st.mode === "lee" ? "lee" : "escribe") + " · probable";
+      const lw = text.length * 6.6 + 12;
+      g.appendChild(drawLabel(text, cx + 10, y1 + GAP / 2 - 8, lw, 16));
+      arrows.push(path);
+    });
+    chain.forEach((sid, i) => {
+      const y = 40 + i * (BOX_H + GAP);
+      const isTable = sid.startsWith("t:");
+      const kind = isTable ? "bd" : SYMBOLS[sid].is_entry ? "entrada" : "funcion";
+      const node = s("g", { class: "nodo k-" + kind + (isTable ? "" : " clicable"), tabindex: "0", role: "button", "aria-label": "Paso " + (i + 1) + ": " + labels[i] });
+      node.appendChild(s("rect", { class: "forma", x, y, width: w, height: BOX_H, rx: kind === "funcion" || kind === "entrada" ? BOX_H / 2 : 10 }));
+      node.appendChild(textBlock([labels[i], subs[i]], x + w / 2, y + BOX_H / 2));
+      node.appendChild(s("text", { class: "numero-paso", x: x - 12, y: y + BOX_H / 2 + 4, "text-anchor": "end" }, String(i + 1)));
+      node.appendChild(s("title", null, labels[i] + "\n" + subs[i] + (isTable ? "" : "\nClic: ver este paso · doble clic: abrir su flujo")));
+      node.addEventListener("click", (e) => { if (state.dragged) return; e.stopPropagation(); stopRoutePlay(); showRouteStep(i); });
+      node.addEventListener("dblclick", (e) => { e.stopPropagation(); if (!isTable) openSub(sid); });
+      node.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); if (!isTable) openSub(sid); } });
+      g.appendChild(node);
+      boxes.push(node);
+    });
+    state.route = { chain, steps, boxes, arrows, controls };
+    mount(svg, g, w + 80, 40 + chain.length * (BOX_H + GAP) - GAP + 40, ["entrada", "funcion"].concat(goal.startsWith("t:") ? ["bd"] : []).concat([...new Set(steps.map((st) => st.conf))]));
+    showRouteStep(state.routeStep);
+  }
+
+  function paintRouteControls() {
+    const r = state.route;
+    if (!r) return;
+    clear(r.controls);
+    const n = r.chain.length;
+    const i = state.routeStep;
+    const prev = h("button", { class: "boton", type: "button", title: "Paso anterior (←)", disabled: i === 0, onclick: () => { stopRoutePlay(); showRouteStep(i - 1); } }, "◀");
+    const play = h("button", { class: "boton", type: "button", title: "Recorrer la ruta (espacio)", onclick: toggleRoutePlay }, state.routeTimer ? "⏸ Pausa" : "▶ Reproducir");
+    const next = h("button", { class: "boton", type: "button", title: "Paso siguiente (→)", disabled: i === n - 1, onclick: () => { stopRoutePlay(); showRouteStep(i + 1); } }, "▶");
+    const sid = r.chain[i];
+    const what = sid.startsWith("t:") ? "llega a la tabla " + sid.slice(2) : SYMBOLS[sid].qualname + (i < n - 1 && r.steps[i].line ? " llama en la línea " + r.steps[i].line : "");
+    appendAll(r.controls, [prev, play, next, h("span", { class: "paso-actual", "aria-live": "polite" }, "Paso " + (i + 1) + " de " + n + ": " + what)]);
+  }
+
+  function showRouteStep(i) {
+    const r = state.route;
+    if (!r) return;
+    state.routeStep = Math.max(0, Math.min(i, r.chain.length - 1));
+    r.boxes.forEach((b, k) => {
+      b.classList.toggle("seleccionado", k === state.routeStep);
+      b.classList.toggle("visitado", k < state.routeStep);
+    });
+    r.arrows.forEach((a, k) => {
+      a.classList.toggle("resaltada", k < state.routeStep);
+      a.setAttribute("marker-end", k < state.routeStep ? "url(#punta-foco)" : "url(#punta)");
+    });
+    paintRouteControls();
+    const sid = r.chain[state.routeStep];
+    if (sid.startsWith("t:")) {
+      const table = DATA.er && DATA.er.tables ? DATA.er.tables.find((t) => t.name === sid.slice(2)) : null;
+      if (table) renderTablePanel(table, DATA.er);
+      else hidePanel();
+      return;
+    }
+    const line = state.routeStep < r.steps.length ? r.steps[state.routeStep].line : null;
+    const want = location.hash;
+    loadPack(SYMBOLS[sid].file).then(() => {
+      if (location.hash !== want || !state.route || r.chain[state.routeStep] !== sid) return;
+      renderPanel(sid);
+      if (line) highlightLines(line, line, true);
+    }, () => renderPanel(sid));
+  }
+
+  function toggleRoutePlay() {
+    const r = state.route;
+    if (!r) return;
+    if (state.routeTimer) { stopRoutePlay(); paintRouteControls(); return; }
+    if (state.routeStep >= r.chain.length - 1) showRouteStep(0);
+    state.routeTimer = setInterval(() => {
+      if (!state.route || state.view !== "ruta") { stopRoutePlay(); return; }
+      if (state.routeStep >= state.route.chain.length - 1) { stopRoutePlay(); paintRouteControls(); return; }
+      showRouteStep(state.routeStep + 1);
+    }, 1400);
+    paintRouteControls();
+  }
+
   // ------------------------------------------------------------------ vista: entidad-relación
 
   // ------------------------------------------------------------------ vista: galaxia
@@ -1425,6 +1686,12 @@
       if (tag === "INPUT" || tag === "TEXTAREA") return;
       if (helpDialog && helpDialog.open) return; // el diálogo maneja Esc solo
       if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (state.view === "ruta" && state.route && ["ArrowRight", "ArrowLeft", " "].includes(e.key)) {
+        e.preventDefault();
+        if (e.key === " ") toggleRoutePlay();
+        else { stopRoutePlay(); showRouteStep(state.routeStep + (e.key === "ArrowRight" ? 1 : -1)); }
+        return;
+      }
       if (e.key === "/") { e.preventDefault(); const b = $("buscar"); if (b) b.focus(); }
       else if (e.key === "?") showHelp();
       else if (e.key === "Escape" && state.focus && (["mapa", "galaxia", "arquitectura"].includes(state.view) || !state.view)) toggleFocus(state.focus);

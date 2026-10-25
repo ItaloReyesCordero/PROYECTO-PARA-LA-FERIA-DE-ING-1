@@ -96,6 +96,12 @@ def test_analyze_command(tmp_path, capsys):
     assert data["map"]["root"] in data["map"]["groups"]
     assert len(data["flows"]) >= 10
     assert "app/Http/Controllers/FacturaController.php" in data["sources"]
+    # "Trazar ruta" necesita la línea de cada llamada: [destino, confianza, línea].
+    by_name = {s["qualname"]: sid for sid, s in data["symbols"].items()}
+    store, emitir = by_name["FacturaController.store"], by_name["FacturacionService.emitir"]
+    assert [emitir, "probable", 33] in data["calls_out"][store]
+    assert [store, "probable", 33] in data["calls_in"][emitir]
+    assert data["arch"]["columns"][0][0] == "Rutas"
     assert "HTML escrito" in capsys.readouterr().out
     again = tmp_path / "otra.html"
     assert cli.main(["analyze", str(target), "-o", str(again)]) == cli.EXIT_OK
