@@ -133,12 +133,18 @@ def _analysis_options(args: argparse.Namespace):
         h_as=args.h_as,
         langs=langs_filter,
     )
+    from desglosa.cache import default_dir
+
+    cache_dir = None
+    if not getattr(args, "no_cache", False):
+        cache_dir = Path(args.cache_dir) if getattr(args, "cache_dir", None) else default_dir()
     return AnalyzeOptions(
         scan=scan_opts,
         jobs=args.jobs,
         max_flow_nodes=getattr(args, "max_flow_nodes", 120),
         flow_max_height=getattr(args, "flow_max_height", 1600),
         dialect=getattr(args, "dialect", None),
+        cache_dir=cache_dir,
     )
 
 
@@ -230,13 +236,14 @@ def cmd_flow(args: argparse.Namespace) -> int:
     flow = analysis.flows[sym.id]
     print(
         f"Flujo de {sym.qualname} ({sym.file}:{sym.line_start}): "
-        f"{len(flow.graph.nodes)} nodos, {flow.layout.columns} columna(s)."
+        f"{len(flow.graph.nodes)} nodos, {flow.payload()['layout']['columns']} columna(s)."
     )
     print(f"HTML escrito en {args.output}")
     return EXIT_OK
 
 
-MAX_HTML_MB = 20
+# Con los paquetes comprimidos, 200 000 líneas dan ~20 MB y abren en ~1 s.
+MAX_HTML_MB = 100
 
 
 def _write_app(args: argparse.Namespace, analysis, start: str, depth: int = 4) -> str:
@@ -317,7 +324,7 @@ def cmd_analyze(args: argparse.Namespace) -> int:
         print(f"Reporte escrito en {args.report}")
     if size_mb > MAX_HTML_MB:
         print(
-            f"Aviso: el HTML pesa más de {MAX_HTML_MB} MB y el navegador tardará en abrirlo. "
+            f"Aviso: el HTML pesa más de {MAX_HTML_MB} MB: abrirá lento y costará compartirlo. "
             "Analiza una parte del proyecto (una subcarpeta, --lang o --ignore).",
             file=sys.stderr,
         )
@@ -350,6 +357,12 @@ def _add_analysis_args(p: argparse.ArgumentParser) -> None:
     )
     p.add_argument(
         "--dialect", help="dialecto SQL: mysql, postgres, sqlite, tsql… (por defecto: probar)"
+    )
+    p.add_argument(
+        "--no-cache", action="store_true", help="no usar la caché (analizar todo desde cero)"
+    )
+    p.add_argument(
+        "--cache-dir", metavar="CARPETA", help="carpeta de la caché (por defecto: la del usuario)"
     )
 
 

@@ -11,6 +11,7 @@ import pytest
 
 from desglosa import cli
 from desglosa.render.html import safe_json
+from desglosa.render.packs import FORMAT, pack, unpack, unpacked
 from tests.conftest import FIXTURES, needs_grammars
 
 pytestmark = needs_grammars
@@ -26,10 +27,15 @@ def _flow_html(tmp_path: Path, target: Path, func: str, name: str = "f.html") ->
     return out.read_text(encoding="utf-8")
 
 
-def _data(page: str) -> dict:
+def _raw(page: str) -> dict:
     m = re.search(r'<script type="application/json" id="desglosa-data">(.*?)</script>', page, re.S)
     assert m, "no está el bloque de datos"
     return json.loads(m.group(1))
+
+
+def _data(page: str) -> dict:
+    """Los datos con los paquetes por archivo ya abiertos."""
+    return unpacked(_raw(page))
 
 
 def test_no_external_urls(tmp_path):
@@ -119,3 +125,33 @@ def test_flow_legend_lists_only_present_kinds(tmp_path):
 def test_flow_command_unknown_function(tmp_path, spec):
     out = tmp_path / "x.html"
     assert cli.main(["flow", str(ROOT / "examples" / "gps-c"), spec, "-o", str(out)]) == 1
+
+
+def test_pack_roundtrip_and_alphabet():
+    value = {"b": [1.0, 2.5, "ñ</script>"], "a": {"x": None}}
+    text = pack(value)
+    assert set(text) <= set("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_=")
+    assert unpack(text) == {"a": {"x": None}, "b": [1, 2.5, "ñ</script>"]}
+    assert pack(value) == text  # determinista
+
+
+def test_diagrams_travel_in_compressed_packs(tmp_path):
+    out = tmp_path / "demo.html"
+    target = ROOT / "examples" / "laravel-mini"
+    assert cli.main(["analyze", str(target), "-o", str(out)]) == cli.EXIT_OK
+    page = out.read_text(encoding="utf-8")
+    raw = _raw(page)
+    assert raw["meta"]["format"] == FORMAT
+    assert set(raw) == {"meta", "index", "packs"}  # todo lo demás va comprimido
+    # Solo las rutas de archivo (nombres de los paquetes) quedan legibles; ni los nombres de
+    # funciones ni el código aparecen sin comprimir.
+    assert "FacturacionService.emitir" not in page
+    assert "function emitir" not in page
+    index = unpack(raw["index"])
+    data = unpacked(raw)
+    for sid, sym in index["symbols"].items():
+        assert sym["flow"] == (sid in data["flows"])
+    assert set(index["seq_ids"]) == set(data["sequence"])
+    # Cada paquete tiene solo funciones de su archivo.
+    for path, text in raw["packs"].items():
+        assert all(index["symbols"][sid]["file"] == path for sid in unpack(text)["flows"])

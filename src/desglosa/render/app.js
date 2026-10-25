@@ -7,9 +7,73 @@
 
   const SVG_NS = "http://www.w3.org/2000/svg";
   const DATA = JSON.parse(document.getElementById("desglosa-data").textContent);
-  const SYMBOLS = DATA.symbols || {};
-  const FLOWS = DATA.flows || {};
-  const MAP = DATA.map || null;
+  // Se llenan al abrir el índice comprimido (ver openIndex al final).
+  let SYMBOLS = {};
+  let MAP = null;
+
+  /** Texto base64 url-safe de zlib → objeto JSON (DecompressionStream, sin librerías). */
+  function inflate(text) {
+    if (typeof DecompressionStream === "undefined") return Promise.reject(new Error("navegador-antiguo"));
+    const bin = atob(text.replace(/-/g, "+").replace(/_/g, "/"));
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream("deflate"));
+    return new Response(stream).text().then((json) => JSON.parse(json));
+  }
+
+  const OLD_BROWSER = "Tu navegador no puede abrir los diagramas comprimidos. Usa Chrome, Edge, Firefox o Safari actualizados.";
+
+  // ------------------------------------------------------------------ paquetes por archivo
+  // Los flujos, secuencias y el código de cada archivo vienen comprimidos (zlib + base64)
+  // y se abren solo cuando hacen falta: así un proyecto grande abre rápido.
+  const PACKS = {};
+  const loading = {};
+
+  function hasFlow(sid) {
+    return !!(SYMBOLS[sid] && SYMBOLS[sid].flow);
+  }
+
+  function packOf(sid) {
+    const sym = SYMBOLS[sid];
+    return sym ? PACKS[sym.file] || null : null;
+  }
+
+  function flowOf(sid) {
+    const p = packOf(sid);
+    return p && p.flows ? p.flows[sid] || null : null;
+  }
+
+  function sequenceOf(sid) {
+    const p = packOf(sid);
+    return p && p.sequence ? p.sequence[sid] || null : null;
+  }
+
+  function sourceOf(file) {
+    const p = PACKS[file];
+    return p && typeof p.source === "string" ? p.source : null;
+  }
+
+  function loadPack(file) {
+    if (PACKS[file]) return Promise.resolve(PACKS[file]);
+    if (loading[file]) return loading[file];
+    const text = DATA.packs && DATA.packs[file];
+    if (!text) {
+      PACKS[file] = { flows: {}, sequence: {}, source: null };
+      return Promise.resolve(PACKS[file]);
+    }
+    loading[file] = inflate(text).then(
+      (pack) => {
+        PACKS[file] = pack;
+        delete loading[file];
+        return pack;
+      },
+      (err) => {
+        delete loading[file];
+        throw err;
+      },
+    );
+    return loading[file];
+  }
   const LINE_H = 16;
   const $ = (id) => document.getElementById(id);
 
@@ -156,6 +220,20 @@
     if (!sameView) state.selectedNode = null;
 
     renderToolbar();
+    // Vistas de una función: primero se abre el paquete de su archivo.
+    const file = ["flujo", "secuencia", "codigo"].includes(view) && SYMBOLS[id] ? SYMBOLS[id].file : null;
+    if (file && !PACKS[file]) {
+      renderCrumbs();
+      showEmpty("Cargando " + file + "…");
+      const want = location.hash;
+      loadPack(file).then(
+        () => { if (location.hash === want) { state.view = null; render(); } },
+        (err) => showEmpty(err && err.message === "navegador-antiguo"
+          ? OLD_BROWSER
+          : "No se pudo abrir los datos de " + file + "."),
+      );
+      return;
+    }
     if (view === "mapa") renderMap(id);
     else if (view === "flujo") renderFlow(id);
     else if (view === "secuencia") renderSequence(id);
@@ -621,7 +699,7 @@
       hidePanel();
       return;
     }
-    const flow = FLOWS[sid];
+    const flow = flowOf(sid);
     const infoParts = [h("code", null, sym.signature), "  ·  " + sym.file + ":" + sym.line_start];
     if (sym.doc) infoParts.push(h("div", { class: "doc" }, sym.doc));
     if (flow && flow.truncated) infoParts.push(h("div", null, "Función muy grande: algunos bloques se muestran colapsados (clic para ver el código)."));
@@ -699,7 +777,7 @@
 
   function selectNode(sid, nid, scroll) {
     state.selectedNode = nid;
-    const flow = FLOWS[sid];
+    const flow = flowOf(sid);
     if (!flow || !flow.nodes[nid]) return;
     document.querySelectorAll(".nodo.seleccionado").forEach((n) => n.classList.remove("seleccionado"));
     const el = document.querySelector('.nodo[data-id="' + nid + '"]');
@@ -752,7 +830,7 @@
     const outgoing = linkList("Llama a", DATA.calls_out && DATA.calls_out[sid]);
     const impl = DATA.impl && DATA.impl[sid] ? linkList("Posibles implementaciones", DATA.impl[sid].map((i) => [i, "probable"])) : null;
     appendAll(panel, [incoming, outgoing, impl]);
-    const source = DATA.sources ? DATA.sources[sym.file] : null;
+    const source = sourceOf(sym.file);
     const pre = h("div", { class: "codigo", id: "codigo", role: "region", "aria-label": "Código fuente" });
     if (source === null || source === undefined) {
       pre.appendChild(h("div", { class: "vacio" }, "El código fuente no se incluyó (opción --no-source)."));
@@ -792,7 +870,7 @@
     renderPanel(sid);
     const lienzo = $("lienzo");
     clear(lienzo);
-    const source = DATA.sources ? DATA.sources[sym.file] : null;
+    const source = sourceOf(sym.file);
     if (source === null || source === undefined) { showEmpty("El código fuente no se incluyó (opción --no-source)."); return; }
     const pre = h("div", { class: "codigo", style: "position:absolute;inset:0;" });
     source.split("\n").slice(sym.line_start - 1, sym.line_end).forEach((ln, i) => {
@@ -808,7 +886,7 @@
     if (!MAP) {
       renderInfo([]);
       hidePanel();
-      const first = Object.keys(FLOWS)[0];
+      const first = Object.keys(SYMBOLS).find(hasFlow);
       if (first) { go("flujo", first); return; }
       showEmpty("No hay nada que mostrar.");
       return;
@@ -910,7 +988,7 @@
     if (!sym) { showEmpty("No se encontró la función."); return; }
     renderInfo([h("code", null, sym.signature), "  ·  " + sym.file + ":" + sym.line_start]);
     renderPanel(sid);
-    const seq = DATA.sequence && DATA.sequence[sid];
+    const seq = sequenceOf(sid);
     if (!seq) { showEmpty("No hay diagrama de secuencia para esta función (no llama a otras funciones del proyecto)."); return; }
     if (seq.layout_all) {
       const btn = h("button", { class: "boton", type: "button", "aria-pressed": state.showExternal ? "true" : "false", onclick: () => { state.showExternal = !state.showExternal; state.keepTransform = false; renderSequence(sid); } },
@@ -945,7 +1023,7 @@
       g.appendChild(s("path", { class: cls, d, "marker-end": "url(#punta)" }));
       const tx = self ? x1 + 40 : Math.min(x1, x2) + 6;
       const t = s("text", { x: tx, y: y - 6, class: "msg" + (kind === "retorno" ? " retorno" : "") }, label);
-      if (target && SYMBOLS[target] && FLOWS[target]) {
+      if (target && hasFlow(target)) {
         t.classList.add("enlace");
         t.addEventListener("click", () => openSub(target));
         t.appendChild(s("title", null, "Abrir el flujo de " + SYMBOLS[target].qualname));
@@ -1121,9 +1199,22 @@
 
   // ------------------------------------------------------------------ inicio
 
+  function openIndex() {
+    if (!DATA.index) return Promise.resolve(DATA);
+    return inflate(DATA.index).then((index) => Object.assign(DATA, index));
+  }
+
   installCanvasEvents();
   installKeys();
-  window.addEventListener("hashchange", render);
-  window.addEventListener("resize", () => { if (!state.keepTransform) { fit(); apply(); } });
-  render();
+  showEmpty("Abriendo " + ((DATA.meta && DATA.meta.name) || "el proyecto") + "…");
+  openIndex().then(
+    () => {
+      SYMBOLS = DATA.symbols || {};
+      MAP = DATA.map || null;
+      window.addEventListener("hashchange", render);
+      window.addEventListener("resize", () => { if (!state.keepTransform) { fit(); apply(); } });
+      render();
+    },
+    (err) => showEmpty(err && err.message === "navegador-antiguo" ? OLD_BROWSER : "No se pudieron abrir los datos del proyecto."),
+  );
 })();

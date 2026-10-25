@@ -203,11 +203,19 @@ class MapBuilder:
             links.extend((self._element(c.caller_id), t, c.confidence, 0) for t in targets)
         for path, target in routes or []:
             links.append((self.file_element.get(path), target, "exacta", 1))
+        paths: dict[str, list[str]] = {}  # el camino de cada elemento se repite mucho
+
+        def path_of(el: str) -> list[str]:
+            p = paths.get(el)
+            if p is None:
+                p = paths[el] = self._path(el)
+            return p
+
         for a, t, conf, is_route in links:
             b = self._element(t)
             if a is None or b is None or a == b:
                 continue
-            pa, pb = self._path(a), self._path(b)
+            pa, pb = path_of(a), path_of(b)
             i = 0
             while i < min(len(pa), len(pb)) and pa[i] == pb[i]:
                 i += 1

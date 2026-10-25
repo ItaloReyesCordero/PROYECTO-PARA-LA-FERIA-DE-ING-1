@@ -185,10 +185,20 @@ class Project:
 # --------------------------------------------------------------------------- serialización
 
 
+_SIMPLE = (str, int, float, bool, type(None))
+_FIELD_NAMES: dict[type, tuple[str, ...]] = {}
+
+
 def to_jsonable(obj: Any) -> Any:
     """Convierte dataclasses/tuplas a estructuras JSON (dict/list) con orden estable."""
-    if dataclasses.is_dataclass(obj) and not isinstance(obj, type):
-        return {f.name: to_jsonable(getattr(obj, f.name)) for f in dataclasses.fields(obj)}
+    if type(obj) in _SIMPLE:
+        return obj
+    cls = type(obj)
+    names = _FIELD_NAMES.get(cls)
+    if names is None and dataclasses.is_dataclass(obj) and not isinstance(obj, type):
+        names = _FIELD_NAMES[cls] = tuple(f.name for f in dataclasses.fields(obj))
+    if names is not None:
+        return {name: to_jsonable(getattr(obj, name)) for name in names}
     if isinstance(obj, (list, tuple)):
         return [to_jsonable(x) for x in obj]
     if isinstance(obj, dict):

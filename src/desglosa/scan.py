@@ -136,6 +136,7 @@ class ScanEntry:
     abs_path: Path
     lang: str
     size: int = 0  # bytes (para decidir si vale la pena usar varios procesos)
+    sha1: str = ""  # hash del contenido (clave de la caché)
 
 
 @dataclass
@@ -235,7 +236,7 @@ def _consider_file(
                 _make_skipped(rel, lang, data, "minificado", lines=count_lines(text))
             )
             return
-    result.entries.append(ScanEntry(rel, abs_path, lang, len(data)))
+    result.entries.append(ScanEntry(rel, abs_path, lang, len(data), hashlib.sha1(data).hexdigest()))
 
 
 def scan(target: Path, options: ScanOptions | None = None) -> ScanResult:

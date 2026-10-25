@@ -18,9 +18,31 @@ from desglosa.ir import FlowGraph
 from desglosa.layout.flow import FlowLayout
 
 
+_ATOMS = (str, int, bool, type(None))
+
+
 def _compact(obj: Any) -> Any:
-    """`184.0` → `184`: las coordenadas enteras ocupan menos en el HTML."""
-    if isinstance(obj, float):
+    """`184.0` → `184`: las coordenadas enteras ocupan menos en el HTML.
+
+    Los valores simples se resuelven en línea, sin una llamada por valor: con 200 000
+    líneas de código hay ~9 millones de números y la versión recursiva tardaba 9 s.
+    """
+    t = type(obj)
+    if t is float:
+        return int(obj) if obj.is_integer() else obj
+    if t is dict:
+        return {
+            k: (int(v) if v.is_integer() else v) if type(v) is float
+            else v if type(v) in _ATOMS else _compact(v)
+            for k, v in obj.items()
+        }
+    if t is list or t is tuple:
+        return [
+            (int(v) if v.is_integer() else v) if type(v) is float
+            else v if type(v) in _ATOMS else _compact(v)
+            for v in obj
+        ]
+    if isinstance(obj, float):  # subclases raras
         return int(obj) if obj.is_integer() else obj
     if isinstance(obj, dict):
         return {k: _compact(v) for k, v in obj.items()}

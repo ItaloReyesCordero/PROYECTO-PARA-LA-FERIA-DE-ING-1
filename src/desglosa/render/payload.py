@@ -10,7 +10,7 @@ from desglosa.ir import CONFIDENCE_RANK, Symbol
 from desglosa.layout.er import layout_er
 from desglosa.layout.sequence import layout_sequence
 from desglosa.pipeline import Analysis
-from desglosa.render.html import flow_payload
+from desglosa.render.packs import FORMAT, pack, pack_index
 from desglosa.scan import decode_bytes
 from desglosa.sequence import SequenceIndex, build_sequence, without_externals
 
@@ -98,8 +98,9 @@ def reachable(analysis: Analysis, start: str, limit: int = 60) -> list[str]:
     return order
 
 
-def symbol_payload(sym: Symbol, metrics: dict) -> dict:
+def symbol_payload(sym: Symbol, metrics: dict, has_flow: bool = False) -> dict:
     return {
+        "flow": has_flow,  # el visor sabe si hay flujo sin abrir el paquete del archivo
         "kind": sym.kind,
         "name": sym.name,
         "qualname": sym.qualname,
@@ -129,6 +130,11 @@ def build_payload(
     outgoing, incoming = call_maps(analysis)
     impl = implementations(analysis)
     wanted = set(only) if only is not None else None
+    drawn = {
+        sid
+        for sid, f in analysis.flows.items()
+        if (wanted is None or sid in wanted) and f.graph.nodes
+    }
     symbols: dict[str, dict] = {}
     for sym in project.symbols:
         if wanted is not None and sym.id not in wanted:
@@ -139,7 +145,7 @@ def build_payload(
             "calls_in": len(incoming.get(sym.id, {})),
             "calls_out": len(outgoing.get(sym.id, {})),
         }
-        symbols[sym.id] = symbol_payload(sym, metrics)
+        symbols[sym.id] = symbol_payload(sym, metrics, sym.id in drawn)
     # En modo parcial (comando flow) también se incluyen los destinos mencionados.
     if wanted is not None:
         by_id = {s.id: s for s in project.symbols}
@@ -151,11 +157,7 @@ def build_payload(
                     symbols[ref] = symbol_payload(
                         by_id[ref], {"cc": None, "calls_in": 0, "calls_out": 0}
                     )
-    flows = {
-        sid: flow_payload(f.graph, f.layout)
-        for sid, f in analysis.flows.items()
-        if (wanted is None or sid in wanted) and f.graph.nodes
-    }
+    flows = {sid: analysis.flows[sid].payload() for sid in drawn}
     sources: dict[str, str] = {}
     if include_source:
         files_with_symbols = {s["file"] for s in symbols.values() if s["kind"] != "module"}
@@ -179,29 +181,48 @@ def build_payload(
     for acc in project.table_access:
         if acc.symbol_id in symbols:
             tables_of[acc.symbol_id].append([acc.table, acc.mode])
+    sequences = sequence_payload(analysis, symbols, routes, depth)
     payload = {
         "meta": {
             "name": project.root_name,
             "version": __version__,
             "start": start or "#/mapa",
             "generator": "Desglosa",
+            "format": FORMAT,
+            "sources": include_source,
         },
         "symbols": symbols,
         "files": files,
-        "flows": flows,
         "calls_out": table(outgoing),
         "calls_in": table(incoming),
         "impl": {k: v for k, v in sorted(impl.items()) if k in symbols},
-        "sources": sources,
         "map": map_data,
         "routes": {k: v for k, v in sorted(routes.items()) if k in symbols},
         "tables_of": dict(sorted(tables_of.items())),
-        "sequence": sequence_payload(analysis, symbols, routes, depth),
+        "seq_ids": sorted(sequences),
         "er": er_payload(analysis),
+        "packs": build_packs(symbols, flows, sequences, sources),
     }
     if extra:
         payload.update(extra)
-    return payload
+    return pack_index(payload)
+
+
+def build_packs(
+    symbols: dict[str, dict],
+    flows: dict[str, dict],
+    sequences: dict[str, dict],
+    sources: dict[str, str],
+) -> dict[str, str]:
+    """Un paquete comprimido por archivo: sus flujos, sus secuencias y su código."""
+    by_file: dict[str, dict] = defaultdict(lambda: {"flows": {}, "sequence": {}, "source": None})
+    for sid, flow in flows.items():
+        by_file[symbols[sid]["file"]]["flows"][sid] = flow
+    for sid, seq in sequences.items():
+        by_file[symbols[sid]["file"]]["sequence"][sid] = seq
+    for path, text in sources.items():
+        by_file[path]["source"] = text
+    return {path: pack(content) for path, content in sorted(by_file.items())}
 
 
 def _sequence_layout(layout) -> dict:

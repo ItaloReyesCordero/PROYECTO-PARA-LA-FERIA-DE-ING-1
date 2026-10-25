@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import os
+import shutil
+import tempfile
 from pathlib import Path
 
 import pytest
@@ -9,6 +12,20 @@ import pytest
 TESTS_DIR = Path(__file__).parent
 FIXTURES = TESTS_DIR / "fixtures"
 GOLDEN = TESTS_DIR / "golden"
+
+_CACHE_DIR: str | None = None
+
+
+def pytest_configure(config: pytest.Config) -> None:
+    # Los tests del CLI usan la caché: que sea una carpeta temporal, no la del usuario.
+    global _CACHE_DIR
+    _CACHE_DIR = tempfile.mkdtemp(prefix="desglosa-cache-")
+    os.environ["DESGLOSA_CACHE_DIR"] = _CACHE_DIR
+
+
+def pytest_unconfigure(config: pytest.Config) -> None:
+    if _CACHE_DIR:
+        shutil.rmtree(_CACHE_DIR, ignore_errors=True)
 
 
 def pytest_addoption(parser: pytest.Parser) -> None:

@@ -19,6 +19,7 @@ from desglosa.flow import CallInfo, SSeq, build_flow
 from desglosa.ir import Call, FlowGraph, Symbol
 from desglosa.langs.spec import Src
 from desglosa.layout.flow import FlowLayout, layout_flow
+from desglosa.render.html import flow_payload
 from desglosa.scan import decode_bytes, grammar_for
 
 
@@ -36,9 +37,18 @@ class FlowTask:
 @dataclass
 class FlowOutput:
     graph: FlowGraph
-    layout: FlowLayout
+    layout: FlowLayout | None  # None si el flujo salió de la caché (ahí basta `view`)
     warnings: list[str] = field(default_factory=list)
     struct: SSeq | None = None
+    view: dict | None = None  # el flujo ya en el formato del HTML
+
+    def payload(self) -> dict:
+        """El flujo listo para el HTML (se calcula una vez y se reutiliza)."""
+        if self.view is None:
+            if self.layout is None:
+                raise ValueError("flujo sin layout ni vista")
+            self.view = flow_payload(self.graph, self.layout)
+        return self.view
 
 
 def _function_nodes(root: Node, types: set[str]) -> dict[tuple[int, int], list[Node]]:
@@ -140,19 +150,51 @@ def make_tasks(
 def run_tasks(
     tasks: list[FlowTask], jobs: int, pool: ProcessPoolExecutor | None = None
 ) -> list[FlowOutput]:
+    return [o for g in run_task_groups(tasks, jobs, pool) for o in g]
+
+
+def flows_job(task: FlowTask, cache_file: str | None = None) -> list[FlowOutput]:
+    """Función de trabajo: flujos de un archivo y, si se pide, su entrada de caché.
+
+    Con caché, cada flujo vuelve ya convertido al formato del HTML (`view`) y sin el layout
+    en objetos: así se escribe la caché en paralelo y se envía menos entre procesos.
+    """
+    group = build_file_flows(task)
+    if cache_file is None:
+        return group
+    from desglosa.cache import write_entry
+    from desglosa.ir import to_jsonable
+
+    for out in group:
+        out.payload()
+        out.layout = None
+        out.struct = None
+    items = [{"graph": to_jsonable(o.graph), "view": o.view, "warnings": o.warnings} for o in group]
+    write_entry(cache_file, {"items": items}, plain=True)
+    return group
+
+
+def run_task_groups(
+    tasks: list[FlowTask],
+    jobs: int,
+    pool: ProcessPoolExecutor | None = None,
+    cache_files: list[str | None] | None = None,
+) -> list[list[FlowOutput]]:
+    """Flujos por archivo, en el mismo orden que `tasks`."""
+    files = cache_files or [None] * len(tasks)
     if jobs <= 1 or len(tasks) < 2:
-        groups = [build_file_flows(t) for t in tasks]
+        groups = [flows_job(t, f) for t, f in zip(tasks, files, strict=True)]
     else:
         own = pool is None
         executor = pool or ProcessPoolExecutor(max_workers=jobs)
         try:
             groups = list(
-                executor.map(build_file_flows, tasks, chunksize=max(1, len(tasks) // (jobs * 4)))
+                executor.map(flows_job, tasks, files, chunksize=max(1, len(tasks) // (jobs * 4)))
             )
         finally:
             if own:
                 executor.shutdown()
-    return [o for g in groups for o in g]
+    return groups
 
 
 def cyclomatic(graph: FlowGraph) -> int:
