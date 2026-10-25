@@ -17,7 +17,9 @@ from desglosa.ir import Note
 
 TAGS = ("TODO", "FIXME", "HACK", "XXX", "BUG", "NOTE", "WHY")
 _NOTE = re.compile(
-    r"(?:#|//|/\*|^\s*\*|--|<!--)[^\n]*?\b(" + "|".join(TAGS) + r")\b\s*(?:\([^)]*\))?\s*[:\-]?\s*(.*)"
+    r"(?:#|//|/\*|^\s*\*|--|<!--)[^\n]*?"  # un marcador de comentario antes
+    r"\b(" + "|".join(TAGS) + r")\b"  # la etiqueta, en mayúsculas
+    r"\s*(?:\([^)]*\))?\s*[:\-]?\s*(.*)"  # autor opcional "(italo)", ":" o "-", texto
 )
 MAX_TEXT = 160
 
