@@ -23,8 +23,15 @@ FORMAT = 2  # versión del formato del payload (1 = todo en un solo JSON)
 
 
 def pack(obj: Any) -> str:
-    text = json.dumps(_compact(obj), sort_keys=True, ensure_ascii=False, separators=(",", ":"))
+    # Sin `_compact`: con zlib, quitar los ".0" ahorra solo un 2 % (medido con 200 000
+    # líneas) y en Django costaba 44 s. zlib ya comprime lo repetido.
+    text = json.dumps(obj, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
     return base64.urlsafe_b64encode(zlib.compress(text.encode("utf-8"), 9)).decode("ascii")
+
+
+def pack_compact(obj: Any) -> str:
+    """Como `pack`, compactando antes los números (para el índice, que es pequeño)."""
+    return pack(_compact(obj))
 
 
 def unpack(text: str) -> Any:
@@ -40,7 +47,7 @@ INDEX_KEYS = (
 def pack_index(payload: dict) -> dict:
     """Comprime también el índice (símbolos, mapa…): queda `meta`, `index` y `packs`."""
     out = {k: v for k, v in payload.items() if k not in INDEX_KEYS}
-    out["index"] = pack({k: payload[k] for k in INDEX_KEYS if k in payload})
+    out["index"] = pack_compact({k: payload[k] for k in INDEX_KEYS if k in payload})
     return out
 
 

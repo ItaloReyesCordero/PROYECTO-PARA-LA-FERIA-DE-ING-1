@@ -83,6 +83,40 @@ el resolvedor recorría todos los archivos por cada import (ahora usa índices c
 una vez) y cada diagrama de secuencia volvía a indexar todas las llamadas del proyecto
 (ahora comparten un `SequenceIndex`).
 
+Las secuencias se calculan en un solo proceso **a propósito**: repartirlas entre 8 fue el
+doble de lento en Django, porque enviar el proyecto (58 MB) a cada proceso costaba más
+que el cálculo.
+
+## Caché incremental (`cache.py`)
+
+- Clave de la extracción: ruta + lenguaje + hash del contenido + huella del código de
+  Desglosa. Clave de los flujos: todo lo que los define (funciones del archivo, cómo se
+  resolvió cada llamada, opciones de dibujo y contenido).
+- Se guarda en **JSON comprimido, nunca `pickle`**: un archivo de caché manipulado no
+  puede ejecutar código, y uno dañado se ignora. Vive en la carpeta de caché del usuario,
+  una subcarpeta por proyecto; al terminar se borran las entradas que ya no se usaron.
+- La escriben los propios procesos de trabajo (en paralelo) y los flujos se guardan ya
+  en el formato del HTML, así que leerlos no exige reconstruir objetos.
+- Para leer rápido, cada tipo de dato tiene un decodificador armado una sola vez: leer
+  las anotaciones de tipo en cada objeto hacía que la caché fuera más lenta que analizar.
+
+## El HTML por dentro (`render/packs.py`)
+
+```
+<script type="application/json" id="desglosa-data">
+  { "meta": {…},            ← nombre, versión, vista inicial (legible)
+    "index": "eNrt…",        ← símbolos, mapa, llamadas, ER (comprimido)
+    "packs": {               ← un paquete comprimido por archivo de código:
+      "app/Models/Factura.php": "eNrt…",   flujos + secuencias + código fuente
+      … } }
+</script>
+```
+
+Cada paquete es JSON → zlib (nivel 9) → base64 "url-safe". Al abrir, el visor
+descomprime el índice (Django queda listo en 1,8 s) y cada paquete recién cuando se abre
+una función de ese archivo (~50 ms), con `DecompressionStream`, que viene en los navegadores
+actuales. No usa librerías ni red, y funciona con `file://`.
+
 ## Flujo de datos del visor
 
 ```mermaid

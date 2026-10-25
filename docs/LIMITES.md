@@ -14,6 +14,20 @@ que conviene conocer (y explicar en la feria) en vez de esconder.
 - En C/C++, una función se considera "importada" si el archivo incluye un `.h` con el
   mismo nombre base que el `.c` donde está definida (`pago.h` ↔ `pago.c`).
 
+- **Llamadas con muchos destinos posibles**: en frameworks grandes un nombre como
+  `with()` o `create()` existe en decenas de clases. Si una llamada tiene más de 4
+  destinos posibles, no se cuenta como llamada a ninguno (ni en el reporte, ni en el
+  mapa, ni en la secuencia, donde aparece como "N posibles"). Esas funciones tampoco se
+  marcan como "nunca llamadas".
+- **JavaScript sin clases** (estilo Express: `app.set = function set() {…}`): una llamada
+  `this.set()` se une a la función `set` del mismo archivo con confianza "probable".
+
+## Mapa
+- En un nivel muy conectado (más de 1,5 relaciones por elemento) se dibuja solo el
+  esqueleto de relaciones más fuertes, y el visor dice cuántas se ocultaron.
+- Una flecha del mapa agrupa muchas llamadas y lleva la **peor** confianza de todas
+  (SPEC §6.4): basta una llamada ambigua para que la flecha se vea punteada.
+
 ## Diagramas de flujo
 - **Macros y `#ifdef`** de C/C++/Rust no se expanden: se dibuja el código tal como está.
 - **Control de flujo dentro de expresiones** (ternarios `a ? b : c`, `&&`/`||` en
@@ -54,9 +68,12 @@ que conviene conocer (y explicar en la feria) en vez de esconder.
 - No hay exportación a Mermaid (RF-18, prioridad opcional).
 
 ## Tamaño del HTML
-- El HTML lleva todos los diagramas ya calculados: pesa unas diez veces el tamaño del
-  código analizado. Con más de 20 MB el navegador tarda en abrirlo; conviene analizar una
-  parte del proyecto (`--lang`, `--ignore` o una subcarpeta).
+- El HTML lleva todos los diagramas ya calculados, comprimidos: unos 52 MB para Laravel
+  (581 000 líneas) y 69 MB para Django (530 000). Abre en 1–2 s porque cada archivo se
+  descomprime solo al abrirlo, pero un archivo así cuesta compartirlo por correo.
+  Desglosa avisa a partir de 100 MB.
+- Necesita un navegador actual (Chrome, Edge, Firefox o Safari de los últimos años):
+  usa `DecompressionStream`, que los navegadores muy antiguos no tienen.
 
 ## Errores de sintaxis
 - Los archivos con errores se analizan igual y se cuenta cuántos errores tienen.

@@ -1,5 +1,20 @@
 # Cambios
 
+## [Sin publicar]
+
+### Bloque 1 — Proyectos grandes
+- Probado con proyectos reales: Laravel (581 000 líneas, 72 s), Django (530 000 líneas,
+  90 s), Express y Spring Petclinic.
+- HTML con índice y paquetes por archivo comprimidos; el visor los abre bajo demanda
+  (Django abre en 1,8 s y cada función en ~50 ms).
+- Caché incremental en JSON (`--no-cache`, `--cache-dir`).
+- Llamadas con más de 4 destinos posibles no se cuentan ni se dibujan (el reporte decía
+  que `Facade.expects` era la función más llamada de Laravel).
+- JavaScript sin clases: `this.metodo()` se une a la función del mismo archivo.
+- Mapa: grupos "Otros" alfabéticos y parejos (antes, cadenas de 14 "Otros") y esqueleto
+  de relaciones más fuertes en niveles muy conectados.
+- Más rápido: resolvedor, `to_jsonable`, layout de secuencias y del mapa.
+
 ## [0.1.0] — 2026-10-25
 
 ### Fase 6 — Pulido y publicación

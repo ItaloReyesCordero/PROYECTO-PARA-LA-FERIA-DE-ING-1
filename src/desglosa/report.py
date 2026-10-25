@@ -11,7 +11,7 @@ from collections import Counter, defaultdict
 
 from desglosa import __version__
 from desglosa.flows_stage import cyclomatic
-from desglosa.ir import CONFIDENCES, Symbol
+from desglosa.ir import CONFIDENCES, Symbol, call_targets
 from desglosa.pipeline import Analysis
 
 FUNC_KINDS = ("function", "method")
@@ -49,25 +49,29 @@ def _table(header: tuple[str, ...], rows: list[tuple[str, ...]]) -> list[str]:
     return out
 
 
-def _call_graph(analysis: Analysis) -> tuple[dict[str, set[str]], Counter, dict[str, set[str]]]:
-    """Aristas función → función, llamadas por destino y quién llama a quién."""
+def _call_graph(
+    analysis: Analysis,
+) -> tuple[dict[str, set[str]], Counter, dict[str, set[str]], set[str]]:
+    """Aristas función → función, llamadas por destino, quién llama a quién y qué
+    funciones *quizá* se llaman (destinos de llamadas demasiado ambiguas)."""
     by_id = {s.id: s for s in analysis.project.symbols}
     edges: dict[str, set[str]] = defaultdict(set)
     sites: Counter = Counter()
     callers: dict[str, set[str]] = defaultdict(set)
+    maybe: set[str] = set()
     for c in analysis.project.calls:
         caller = by_id.get(c.caller_id)
         if caller is None or caller.kind not in FUNC_KINDS:
             continue
-        targets = [c.resolved_id] if c.resolved_id else list(c.candidates)
-        for t in targets:
-            target = by_id.get(t) if t else None
+        maybe.update(c.candidates)
+        for t in call_targets(c):
+            target = by_id.get(t)
             if target is None or target.kind not in FUNC_KINDS:
                 continue
             edges[caller.id].add(target.id)
             sites[target.id] += 1
             callers[target.id].add(caller.id)
-    return edges, sites, callers
+    return edges, sites, callers, maybe
 
 
 def _cycles(edges: dict[str, set[str]]) -> list[list[str]]:
@@ -127,7 +131,7 @@ def build_report(analysis: Analysis, top: int = 10) -> str:
         (s for s in project.symbols if s.kind in FUNC_KINDS),
         key=lambda s: (s.file, s.line_start, s.qualname),
     )
-    edges, sites, callers = _call_graph(analysis)
+    edges, sites, callers, maybe = _call_graph(analysis)
     out = [f"# Reporte de Desglosa: {project.root_name}", ""]
     out.append(
         f"Generado por Desglosa {__version__} con análisis estático: el código no se ejecutó."
@@ -198,6 +202,7 @@ def build_report(analysis: Analysis, top: int = 10) -> str:
         s
         for s in funcs
         if not sites.get(s.id)
+        and s.id not in maybe
         and s.id not in declarations
         and not s.is_entry
         and s.name not in IMPLICIT_NAMES

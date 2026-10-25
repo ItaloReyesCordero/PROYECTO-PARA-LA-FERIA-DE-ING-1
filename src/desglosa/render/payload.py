@@ -12,7 +12,12 @@ from desglosa.layout.sequence import layout_sequence
 from desglosa.pipeline import Analysis
 from desglosa.render.packs import FORMAT, pack, pack_index
 from desglosa.scan import decode_bytes
-from desglosa.sequence import SequenceIndex, build_sequence, without_externals
+from desglosa.sequence import (
+    SequenceIndex,
+    build_sequence,
+    returning_functions,
+    without_externals,
+)
 
 FUNC_KINDS = ("function", "method")
 
@@ -240,7 +245,11 @@ def _sequence_layout(layout) -> dict:
 def sequence_payload(
     analysis: Analysis, symbols: dict, routes: dict[str, str], depth: int = 4
 ) -> dict:
-    """Diagrama de secuencia de cada función que llama a otras del proyecto."""
+    """Diagrama de secuencia de cada función que llama a otras del proyecto.
+
+    Va en un solo proceso a propósito: repartirlo entre 8 procesos fue 2× más lento en
+    Django (enviar el proyecto, 58 MB, a cada proceso costaba más que el cálculo).
+    """
     project = analysis.project
     by_id = {s.id: s for s in project.symbols}
     callers: set[str] = set()
@@ -248,16 +257,19 @@ def sequence_payload(
         target = by_id.get(c.resolved_id) if c.resolved_id else None
         if (target is not None and target.kind in FUNC_KINDS) or c.candidates:
             callers.add(c.caller_id)
-    flows = {k: v.graph for k, v in analysis.flows.items()}
-    new_calls = analysis.new_calls
+    wanted = [
+        sid
+        for sid in sorted(callers)
+        if sid in by_id and by_id[sid].kind in FUNC_KINDS and sid in symbols
+    ]
     index = SequenceIndex.of(project)
+    returns = returning_functions({k: v.graph for k, v in analysis.flows.items()})
+    new_calls = analysis.new_calls
     out: dict[str, dict] = {}
-    for sid in sorted(callers):
-        sym = by_id.get(sid)
-        if sym is None or sym.kind not in FUNC_KINDS or sid not in symbols:
-            continue
+    for sid in wanted:
         diagram = build_sequence(
-            project, flows, sid, depth=depth, routes=routes, new_calls=new_calls, index=index
+            project, {}, sid, depth=depth, routes=routes, new_calls=new_calls, index=index,
+            returns=returns,
         )
         entry = {"layout": _sequence_layout(layout_sequence(without_externals(diagram)))}
         if any(m.external for m in diagram.messages):

@@ -452,6 +452,16 @@ class Resolver:
         r = recv.strip()
         if r in spec.self_names:
             if cls is None:
+                if lang in ("javascript", "typescript"):
+                    # JS sin clases (Express y muchas librerías de Node):
+                    #   app.set = function set() {…};  app.init = function () { this.set() }
+                    # `this.set()` va casi seguro a la función `set` del mismo archivo.
+                    same_file = [
+                        f
+                        for f in self.funcs_by_file.get(file, {}).get(name, [])
+                        if "." not in f.qualname
+                    ]
+                    return self._pick(same_file, "probable")
                 return _EXTERNAL
             found = self.lookup_method(cls.id, name)
             if found:

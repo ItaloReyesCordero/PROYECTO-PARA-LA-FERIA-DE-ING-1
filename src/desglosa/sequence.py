@@ -16,14 +16,14 @@ import posixpath
 from collections import defaultdict
 from dataclasses import dataclass, replace
 
-from desglosa.ir import Call, ControlCtx, FlowGraph, Project, Symbol
+from desglosa.ir import MAX_ALTERNATIVES, Call, ControlCtx, FlowGraph, Project, Symbol
 
 FUNC_KINDS = ("function", "method")
 ACTOR = "actor"
 EXTERNAL = "externo"
 SEVERAL = "varios"
-# Con más destinos posibles que esto, un alt sería ilegible (y enorme): se resume.
-MAX_ALTERNATIVES = 4
+# Con más destinos posibles que MAX_ALTERNATIVES (ver ir.py), un alt sería ilegible y
+# enorme: se resume en un solo mensaje "N posibles".
 CONSTRUCTORS = frozenset({"__construct", "__init__", "constructor", "init", "initialize"})
 
 
@@ -103,11 +103,14 @@ class SequenceBuilder:
         max_messages: int = 200,
         new_calls: set[str] | frozenset[str] = frozenset(),
         index: SequenceIndex | None = None,
+        returns: set[str] | frozenset[str] | None = None,
     ) -> None:
         index = index or SequenceIndex.of(project)
         self.new_calls = new_calls  # ids de llamadas `new X()` (para dibujar "crear")
         self.by_id: dict[str, Symbol] = index.by_id
         self.flows = flows
+        # Funciones que devuelven algo (si se da, no hace falta pasar los flujos).
+        self.returns = returns
         self.routes = routes or {}
         self.depth = depth
         self.max_messages = max_messages
@@ -117,6 +120,11 @@ class SequenceBuilder:
         self.messages: list[Message] = []
         self.fragments: dict[str, Fragment] = {}
         self.truncated = False
+
+    def _returns(self, sid: str) -> bool:
+        if self.returns is not None:
+            return sid in self.returns
+        return _returns_value(self.flows.get(sid))
 
     # ------------------------------------------------------------------ participantes
 
@@ -170,7 +178,7 @@ class SequenceBuilder:
             self._emit(Message("1", ACTOR, dst, label, "llamada", entry.id, "exacta", ()))
             prefix = "1"
             self._visit(entry, prefix, self.depth, [entry.id], start_frags)
-            if _returns_value(self.flows.get(entry.id)):
+            if self._returns(entry.id):
                 self._emit(Message("", dst, ACTOR, "retorna", "retorno", None, "exacta", ()))
         else:
             self.participant_of(entry)
@@ -271,7 +279,7 @@ class SequenceBuilder:
             return False
         if depth > 1:
             self._visit(target, number, depth - 1, [*stack, target.id], chain)
-        if _returns_value(self.flows.get(target.id)):
+        if self._returns(target.id):
             return self._emit(Message("", dst, src, "retorna", "retorno", None, "exacta", chain))
         return True
 
@@ -334,6 +342,14 @@ def build_sequence(
     routes: dict[str, str] | None = None,
     new_calls: set[str] | frozenset[str] = frozenset(),
     index: SequenceIndex | None = None,
+    returns: set[str] | frozenset[str] | None = None,
 ) -> SequenceDiagram:
-    builder = SequenceBuilder(project, flows, routes, depth, new_calls=new_calls, index=index)
+    builder = SequenceBuilder(
+        project, flows, routes, depth, new_calls=new_calls, index=index, returns=returns
+    )
     return builder.build(entry_id)
+
+
+def returning_functions(flows: dict[str, FlowGraph]) -> frozenset[str]:
+    """Ids de las funciones cuyo flujo devuelve un valor (para los mensajes de retorno)."""
+    return frozenset(sid for sid, g in flows.items() if _returns_value(g))

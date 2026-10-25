@@ -220,3 +220,17 @@ def test_many_candidates_are_summarized():
     assert [m.label for m in d.messages] == [f"emitir() — {n} posibles"]
     assert d.participants[-1].label == "Varios posibles"
     assert not d.fragments
+
+
+@needs_grammars
+def test_returns_set_equals_full_flows():
+    """Pasar solo qué funciones devuelven algo da el mismo diagrama que pasar los flujos."""
+    from desglosa.sequence import returning_functions
+
+    a = analyze(LARAVEL)
+    flows = {k: v.graph for k, v in a.flows.items()}
+    returns = returning_functions(flows)
+    for sid in [s.id for s in a.project.symbols if s.kind == "method"]:
+        with_flows = build_sequence(a.project, flows, sid)
+        with_set = build_sequence(a.project, {}, sid, returns=returns)
+        assert as_text(with_flows) == as_text(with_set)

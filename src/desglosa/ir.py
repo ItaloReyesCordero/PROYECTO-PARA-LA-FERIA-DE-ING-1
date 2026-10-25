@@ -35,6 +35,10 @@ FLOW_EDGE_KINDS = ("normal", "retorno_bucle", "excepcion", "salto")
 # Orden de "peor confianza" (para agregar aristas en el mapa).
 CONFIDENCE_RANK = {c: i for i, c in enumerate(CONFIDENCES)}
 
+# Con más destinos posibles que esto, una llamada no informa a cuál va (p. ej. `->with()`
+# en Laravel existe en 20 clases): no se dibuja ni se cuenta como llamada a ninguno.
+MAX_ALTERNATIVES = 4
+
 
 def stable_id(lang: str, path: str, qualname: str, line_start: int) -> str:
     """Id estable: sha1("lang|path|qualname|line")[:12] (SPEC §5)."""
@@ -100,6 +104,16 @@ class Call:
     candidates: tuple[str, ...] = ()
     confidence: str = "externa"
     io_kind: str | None = None
+
+
+def call_targets(call: Call) -> tuple[str, ...]:
+    """Destinos con los que se puede contar: el resuelto, o hasta MAX_ALTERNATIVES
+    candidatos (interfaz o nombre repetido). Con más, ninguno."""
+    if call.resolved_id:
+        return (call.resolved_id,)
+    if len(call.candidates) <= MAX_ALTERNATIVES:
+        return call.candidates
+    return ()
 
 
 @dataclass(frozen=True, slots=True)

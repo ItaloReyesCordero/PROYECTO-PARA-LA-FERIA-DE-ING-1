@@ -321,3 +321,56 @@ uv run desglosa sql examples/laravel-mini -o er.html
 uv run desglosa analyze examples/laravel-mini -o demo.html --report reporte.md
 ```
 Abre `demo.html`, pulsa `?` para ver la ayuda y Alt+clic sobre una carpeta para enfocarla.
+
+## Bloque 1 — Proyectos grandes ✅
+
+**Qué se hizo**
+- **Pruebas con proyectos reales** (descargados de GitHub, solo leídos):
+
+  | Proyecto | Líneas | Análisis | Total | HTML | Abre |
+  |---|---|---|---|---|---|
+  | Spring Petclinic | 4 300 | 1 s | 3 s | 0,3 MB | al instante |
+  | Express | 22 000 | 4 s | 5 s | 0,3 MB | al instante |
+  | Laravel | 581 000 | 32 s | 72 s | 52 MB | 1,4 s |
+  | Django | 530 000 | 35 s | 90 s | 69 MB | 1,8 s |
+
+- **HTML comprimido por partes**: índice y un paquete por archivo (zlib + base64). El
+  visor abre cada paquete al entrar a una función (~50 ms en Django).
+- **Caché incremental** en JSON (nunca `pickle`), escrita en paralelo por los procesos
+  de trabajo. Con un archivo cambiado en 200 000 líneas: de 13 s a ~6 s.
+- **Instalación de una línea** desde GitHub en el README (`uv tool install git+…` o
+  `uvx --from git+…`).
+
+**Qué falló / encontré (y se corrigió)**
+- El reporte de Laravel decía que la función más llamada era `Facade.expects` (3 543
+  llamadas): las llamadas ambiguas (`->with()` existe en 20 clases) se contaban como
+  llamada a cada candidata. Ahora, con más de 4 destinos posibles, no cuentan para
+  ninguno (regla compartida por reporte, mapa y secuencia).
+- En el mapa de Django, 17 carpetas con 145 flechas quedaban al 8 % de tamaño:
+  ilegible. Ahora en niveles densos se dibuja el esqueleto de relaciones más fuertes
+  (árbol de expansión máximo + las siguientes), con aviso de cuántas se ocultan.
+- Las 220 carpetas de `tests/` de Django quedaban en una cadena de 14 "Otros" dentro de
+  "Otros". Ahora se agrupan alfabéticamente en grupos parejos (2 niveles).
+- En Express, 105 llamadas `this.set()` quedaban como externas (JS sin clases). Ahora se
+  unen a la función del mismo archivo como "probable" (49 resueltas).
+- La primera caché era **más lenta** que analizar de nuevo (leer anotaciones de tipo
+  por cada objeto); ahora usa decodificadores armados una vez y guarda los flujos ya en
+  formato HTML.
+- Quitar los ".0" de los números ahorraba solo 2 % una vez comprimido y costaba 44 s en
+  Django: ya no se hace dentro de los paquetes.
+- Repartir las secuencias entre 8 procesos fue **2× más lento** (enviar 58 MB a cada
+  proceso): se dejó en un solo proceso y quedó documentado.
+
+**Decisiones (revísalas)**
+1. Más de 4 destinos posibles = la llamada no se cuenta ni se dibuja (honesto: no dice
+   a dónde va).
+2. Mapa denso → esqueleto de relaciones más fuertes (1,5 por elemento).
+3. **Pendiente de tu decisión:** la SPEC dice que una flecha agrupada lleva la *peor*
+   confianza. En proyectos grandes eso deja casi todas las flechas punteadas (basta una
+   llamada dudosa entre 744). Opciones: (a) mantener la regla, (b) usar la confianza de
+   la mayoría y mostrar el desglose al pasar el mouse.
+
+**Probar**
+```powershell
+uv run desglosa analyze C:\ruta\a\un\proyecto\grande -o grande.html
+```

@@ -903,6 +903,10 @@
     } else if (lay && lay.edges.length) {
       infoParts.push(h("div", { class: "pista" }, "Clic para entrar · Alt+clic (o tecla E) para enfocar · ? ayuda"));
     }
+    if (lay && lay.hidden) {
+      const total = lay.edges.length + lay.hidden;
+      infoParts.push(h("div", { class: "pista" }, "Nivel muy conectado: se dibujan las " + lay.edges.length + " relaciones más fuertes de " + total + "."));
+    }
     renderInfo(infoParts);
     hidePanel();
     if (!lay || !lay.nodes.length) { showEmpty("Este nivel no tiene elementos."); return; }

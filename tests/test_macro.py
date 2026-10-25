@@ -117,3 +117,46 @@ def test_routes_become_map_edges(laravel):
     assert labels.get(("routes/", "app/")) == "3 rutas"
     # Sin pasar las rutas, el archivo de rutas queda suelto (no hace llamadas resueltas).
     assert plain["groups"][plain["root"]]["layout"]["edges"] == []
+
+
+def test_map_skips_calls_with_too_many_candidates():
+    from desglosa.ir import Call, Project, SourceFile, Symbol
+
+    def fn(sid, file):
+        return Symbol(sid, "function", "f" + sid, "f" + sid, file, 1, 3, None, None, "python", "")
+
+    targets = [fn(f"t{i}", f"m{i}/a.py") for i in range(6)]
+    caller = fn("c", "main/x.py")
+    files = tuple(SourceFile(s.file, "python", "x", 3, True, 0) for s in [caller, *targets])
+    many = Call("k", "c", "f", None, 2, 5, candidates=tuple(t.id for t in targets),
+                confidence="ambigua")
+    few = Call("k2", "c", "f", None, 3, 5, candidates=("t0", "t1"), confidence="ambigua")
+    for calls, expected in (((many,), 0), ((few,), 2)):
+        m = build_map(Project("p", files=files, symbols=(caller, *targets), calls=calls))
+        assert len(m["groups"][m["root"]]["layout"]["edges"]) == expected
+
+
+def test_many_children_are_bucketed_not_chained():
+    """220 carpetas: grupos alfabéticos parejos, no una cadena de "Otros" dentro de "Otros"."""
+    from desglosa.ir import Project, SourceFile, Symbol
+
+    files, symbols = [], []
+    for i in range(220):
+        path = f"tests/d{i:03d}/a.py"
+        files.append(SourceFile(path, "python", "x", 3, True, 0))
+        mod = Symbol(f"m{i}", "module", "a", "a", path, 1, 3, None, None, "python", "")
+        fn = Symbol(f"f{i}", "function", f"f{i}", f"f{i}", path, 1, 3, f"m{i}", None, "python", "")
+        symbols += [mod, fn]
+    m = build_map(Project("p", files=tuple(files), symbols=tuple(symbols)))
+    groups = m["groups"]
+    assert all(len(g["layout"]["nodes"]) <= MAX_CHILDREN for g in groups.values())
+    depth_otros = []
+    for i in range(220):
+        el, n = m["owner"][f"f{i}"], 0
+        while el is not None:
+            n += groups[el]["kind"] == "otros"
+            el = groups[el]["parent"]
+        depth_otros.append(n)
+    assert max(depth_otros) <= 3
+    labels = [g["name"] for g in groups.values() if g["kind"] == "otros"]
+    assert any(name.startswith("Otros: d0") for name in labels)

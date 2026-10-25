@@ -16,7 +16,7 @@ import posixpath
 from collections import defaultdict
 from dataclasses import dataclass, field
 
-from desglosa.ir import CONFIDENCE_RANK, Project, Symbol
+from desglosa.ir import CONFIDENCE_RANK, Project, Symbol, call_targets
 from desglosa.layout.layered import LEdge, LNode, layout_layered
 from desglosa.layout.text import CHAR_W
 
@@ -199,7 +199,8 @@ class MapBuilder:
         for c in self.project.calls:
             if c.confidence == "externa":
                 continue
-            targets = [c.resolved_id] if c.resolved_id else list(c.candidates)
+            # Una llamada con muchos destinos posibles no dice a cuál va: no se dibuja.
+            targets = call_targets(c)
             links.extend((self._element(c.caller_id), t, c.confidence, 0) for t in targets)
         for path, target in routes or []:
             links.append((self.file_element.get(path), target, "exacta", 1))
@@ -240,6 +241,15 @@ class MapBuilder:
             self._limit(gid, edges)
 
     def _limit(self, gid: str, edges) -> None:
+        """Más de MAX_CHILDREN hijos: los más conectados quedan a la vista y el resto se
+        agrupa en "Otros".
+
+        - Si lo que sobra cabe en un grupo: un solo "Otros (N)".
+        - Si no: quedan los MAX_CHILDREN // 2 más conectados y el resto se reparte en
+          grupos alfabéticos parejos ("Otros: admin… – auth… (27)"), que a su vez se
+          parten igual. Así 220 carpetas quedan a 2–3 clics, no en una cadena de 14
+          "Otros" dentro de "Otros".
+        """
         g = self.groups[gid]
         if len(g.children) <= MAX_CHILDREN:
             return
@@ -248,25 +258,52 @@ class MapBuilder:
             degree[a] += count + n_routes
             degree[b] += count + n_routes
         ranked = sorted(g.children, key=lambda c: (-degree[c], self._name(c).lower(), c))
-        keep = set(ranked[: MAX_CHILDREN - 1])
-        rest = [c for c in g.children if c not in keep]
-        oid = f"{gid}-otros"
-        other = Group(oid, f"Otros ({len(rest)})", "otros", gid, children=rest)
-        self.groups[oid] = other
-        g.children = [c for c in g.children if c in keep] + [oid]
-        self.owner[oid] = gid
-        for c in rest:
-            self.owner[c] = oid
-            if c in self.groups:
-                self.groups[c].parent = oid
-        old = edges.get(gid, {})
-        new_parent: dict[tuple[str, str], list] = {}
-        inner: dict[tuple[str, str], list] = {}
-        for (a, b), (count, conf, n_routes) in old.items():
-            a2 = oid if a in rest else a
-            b2 = oid if b in rest else b
-            target = inner if (a2 == oid and b2 == oid) else new_parent
-            key = (a, b) if target is inner else (a2, b2)
+        if len(g.children) - (MAX_CHILDREN - 1) <= MAX_CHILDREN:
+            keep = set(ranked[: MAX_CHILDREN - 1])
+            rest = [c for c in g.children if c not in keep]
+            buckets = [rest]
+        else:
+            n_keep = MAX_CHILDREN // 2
+            keep = set(ranked[:n_keep])
+            rest = sorted(
+                (c for c in g.children if c not in keep),
+                key=lambda c: (self._name(c).lower(), c),
+            )
+            n_buckets = MAX_CHILDREN - n_keep
+            size, extra = divmod(len(rest), n_buckets)
+            buckets, start = [], 0
+            for i in range(n_buckets):
+                end = start + size + (1 if i < extra else 0)
+                buckets.append(rest[start:end])
+                start = end
+        container: dict[str, str] = {}
+        new_ids: list[str] = []
+        for i, members in enumerate(buckets):
+            oid = f"{gid}-otros" if len(buckets) == 1 else f"{gid}-otros{i}"
+            if len(buckets) == 1:
+                name = f"Otros ({len(members)})"
+            else:
+                first, last = self._name(members[0]), self._name(members[-1])
+                name = f"Otros: {_short(first)} – {_short(last)} ({len(members)})"
+            self.groups[oid] = Group(oid, name, "otros", gid, children=list(members))
+            self.owner[oid] = gid
+            new_ids.append(oid)
+            for c in members:
+                container[c] = oid
+                self.owner[c] = oid
+                if c in self.groups:
+                    self.groups[c].parent = oid
+        g.children = [c for c in g.children if c in keep] + new_ids
+        # Repartir las aristas: entre elementos de un mismo grupo quedan dentro de él;
+        # el resto sube al padre, sumando conteos y guardando la peor confianza.
+        parent_edges: dict[tuple[str, str], list] = {}
+        inner: dict[str, dict[tuple[str, str], list]] = {oid: {} for oid in new_ids}
+        for (a, b), (count, conf, n_routes) in edges.get(gid, {}).items():
+            ca, cb = container.get(a, a), container.get(b, b)
+            if ca == cb and ca in inner:
+                target, key = inner[ca], (a, b)
+            else:
+                target, key = parent_edges, (ca, cb)
             cur = target.get(key)
             if cur is None:
                 target[key] = [count, conf, n_routes]
@@ -275,9 +312,10 @@ class MapBuilder:
                 cur[2] += n_routes
                 if CONFIDENCE_RANK[conf] > CONFIDENCE_RANK[cur[1]]:
                     cur[1] = conf
-        edges[gid] = new_parent
-        edges[oid] = inner
-        self._limit(oid, edges)
+        edges[gid] = parent_edges
+        for oid in new_ids:
+            edges[oid] = inner[oid]
+            self._limit(oid, edges)
 
     # ------------------------------------------------------------------ salida
 
@@ -333,9 +371,12 @@ class MapBuilder:
             h = 52.0 if sub else 36.0
             # Los hijos ya vienen ordenados (carpetas por nombre, miembros por línea).
             lnodes.append(LNode(c, max(120.0, float(int(w + 1) // 2 * 2)), h, f"{i:05d}"))
+        group_edges = edges.get(gid, {})
+        kept = _backbone(group_edges, len(g.children))
         ledges = [
             LEdge(a, b, _edge_label(count, n_routes))
-            for (a, b), (count, _, n_routes) in sorted(edges.get(gid, {}).items())
+            for (a, b), (count, _, n_routes) in sorted(group_edges.items())
+            if (a, b) in kept
         ]
         lay = layout_layered(lnodes, ledges)
         conf = {k: v[1] for k, v in edges.get(gid, {}).items()}
@@ -362,6 +403,7 @@ class MapBuilder:
             "nodes": nodes_out,
             "edges": edges_out,
             "legend": legend,
+            "hidden": len(group_edges) - len(kept),  # relaciones débiles no dibujadas
         }
 
     def summary(self, gid: str) -> str:
@@ -386,6 +428,55 @@ class MapBuilder:
             if kinds.get(k)
         ]
         return " · ".join(parts)
+
+
+# Más relaciones que esto por elemento vuelve el nivel ilegible (en Django, 17 carpetas
+# tenían 145 flechas y el diagrama quedaba al 8 % de tamaño): se dibuja el esqueleto.
+MAX_EDGES_PER_NODE = 1.5
+
+
+def _backbone(edges: dict[tuple[str, str], list], n_nodes: int) -> set[tuple[str, str]]:
+    """Relaciones a dibujar en un nivel denso: las más fuertes que lo mantienen conectado.
+
+    1. Árbol de expansión máximo (Kruskal): une todos los elementos usando primero las
+       relaciones con más llamadas, sin cerrar ciclos.
+    2. Luego, las siguientes más fuertes hasta MAX_EDGES_PER_NODE por elemento.
+    Con pocas relaciones se dibujan todas.
+    """
+    limit = max(n_nodes, int(n_nodes * MAX_EDGES_PER_NODE))
+    if len(edges) <= limit:
+        return set(edges)
+
+    def weight(key: tuple[str, str]) -> int:
+        count, _, n_routes = edges[key]
+        return count + n_routes
+
+    order = sorted(edges, key=lambda k: (-weight(k), k))
+    root: dict[str, str] = {}
+
+    def find(x: str) -> str:
+        while root.get(x, x) != x:
+            root[x] = root.get(root[x], root[x])
+            x = root[x]
+        return x
+
+    kept: list[tuple[str, str]] = []
+    for a, b in order:
+        ra, rb = find(a), find(b)
+        if ra != rb:
+            root[ra] = rb
+            kept.append((a, b))
+    chosen = set(kept)
+    for key in order:
+        if len(chosen) >= limit:
+            break
+        chosen.add(key)
+    return chosen
+
+
+def _short(name: str, limit: int = 12) -> str:
+    """Nombre recortado para las etiquetas de los grupos "Otros"."""
+    return name if len(name) <= limit else name[: limit - 1] + "…"
 
 
 def _plural(n: int, one: str, many: str) -> str:

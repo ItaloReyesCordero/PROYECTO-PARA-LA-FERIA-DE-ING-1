@@ -81,3 +81,33 @@ def test_report_option(tmp_path, capsys):
     assert code == cli.EXIT_OK
     assert rep.read_text(encoding="utf-8").startswith("# Reporte de Desglosa: python")
     assert "Reporte escrito en" in capsys.readouterr().out
+
+
+def _ambiguous_project(n_candidates: int):
+    from desglosa.ir import Call, Project, SourceFile, Symbol
+    from desglosa.pipeline import Analysis
+    from desglosa.scan import ScanResult
+
+    def fn(sid, name, file):
+        return Symbol(sid, "function", name, name, file, 1, 3, None, None, "python", name)
+
+    targets = [fn(f"t{i}", "with_", f"m{i}/a.py") for i in range(n_candidates)]
+    caller = fn("c", "main", "main.py")
+    call = Call("k", "c", "with_", None, 2, 5, candidates=tuple(t.id for t in targets),
+                confidence="ambigua")
+    files = tuple(SourceFile(s.file, "python", "x", 3, True, 0) for s in [caller, *targets])
+    project = Project("p", files=files, symbols=(caller, *targets), calls=(call,))
+    return Analysis(project, ScanResult(Path("."), "p"), [], 0.0)
+
+
+def test_too_ambiguous_calls_do_not_count():
+    from desglosa.report import _call_graph
+
+    _, sites, _, maybe = _call_graph(_ambiguous_project(6))
+    assert not sites  # 6 destinos posibles: no es llamada a ninguno
+    assert maybe == {f"t{i}" for i in range(6)}  # pero tampoco "nunca llamadas"
+    text = build_report(_ambiguous_project(6))
+    assert "with_" not in _section(text, "Funciones nunca llamadas")
+    assert "with_" not in _section(text, "Funciones más llamadas")
+    _, sites2, _, _ = _call_graph(_ambiguous_project(2))
+    assert set(sites2) == {"t0", "t1"}  # con pocos destinos sí se cuenta

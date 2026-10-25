@@ -34,26 +34,37 @@ Todo sale de **análisis estático**: Desglosa lee el código con
 |---|---|
 | ![Diagrama entidad-relación](docs/img/er.png) | ![Flujo del GPS](docs/img/flujo-gps.png) |
 
-## Instalación (Windows)
+## Instalación
 
-Necesitas [uv](https://docs.astral.sh/uv/) (instala Python solo si hace falta) y Git.
+Necesitas [uv](https://docs.astral.sh/uv/) (en Windows: `winget install astral-sh.uv`).
+uv descarga Python si hace falta.
+
+**Opción 1: instalar el comando `desglosa`** (recomendado):
+
+```powershell
+uv tool install git+https://github.com/ItaloReyesCordero/PROYECTO-PARA-LA-FERIA-DE-ING-1
+desglosa setup                      # descarga las gramáticas UNA vez (único paso con internet)
+desglosa analyze C:\ruta\a\tu\proyecto -o mapa.html
+```
+
+**Opción 2: usarlo sin instalar nada**, directo desde GitHub:
+
+```powershell
+uvx --from git+https://github.com/ItaloReyesCordero/PROYECTO-PARA-LA-FERIA-DE-ING-1 desglosa setup
+uvx --from git+https://github.com/ItaloReyesCordero/PROYECTO-PARA-LA-FERIA-DE-ING-1 desglosa analyze . -o mapa.html
+```
+
+**Opción 3: para desarrollar** (clonar el repositorio):
 
 ```powershell
 git clone https://github.com/ItaloReyesCordero/PROYECTO-PARA-LA-FERIA-DE-ING-1.git desglosa
 cd desglosa
 uv sync
-uv run desglosa setup     # descarga las gramáticas UNA vez (único paso con internet)
+uv run desglosa setup
 uv run desglosa doctor    # debe mostrar las 13 gramáticas en OK
 ```
 
-Para tener el comando `desglosa` en cualquier carpeta:
-
-```powershell
-uv tool install .
-```
-
-También funciona en Linux y macOS con los mismos comandos (el CI prueba Windows y Linux
-con Python 3.12 y 3.13).
+Funciona en Windows, Linux y macOS (el CI prueba Windows y Linux con Python 3.12 y 3.13).
 
 ## Uso
 
@@ -84,7 +95,13 @@ uv run desglosa sql examples/laravel-mini -o er.html
 
 Opciones comunes: `--lang php,python` (solo esos lenguajes), `--ignore PATRON`
 (repetible), `--no-source` (no incluir el código en el HTML), `--jobs N` (procesos en
-paralelo), `--h-as cpp` (tratar `.h` como C++).
+paralelo), `--h-as cpp` (tratar `.h` como C++), `--no-cache` (analizar todo desde cero),
+`--cache-dir CARPETA` (dónde guardar la caché).
+
+**Caché:** la segunda vez que analizas un proyecto, solo se vuelven a procesar los
+archivos que cambiaron. Se guarda en la carpeta de caché del usuario
+(`%LOCALAPPDATA%\desglosa` en Windows), en JSON; nunca dentro de tu proyecto. Si Desglosa
+se actualiza, la caché vieja deja de usarse sola.
 
 Desglosa respeta `.gitignore`, `.desglosaignore` y salta `vendor/`, `node_modules/`,
 archivos minificados, binarios y archivos de más de 1 MB.
@@ -139,27 +156,29 @@ simple. Detalles por lenguaje en [docs/ADDING_A_LANGUAGE.md](docs/ADDING_A_LANGU
 
 ## Rendimiento
 
-Medido en un portátil con Windows 11 y 8 núcleos (Python 3.14), comando `analyze`
-completo:
+Probado con proyectos reales de GitHub, en un portátil con Windows 11 y 8 núcleos
+(Python 3.14), comando `analyze` completo y sin caché:
 
-| Proyecto | Tiempo total | Análisis | HTML |
-|---|---|---|---|
-| `examples/laravel-mini` (9 archivos) | 2 s | 0,1 s | 0,1 MB |
-| 1 020 archivos pequeños de los 12 lenguajes (0,8 MB de código) | 10,6 s | 6,3 s | 9 MB |
-| 1 600 archivos Python reales (14,8 MB de código) | 129 s | 58 s | 158 MB |
-| el mismo, forzando 1 proceso (`--jobs 1`) | 138 s | 80 s | 158 MB |
+| Proyecto | Líneas | Análisis | Total | HTML | Abre en el navegador |
+|---|---|---|---|---|---|
+| `examples/laravel-mini` | 260 | 0,1 s | 2 s | 0,1 MB | al instante |
+| [Spring Petclinic](https://github.com/spring-projects/spring-petclinic) (Java) | 4 300 | 1 s | 3 s | 0,3 MB | al instante |
+| [Express](https://github.com/expressjs/express) (JavaScript) | 22 000 | 4 s | 5 s | 0,3 MB | al instante |
+| [Laravel](https://github.com/laravel/framework) (PHP) | 581 000 | 32 s | 72 s | 52 MB | 1,4 s |
+| [Django](https://github.com/django/django) (Python) | 530 000 | 35 s | 90 s | 69 MB | 1,8 s |
 
-"Tiempo total" incluye arrancar Python y escribir el HTML; "Análisis" es lo que imprime
-la consola. La SPEC pide 1 000 archivos en menos de 2 minutos: se cumple con archivos
-pequeños (10,6 s) y, con archivos de tamaño real, 1 000 archivos tomarían unos 80 s.
+"Análisis" es lo que imprime la consola; "Total" incluye generar el HTML. La SPEC pedía
+1 000 archivos en menos de 2 minutos: Laravel tiene 3 030 y Django 2 968.
 
-Desglosa usa varios procesos solo cuando el código suma 2 MB o más: por debajo, arrancar
-procesos en Windows cuesta más de lo que ahorra (medido). Con `--jobs N` se fuerza.
-
-**El límite real es el tamaño del HTML**: pesa unas diez veces el código, porque lleva
-todos los diagramas ya calculados. Un HTML de 158 MB no es usable en un navegador, así
-que para proyectos grandes conviene analizar una parte (una subcarpeta, `--lang` o
-`--ignore`). Desglosa avisa cuando el HTML pasa de 20 MB.
+- **Con caché**, si cambias un archivo de un proyecto de 200 000 líneas, el análisis baja
+  de 13 s a unos 6 s.
+- **El HTML abre rápido aunque pese mucho:** cada archivo de código va comprimido aparte
+  y el navegador descomprime solo lo que abres (una función se abre en ~50 ms, incluso en
+  Django). Funciona sin internet, con doble clic.
+- Varios procesos solo se usan cuando el código suma 2 MB o más: por debajo, arrancar
+  procesos en Windows cuesta más de lo que ahorra (medido). Con `--jobs N` se fuerza.
+- En los niveles del mapa muy conectados (en Django, 17 carpetas con 145 relaciones) se
+  dibujan solo las relaciones más fuertes, y el visor avisa cuántas se ocultaron.
 
 ## Límites
 
@@ -174,6 +193,9 @@ Es análisis estático, con límites que conviene conocer (y explicar):
 - El **modo fácil reformula, no explica**: traduce la sintaxis a español, no entiende la
   intención del código.
 - La relación función → tabla solo ve **SQL escrito en cadenas**, no consultas de un ORM.
+- En frameworks grandes muchas llamadas son **ambiguas** (`->with()` existe en 20 clases
+  de Laravel). Si una llamada tiene más de 4 destinos posibles, no se cuenta ni se dibuja
+  como llamada a ninguno.
 
 Lista completa en [docs/LIMITES.md](docs/LIMITES.md).
 

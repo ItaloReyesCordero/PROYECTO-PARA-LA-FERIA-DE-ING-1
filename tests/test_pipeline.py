@@ -74,3 +74,23 @@ def test_duplicated_class_names_across_folders(tmp_path):
             # Una llamada exacta nunca cruza a la otra copia del proyecto.
             caller, target = by_id[c.caller_id], by_id[c.resolved_id]
             assert caller.file.split("/")[0] == target.file.split("/")[0]
+
+
+@needs_grammars
+def test_js_this_without_class_resolves_in_same_file(tmp_path):
+    """Estilo Express: métodos asignados a un objeto y llamados con `this.`."""
+    (tmp_path / "app.js").write_text(
+        "var app = {};\n"
+        "app.set = function set(k, v) { return v; };\n"
+        "app.init = function init() {\n"
+        "  this.set('a', 1);\n"
+        "  this.emit('listo');\n"
+        "};\n",
+        encoding="utf-8",
+    )
+    a = analyze(tmp_path)
+    by_id = {s.id: s for s in a.project.symbols}
+    calls = {c.callee_text: c for c in a.project.calls}
+    assert calls["set"].confidence == "probable"
+    assert by_id[calls["set"].resolved_id].name == "set"
+    assert calls["emit"].confidence == "externa"  # no está definido en el proyecto

@@ -113,6 +113,11 @@ def layout_sequence(diagram: SequenceDiagram) -> SequenceLayout:
     frags = []
     merged_else: set[str] = set()
     ordered = sorted(span, key=lambda f: (span[f][0], depth.get(f, 0), f))
+    # Los `else` de cada padre, en orden: buscar el hermano de un `if` no recorre todo.
+    elses: dict[str | None, list[str]] = {}
+    for o in ordered:
+        if frag_by_id[o].kind == "else":
+            elses.setdefault(frag_by_id[o].parent, []).append(o)
     for fid in ordered:
         if fid in merged_else:
             continue
@@ -125,10 +130,8 @@ def layout_sequence(diagram: SequenceDiagram) -> SequenceLayout:
             sibling = next(
                 (
                     o
-                    for o in ordered
+                    for o in elses.get(f.parent, ())
                     if o not in merged_else
-                    and frag_by_id[o].kind == "else"
-                    and frag_by_id[o].parent == f.parent
                     and span[o][0] > last
                     and span[o][0] - last <= ROW + FRAG_OPEN * 3 + 16
                 ),
