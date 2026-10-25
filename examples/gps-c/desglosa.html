@@ -312,9 +312,44 @@ button, input, select { font: inherit; color: inherit; }
 .controles-ruta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 6px; }
 .paso-actual { color: var(--texto); margin-left: 6px; }
 .numero-paso { fill: var(--texto-suave); font: 600 13px var(--sans); }
-.nodo.visitado .forma { stroke-width: 2.5; }
 .panel .acciones { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 14px 8px; }
 .panel .acciones .boton { text-decoration: none; font-size: 12px; }
+
+/* Recorrido del flujo (y pasos de una ruta): el nodo actual late; los visitados quedan
+   marcados con el color de foco, más suave. */
+.nodo.actual .forma { stroke: var(--foco); stroke-width: 4; }
+.nodo.visitado .forma { stroke: var(--foco); stroke-opacity: .55; stroke-width: 2.5; }
+@media (prefers-reduced-motion: no-preference) {
+  .nodo.actual .forma { animation: pulso 1.1s ease-in-out infinite; }
+}
+@keyframes pulso { 50% { stroke-opacity: .35; } }
+.recorrido { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%);
+  width: max-content; max-width: min(820px, calc(100% - 24px)); background: var(--superficie);
+  border: 1px solid var(--borde); border-radius: 10px; padding: 10px 14px; z-index: 5;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, .35); }
+.con-recorrido .leyenda { display: none; }
+.recorrido-paso { font-size: 12px; color: var(--texto-suave); }
+.recorrido-texto { font: 600 16px var(--mono); color: var(--texto); margin: 2px 0 6px;
+  white-space: pre-wrap; }
+.recorrido-opciones, .recorrido-controles, .acciones-flujo { display: flex; flex-wrap: wrap;
+  align-items: center; gap: 6px; margin-top: 6px; }
+.recorrido-opciones span { color: var(--texto); }
+.boton.opcion { border-color: var(--c-decision); color: var(--c-decision); font-weight: 600; }
+
+/* Modo presentación: sin panel lateral, el texto del paso en la franja de arriba y la
+   portada centrada. */
+.en-presentacion .panel { display: none !important; }
+.presentacion-info h2 { font-size: 20px; margin: 2px 0 2px; color: var(--texto); }
+.presentacion-info p { font-size: 15px; margin: 0 0 4px; color: var(--texto); max-width: 900px; }
+.presentacion-controles { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.presentacion-numero { color: var(--texto-suave); font-size: 12px; margin-right: 4px; }
+.presentacion.portada { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  width: min(720px, calc(100% - 32px)); background: var(--superficie); border: 1px solid var(--borde);
+  border-radius: 14px; padding: 28px 32px; z-index: 20; text-align: center;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, .45); }
+.presentacion.portada h2 { font-size: 34px; margin: 0 0 10px; color: var(--texto); }
+.presentacion.portada p { font-size: 17px; margin: 0 0 18px; color: var(--texto); }
+.presentacion.portada .presentacion-controles { justify-content: center; }
 
 @media print {
   .barra, .panel, .pestanas, .leyenda, .herramientas, .ayuda, .info .pista { display: none !important; }
@@ -338,7 +373,7 @@ button, input, select { font: inherit; color: inherit; }
   </main>
   <aside class="panel" id="panel" aria-label="Detalle" hidden></aside>
 </div>
-<script type="application/json" id="desglosa-data">{"index":"eNq9WcuO3LgV_RVC2diBpk29KKl2xnjQmzhpuCe9aRgNlkSVmVFJZUryuGH4Y7LMOrts_WO5lEpVuixKI7fTARroKunyXPLw3AdZXxyusg_OpurK0nUyXpbNg6yczRfHoxkVCQvzbUydzf29E1Ka0GKbhgULHNcRn3nWcsf1aPz-vet4WVwkecTTKI4Xzb1Am_thFgdB7tNEhIvmYW_O0i33w9jnLFo2D1JtHhdFmEZexrycLaMn2jzJRZJSztNgmy-be9qcJyzlW7DNt8uTiag237JARIwKxvhAJFr72TwN37v3eKXnlzHVL9G6zi8TX79Eq5iMZPolmvNkZKJfZmwLs-dRXOTx5CUL--mnwqdenm1pssyl1-sAYS3uFJh_HSVXd63W3IUqEHeIKnCFkLU1kixWKKwSKRQL0p3dFK2_-V3RcpvfFq2u-X3RYprfGK0deIvIx1zP71tPrSVmZsiMqTVkZqxBa7aImcNm1oCZw06sCpqx1vIEAQk1Zq9ClqLRMtodmqtMfxBK1QoeUdcpebVzNk4GAKWstJ0Xpa7T_CYPB5EPEF8BbsdL_vlxhJT7QwlA8HzPDxrR9NE_-ImyVFDYqrBwNISqu0MzWk9fwqPfZAXe-qwrP9V6NvzxqH6R7zT2_cXGYgLuw8AHBfhuFPmuz0AJJ0ocj5Ql3_McPodRchW4XuK7LL4KQVDul9Fu4321iNrmJQ5XefG9YNaLIX-LFz9g67yE4awXIwRtXtJknZc4mvViBKvFS8DoKi8BZbNejFRk8RL663Y_COJZL0Zexrnz3ovBAwXSjv9gh-iMKy_VrkL_KlrtC2Xiqa8wCadegtFLo91Erh-l4CU2fAQ2HzhzovWEbOrDN32k1OLDt_nAYTr1AeG5yFYcrGcLhynyEoeLXjwarneD43TqBuJz2U0QrXeDAxW5SZNlN4ytd4MjdeoGInTZTRqvd4NDFSnZX1aA7ydzbmAcdORRksB_meeiGgqY2AldOu6doqsyWVe6FFat6jHH4TC0qvNjFTHaodMwHc06uffpCqjaKqkeDp1Qbf3iJRjC359eFWX3j_oVgrA0URNMWDJj0NXQHrQUQj1kXMGshLpAnYJY2hyEGvnJCTWDgs7n5opAelTcN5xQ-8wZpsB72KNCkVdyL_V894e6ucCdwljaLjTbNDxN9o1odmXd8Oubd29_NkERhqUYI1AvYhbU6-vXJioCsRRfhOp7iQ319gIVgViKLUZN6AXqzfW7t7-YqAjEUlwRahD6VtQ7ExWBWIopFiy17dbdr9cmKgKxpIFTHPqh_oPGH2Sre0ZZ9VCHrmprkgtyDtgRGiHp0P_d2cQBhTay4nsBneLQaAIGVzAaHqi6buF70-33XEGn6ngeOS4LAh8G9gbnVvOg6keRtfZec8g1HqUzuSYreSNwWjGbWvdoNC7ep_3ix3mj2el1QyfNX5kgx5V7LEEr_2m68qEln6ybjF20btzr3yt9FDAvLizTxVcVFgN8DLUY4JOnxQCfvSwG-LhlMcAnLIsBPlRZDPC9g80Anext-4pOYhaDi_PNoL2TBk9fq7oVcMovhrMUnI_a_hQFnxvx8UHmWllmqC62QWYOMhKdkUuMbOs0j_ttXTaXavni5LU-1b3eKgjWkgyVhjRCSUFeiEo_Ex87eaiJErwkWV0Vctcprl_8_fW7XwknYUIp2fIul3Xz8urI0iSQi7IGpbeqE1B6mgedEkDNBS8beHCMWR0x7VDjjYPrQx-YPj1-a1quWh03kG1Eq2TWL-p8j-ehGxYYlWW6xzjF2LT4n0INNkR7LEBBQQxbEOgy97HjpX1QI3cVbzulX8mqJaihAIaalmQfuCJ_ruo98PpSCwLH4Ej7X4QgXUWgb_j2T904QMrEe_BMdAYGnX7wPXT6ZzpR27OaT3PUlNCeOdxNfapl3pOI89RIYl_BNkR1oHHySD6Jss5kznPS1EdVNx08eyYq4QSFqEz9VVR6F8pEBXk1leaoKZWaN4LrvJarrCRUp55QnNdHQm9UvVPQvBNoE6GQHXi50Tuimby-uQWK8yMmENuQVps25K9vf3m9muLh-0qG-3srRHEyQzFFFKdHiqMzx7pBWU3t0diM9r7JOUkSF76zJKFZ3RBoroHqb_-uXAjxstekDvBCfgYSq2__2QvVd0kNb7_9q5RQI55JpLGHGWTJD4sUFvgEkQ6jFkSqm3xDpLh1OIlU99gb0t94EtG0Eg6bPZkn0skL6AQPUsCSJSfXXO1l9Vz1KQkwwXAo-DGC--V9N8HjqFmCh5OJQTBuvSYavgUNn7VJIBtD89mAdg9KZLIZSH7zt5vnYjWOMatwSfXDsr19kmxv_0i2txeyxf3qVLZ3m0mRgh4rePN_laqRTRP2P5Dq3ZOkevdHUr0zScU9_kjq2w4SAPSkMIwMdxrQPcF0ICM0kA8UtK26ROW62eJDwXomcuGGBZEbpDPkMltjFZzJNe5oVtN7Oe6CYPP657JjdYlJOzo5jbT_LPX1FCm55rcDaz7kXQA89grP1b4yg-XgiacBdL-2mmNz1AXD-Nru1Cvg4-U5z8J12YZ8qBV3dSED0brAaSvbLocPdbUbPp1TxiMpBGzXM5HLjIY2ir8nP_i2pAsLfELSHUYtJF19zWgIFeGOFJ9_Lb2g6kjNHFf7Ou9g1NrG1FvVlx5l2P8AO3Pr1ZM0THtCzWgzpWR4pu-DWr4tT3cOX_8LVc1bRA==","meta":{"format":2,"generator":"Desglosa","name":"gps-c","sources":true,"start":"#\/mapa","version":"0.1.0"},"packs":{"gps.c":"eNrtPV2PHDdyf6VvEp-0vo2u-dHs5vqcg86WhQDWWdDaiwArQeid6ZVHnp3ZzOz4znD0GiCv-QW5xzzk6d7yEiD6J_dLUqxik-zP6emZPSS29mG2P8hiFVlVrCKL1T9OrherP2wmZz9OWDyNi0zJ2VUam_tF_sNqe2eupqvF9mYJhdgpXC-XxfRutYbby1enk28nZzzLHsWnUP6qWNini-JNsZzB9eSuWN_Ml_licjq5Xa-mxWZlrvLlXb5Y5BNTdL4sTK3LS4ZwEvNDl-YHSixX6xsD4G69LV6dluWYUK4gU6qnJI9jV5KLuFkS72eExWQZT065NEXNj-CmljCXl5N_WM6n89VZlF-t5-vXt9tifbd6uFzdXK2LEyClowD02OYumn6br6OPXWFTeslsS4gZtSQzbOnZttjcrfOz6OXkMcCCvlxFH22iPJJZDPhNrvLtbL7avJycRgQSm79dz5d31w_b6kRljZdLqDQxBIeY8Mkpk3HZk6daeaJfFDDYyzxi2MS6uNuul-YG64myHvZrpd4X8yXWwP-mi_8wORMpFHjnevtH09nwmwNnKSCK_n03N5wTMs5dvn5TACcut4sF3BVTYLrhfW3aY2UzGTWTuWYcK3Y0M7hPo7A9XranqT3t23NC0Nqc618DRVgoPEYo5t_AzjGd_g5AAHsvp_ldAXWu88WmgEdsml5nsyTXSZruJeYJSypiDsO_MsOPssK5-WWP-ClLzKhv3v8nMHds3rFUBO92K4dZMZ1v5qvlBKlZ5LNVTU1I5tQEXnaoCR6bl0wjeyJnhtc8idtr0dtMupKCyXblgo1zHjtEhBKVktjlvigTvihTcQ9QBFQC1aKnpOSpKymTdC_dxlFSa7ptURTr19N8nU9hcB5W1Vr13fer-SzQZKocCqINMEO4XxZFNCsWkR3K6C__8m_RFKGCXEXT6NMIuNcI7MNAF2Wui04Z9i9eXk7-579NhSdfffFbhAA3eOeVEacxSbAmi5ta7MHLl_GDUJPZBwhAGgBZOeQ92swUTianaVKOD4wtbzb20NB1Mg2bc48QhpqcYm0cuQHaM-nQnlyQghB7a8-2IQ0VJk8IchJAJpnsANwc1VAfclLz3Kv5UNrb4LkxrijElMCke6pVGmwDSXZCGqRaT834Wwik4vm-Kr7kBANLWViCFL04iqLncpoKMeNxVsj97DnUDrvtuc32qiS1qqCV4eaUowyjeop5uwqjt2TI0XWbIdenwjLljSbL04DZ58XmzWK1yZ8-v_j66cM5Pq-qsnqJu8iVKhUaSjSifsrTQJV8uchvcjAB5jdgG9zMjfjc3K42VlfWn76cYBPGQKi2YEwupltNrlbhN-9ahV9zZBrzb0_h7-6EUAVoSfClgx8MvG9hcqVEkai4UCqPJ14f7O6PUEFo0jc6OYYEyDjO4usrLa-V6JAAUZOAywmMPFNot3CV4DRihsI8jZlhUeEfcvdQofHunyoy6W1REism0RBqGFDI-EJkLQaUIO7LdMs7K2U4cwTvPEjNWJtNhoZTpnizGkcc0rgNE5ADcqJk98sGDYhLrFkbDfjOTtQ8baUPK3a0qBMkQIg2EqXyuqFOI7cOXU9FGYvOihItkY6KCY87K4K13V1RibSzotKybYSpV3Xc3TlZX-dkPZ2j-zqHxT29w2IVdyKb6bZ3mgzYCgvs9hEqGigwIQJvDsQapbo-N0nnPCjZs8ZAxCpfkOkON0Mbzhax6c8E-6Zy3bEyQW8l2pn2Wsq-kmnmSiZxH87CTqcIueYReIeEJET6ojxVPUARUAk0S3tKKlKadK2TnpJp4kumWXtJjmWyFLtYZ7VrLXRrLfsW1S1dE9d2FmUxCmB5o_oI1LH2PMGY6uvgjPmymdR9nIaQHFipestq6ctyxIfEL7hWWezHISNnc41-yer11Xa6KAJkOU5UKU9Qh6W1a0b2YNkcl30UKxEMv0r6itbgJh1eNk2wKfYOXbNY9RVlGfdlOeN9Za2w2BvVC1fSMqK9YV20xTT1ow4AF7RxgzUHgCH0ZYBfp4gGsBxgmfSWRSmyN0ms-8pa2bc3aNan6OyH1zRXUxlz3cNtjEtas5C0JsLqN6hgXINZ2ttDYQelqrdoBa5iXUKO40f8Rted_GZfE7_RTSe_aandygTMlknjRnVoQIn9K2jWVbiiVr1hHfOSfU2Gkr0hsy8lc03x9u6yGAm7vkU3Ge9DT5LlQ61Ub0TSh55UOiiLXGnRw5se9CRO4uWN1n3oJWRfUSvVm4T3oZeQmWRvaGmQ0MObHvQSXByyN4qpPvRUIn0r1Rul-9BLQ0ZImfDo4U0Pekpzj15aYyFfOOAUDzkbUjN47wrLDk61r7MQJcIvNTM83bRPJCR0dtmRNo36JTALha560y-BOuzr6k2_BOpQAnXYlXqHBOpQAnW_BFofzDZTv-sXQlBwOiwdiiHd9SDJ4lAQYY6TvbxU6QAqPaBuWMAVZx0L8-69DBFjhCZxFN31sFQWshTYZl3SFDCoh02r97vqVgr44l3L_fY9J5usvMNVdtiCY407mpGp3K4ZWZMlRls5acoaNzyptNrtVmSZm5P9RNpHfQ1y1jsrwyp7QBUTCesvnSVB6bqt1b62SLxP-1Zxc3vkJp8va7si-Ki2GULWPPU9XtH-BW5Mfp7fGa8Vl9tgoTy212_hmtnr7_D5q_1ruJXFOCldVsAl2FjG5fkV_Hgw5pa5BvsLuH0WXdqjdm3UbdAsV9Ud2ZeTz756Jl5OTmjL5hftL_0GjEAZQlO8c0v896toU0S325ltC_CEHSaC-XJS3Qqvl418SbNte-J3cyT6muiGD98AV2U9dMp3bBmlk9PEedB259BSVy4q17bfzHaZWc82DGBAmAsYicYmHYLP7G4Sut3A7zwcF6z5l3_99-jB3z74rYf1i0_NAwtAl4yL7niFmO9-9SushP-Jy42wiNKxtVawa87w47PH__j6yfnzJy8eU4Pfma0c_7CEY6IgEGN052HTWDXX2qfFep07tiH5azwjcMD9gpYVaaWqbSjjcChLtmbC11TpzsFk0o4meevHH05mdhgz5_DapUeUOdwJNUL6m-j33zx7_fWLx88en0c_gHb4DYD_-vGz17_75osvnryw26SNkr_8pSka-YJlk2ZDUjq_2cZ22C743fb6ulhfzl8Bxo6C5kMClBpAyimJNmb8tMaKn4asyAwzK68KwrEw9Fh2LC-pji7roPdbqTO3FeauNAf-1bHzf48_ftzMAzLhfgCtv2w74W1lBGD0SM-aEfRDRf1TKwrDZ8sGg1q2iqE83I9hwiut2gF7G_1dxF7RGEQ_QJPlc3z21I5LrTCVhtaDwli6bNuEA2la6cdlwBrFoL-X05vbh7909U0kktkRevHsM7MjlJyYaYbabikc1YoGU57Zuk_Q7hHkcrRpEb_fBUCsFqk-e-sGL3GkoOs7nJSnTx8PJSUoGpCiHCnoO-8iBYA0SDHPPCmpIwXd5D1IOR9OynkbKZkjJSEnaAcp5y2knIekaEcKutTDSbFbjkNICYoGNk_sSFFK7ybFbKjWSTHPHCnCTHsMN4XQL25oOBaoOOa0lvDinY0W7-d7iffzUryFF-9sH_F-_vTFsyfDer9SNOh9L956t3gjkFrv0zPf-1689T7ibcBcDCflooUUL97klu-m5aKFlouAltRxErnEQ1kpw53u2HmdlXpvbZ23vrwRvoRcKk4W7GGmmow9AujKDbfVJPNVad17V_wEz0yftwdQUFCozvYOoAhcv0qUaUxxPDDAQ4OCnJ_3cuncPLpEL48uycnDllzcbBk4y4aHVNXtcATocGepBZjuivfQBYRYzqZXcaZ8vEd9qBG4C4ct42_DANxB0VKWbNEDaGjgFitjv5iNq2VBYG07qZWYWQeww_rDNhLXhrRtyOEhbwPsdWxEuUYS20gytFsbdjsCTB1Ay1V7BOqFNjwCyxwwy1HDw_WsWY9gtANjY6mHR9rNLQzHfrEdjHhwP4XLISSEfjUEQTtBtLF7TBydmbiTTWHxF8OZaZDrgK24XhKWm0QyuJXBjgK25KRYWDYTw9lsoFuA7ThBF5YDxS6dNlVXEC-WJ-n1LBybuo-A0J2IC6uLRHYwFTWPANtxUi6sAAi9gwqlr3LYZOU57CW1UWHdA4TuRF5a_pXx4VScN6lw2kAy2w7bQUU2KyBkKM-1uJq1UnHuqXBKQnILnR9MRc0PCOOPYVPEKpK0r5nqkSrXYNcaKLbg9IkUlhKxo58qcb4t_WTdDoTuNIm0Mi6TfXQyswpVOF0hrQRLdWRd8Zx0hXBdLm2Xy_TAkW34GNiO0xXSSrPMdvR7en0tdcKmis1Us9-dw4HQna6QVoalPgIVFw0qnK5IrDQnu2ajPFM6vwIRm13JdiouHBVOVyRWyhI-inucLkjsfJbIoXDeljCcxCeWL5Lj2auOF2LLC_GI82I7Nx6wJSfuiW0qGWcZSyfZieWwRI8-0gAxu5bucefWVA-cobg4XmNWDzJxbLvKsSGzbMjkftbuL7y169iRWcXKBitWs6XSEcBemch_rkc4jLXSf4SDStzrEQ5rmN3TEQ5Fwq-yA45w1DshXJBIaTZI46Md4aj1R-hlpWTgpewYRzgqk-zPUwLIkuiTgLLEPUqAM5ruSQIy4tAsHi0BzU4IJSAjiyXjR5KARn-EEpDRlJWJY0hAxQ362c4B5zvngPP7nwPO73MOSMkISeUhc8B5zxxAnlqqjjcHnHfPAWSUp-kxJKDiovx854CLnXPAxf3PARf3OQcQh2bqoDngonsOICsry444B1x0zgHk-mT6GBJQwWgfCcgSXTtySmf56MyaajvpSe9sdH31sJ7QdDyy5ShnQrkqKkdO90r10Z4SiDJwUJA3pfDoirWmt8iBZbIP1ZfgQwWpQHRfKhARwBS9MO3xT7ruTS8iEw9TZqrjZBodrCDIon6d9WISpC9JdEf8NgEipO01Dv2OasFrW1Rx3YOLwvBme51m7nyav-R0VMKerkh6Q5UT4XMlKeK54FrpoC0t-gighEUBM3QXDaGmXPTQStHSlmljNmAGsLGDdKoHA2llbQqo6x1KM3SKsbnN6aBe2idEggo2JZJRWC3TBKWDoWhhhhiFMcMGXBATfAvXBMFHDfcUcRMFngFm1OssSJkSRPd-tDnrymtVeXXiw5HpyIymAD4ZBnLc1oPs7CLq7SvAEsNhP34QPqUQWRsfc9vYO_PlzNrPx2bd2gfX2KewvBcmlKGgtCD_kIuC9NWg1mk1JueWVsFPH_j4ZEpNg4JfjfAw_V5GeJTXZXAyx5k5obDWRLZ2ePTPUT1qGh-d-LBlKZhrm07k18H4fkVAW8r-4p4GMcpEByqNCh23loZbhz8GnKSl1IFuaA8Hjx5-NCPu25xQcjO8qVEUFqKEXXh3EoQzE2ZZzAaYMSrtCiex23RC723GdAtv1Cq6oXFjt9Uk32tnuxRZ2toOJLYSZGKX6RO59ypuaQ3ZzaxgL2vwOnpN5sNtOEl4yeHLtoMkOmqR53BbwO6dyb23x71Qh6vtdgst2EHbtZdihTxcare7Y8Hm2OAOtrIeLrrbXapgk2ontKbAh0vsCXFnwobSeGvpK9fVE2KgZAQDdUt-l7UdbhTdh7_Zkf5SKZ-aQvWlplCBs6kGO5tS9yZ-a4vba39XO-vkU1hS1rymgv5sdbMFSPmURAShzfL6nBOWisoy4RkddDSzPRxN3qWhiZnE_unS2joi1MI2dCaInBnMpj3kh5rUhswIdQy_shLuslcuSK3bUhmldJy21a2kwNFUHzfPy7j1Gk5H9sn_ouOzwTVP2n2r8iS-dCVxLaO7pMp8SZ31rBxx7leOpOw8XDlokcmVlJRmga7TtKdkwpgriY78MZduTchU_9ItlWjxSMhZwIWriu1atVWiX0XKOSH1x6XioGM4ynt-DSscyqdoiV_ULHH7At94l0NQxlNy5DsMUyTtLJrBXvEmMgIy-T5fzGdwc7ea5d_PGyqwViGyxY1k2wqhPgTvQuKZf2TDtuDpIHQ6OOfIfF6c_iNuyq4dSspdddjquQ3Qqw5yWq4d0vrRTqObd60d2iiQJD1g9bzOh6Fit1EVid7HvK4xY6jGFe13qXhvG7LCjqE1rMjGUmz_uaeD76Iq14U2sKL9NMX3CxCpGL5NGEPditLqVeQAqOOlJqxxaWgUK5rb1RFSE8KzTfFP22I5LQzwvkydy2ujdSfFHyFyBae763X-5qZY3vnJmAnKvz6_LtxcSMf3IZiIkiRAwZtis8nfhG_pF222CTtrEWWAacR8Zhio1oUWHzs7vTIz8voO-sywHDaR4uSAR0hPTWDsm9vNoylUvFnNtgtcEaJTGRkKNFH8Gpi1jWrTHPT1skH_pS7NwQzPfHJzAgZ-J4vV6ja6HOvtmbUhA2FyaoYTlBCd3zTmTWZVPoSSm3byxV10WffuTPX5tUmKp6nrvzW5e3n3GAlKjHIpeOXBPQ_aqYVIrVKe5Ql7BECtXqjAIsYux6E0IEIIlGYfIPDREHB-BggCIGzL_MF7gaDTnwBCDkdiBPeeXvKkVuQJwlw5ZnU8noBdxd_tSEfaK-aXZGBwwCpDSygzeTM8nwfBaA3WtVkwAQBUAgAKkDU1V7fAubWTQCXjllXJrOGG6wUYDdzk5XaNDjil0kSGshiivAqY9zNMAuhADjmr0EFggrJpkkco0ATKUTj0YEKddNzpSrDDiXQJoEuBH3YGoQSpKAXKJSVzTeG3hCnibCfM6omAEmYWxwQTc5xnwg-ROQi4E-Z5G0xNmf0sTJ1knnbfn8OC5eu9SevGDDnJ2vPak14YbYQ5PDZFbQSY2Ygox5Vptue4Pq-PK40BQPXEmeXs_g6rB4yXMBm6ba7HmJkZSqiJ2NFl9fjtCqIuYbDqmdglpS7zs4Z90jptUCE3bdg0NuFcUdFOzbnCqtfGXFE5y1CFWDv90AsRJ1W762fq2v0_r7B76mLyJZp36mG-FXSq8cF9IGkJYxw6Is7cJFZfU6vMzdVw9F6QCXeT2pEoFNl4CmVCbPQoORo6El39ceio0u5QZ40MDyE6tbNdvSCFNUTUo0NtrBBsym3HpWeNBA4hyNr5rV6QyhKfHhXTTFomzs4a-RlCkLUzWr0grfJ5lB0VU51a2dBnjfQLIcjaKalehRKXIqyPiiqcCSj1ZnzWyFYQAq0dLeoHmqkS6HGx5akdMMbOGvkIQqC1I0S9QGmqRKDHxVa4buBH0Lulr4WLfEPV0gA_4pvNNl_PjZOQ29zkTUei3VNWsBGuDvCUrQvBjInCUWbQXyYTpeNEYrs_wLgDwXS6jxciqXWc61O5lxeiQhOXpcdwQ1IdOzcEkmiKo_ghqQ7sVcXkcRyRLLAswf8b64lQ5mVnBptUKkB6uZZfw7Sy0NhuRsfoVdLCC3Tm8dddrGEdZ8hyqJUzsXPdBcx7HZAJSSMD3jGwxvlcTNHWSImVsc5L6jNxf9TDp-Yc9anaTX1CIWpl9ZR5X0eRAz_COeQ2hWwJNUPXmIgnpO6H-AxZjIhXejfxmqUBmpwxLziQAeYwN9bCNKqvJJ1QuhfSOUf-sqTz3auNGHzrV3yk9quVxkoc4G1DHa-90sCFPcjbhm84qIADs5HeNqQcqgxtyvhfQ_ygHbWP-EEAqw7R1IkMODA9ZFWghCnMl-3-CsInzN7BHsInWCL8gjclUu1c8eZxfcnbPkni6pP_X8sZhL1dzgCI-y2ntyxr7OkSU_s8GbMUX1kB0dKtYhzs4xNSQlikhOkU_33AvfCiaPyR6xZSuWWUgz0Eoklm5crM-IFOuDrecoqVHmXRSg7o6kSPXyJSSro1mSPRlLplngNoSoUaLVRZsHpTau89m89KdsmOsFRFWGkZB8sq4zhQ-6UZfhSfPAk_QkBwx2BnwbA4AMPHgyl3Fw2Y_XYYK3B4ucVo4MjR6PCy0_VodoI8YLy5oHTgiiIkycqOvKBkKaavnVnAB_CD1CGc8QyRqDiAcwBHKMYDQONZQrmeZ-N5IhXBQtiR1m5hU7GkkB-XJ7JyqdUAPoAn6HsdJZzxPKHLvQ2EM54nIBhCBYBG8wSPXc-L0TzBWWl6MXm0VXLu9CmTR-UJSMTOPeDxPMF5FsIZzRNclJshCOcAnpBxHAAazxOJc1iS8TyROGWjjrYZwZVT8eq4PKHc1ok6iCdSEcIZzxOpVgGcA3jC7bQhoPE8oV3PjzdPudtMY9nRtnyE201j2VF5AgLxpQc8nicE4yEcPh6OjgM443lCcGfWZeN4wv66YDimj-bxCuFmSD2mz-36jdhrw_-edtZOL6UYGsWXwskVjOLry8n2IVj3Q7Duh2Ddn0Swbl_iuQ9i_kHMP4j5T0LM-7LrfRDzD2L-Qcx_EmLel0Lwg5h_EPMPYv6TEPO-fBYfxHynmKe8LTh4QDwo1uaC_1WUBBdqPyVhPi5slYTsG2HJZFVJyO4hL08KKDvm-4qj_aVVbX5MLUNx8PwALaMshNFaBjPvGAgHaBmSJv5_T8uYs_ur7dqc3J_8-uOXy-jj6EvIjrNd59GsiCDzx02-iX7_7Mljc7tdRk-fn0e3q7X99gd8E2Q9Lx5htSdvi5vbxSoCpP0HH8-idQEZDGbbaREt4APE7__8BpICWVizef7GNGBurxfbt6tounj_p818ukKA30LaAfjaCITDQQ6Hh8XmtkCkFiZcE5JerW7nkLJjEV2hoEDWwxm1WRhwU-hWwv4Esfv1y-XfzJfTxRbe_WZzN5uvHn3799VnMCxv8CE8nhXXIE-hmCeM--c-uj-CaI7Yvwji9pUBhMnurCQHEfyfmHe__jh6DDng_IdUqDOB0qV5BgkV5pDNbl0AiUbxzd-YMYEX3zx-8TX0CsRRx9FVvgVSNiePkEKTpKMS8dfMuHfycvkj9Af8uWwZgMQckhatoo82NbA2vZit-QnVKz-NArfvLBlfFjicEBT1_k8mKgoHqcIgiB7iUQ2fwpRTDiXM4QdJRlw0lG1yfh09nBo1-OSrL04iWzjABdRr_MCWfVfB8qGBczINcP1sbjYODC9OXYaq939emi42nQvsTcgazNryYzX7rzvTVdCsTaMTAX_a5G3QM0ZSTF4SI0-ADQgayoVl3ACPPTMpVju0TIr4iX_mM7l8UiOmmp7Qvv3Dt_MF8OXYia8yZGYs61NbpYD5sykBP6k-raX4C96-i0z4dx1KM4lfWMVf3rqW3tV6I-pMthcMrc028-1qnZ9GMMowpKfAX3fzu-0MLlbLN3T1fbFYTeezfAaq6hpUWzjAnVl7KkNZTcATCEebTVPp1P1S43xSl7Bq9-xONFPpHQjfgklvBWrdCJrpwAX2glES1_M_Qm8s3__XTbFeGe7f5Hfv_2Mxvys2rb1T-yqM752d33SponQOKPmmIlBG8--hF36AjsK8RUYjPPz8q-cn7Vic74HFeQcWGJtwFoG-AOkHtpmDJYBd4LoKJG4Nk1wByXhgpnuam-w8bQg1PhXSg1D9Qx81hC7OAjaFeUh8vg8SF3sgcdE1NhDFA0bD9uZqBcPhkdms7Fy52cKz1mEx8T9Dh8WejGnphfWKbBIjMsb0WmDIr50bvJWRAyKb0D7yU7D_jLJDwX0POVDC85pSxi8jB_ff1d6X322tPWL2mdcGHccf2xXCru-6NXSBw_Fd2Sb0GnsUPUH7DOtbHRVOZtg5pnD7B8yqE01w9LKC9HeVKcGQWjtr2ZxIqlECtQml_ORc-7TQi2lIPH8UfWaM0bWd3amoUSvOODUDlRsbyzJM2RuW4AGnPiuk1T93XOuV4NvFzR7BbxG3UzyvvBhMv3gECG2gSGB1B4KyXuR1eoecSO2yGnYeOW2QbCoPO1naqIr9UPtcbo2JrO3R10j1AOaORuhrtiMaOd-nkfNxjVQPFO5ohL7UWm-kyY6syo8ei6Hn9PYY8fpxvF4Syo-e7ttP9WNvOxu5GNNP_vJtaMDaCadV8QUKD0pO3v0vjH-Rxg=="}}</script>
+<script type="application/json" id="desglosa-data">{"index":"eNq9WcuO3LgV_RVC2diBpk29KKl2xnjQmzhpuCe9aRgNlkSVmVFJZUryuGH4Y7LMOrts_WO5lEpVuixKI7fTARroKunyXPLw3AdZXxyusg_OpurK0nUyXpbNg6yczRfHoxkVCQvzbUydzf29E1Ka0GKbhgULHNcRn3nWcsf1aPz-vet4WVwkecTTKI4Xzb1Am_thFgdB7tNEhIvmYW_O0i33w9jnLFo2D1JtHhdFmEZexrycLaMn2jzJRZJSztNgmy-be9qcJyzlW7DNt8uTiag237JARIwKxvhAJFr72TwN37v3eKXnlzHVL9G6zi8TX79Eq5iMZPolmvNkZKJfZmwLs-dRXOTx5CUL--mnwqdenm1pssyl1-sAYS3uFJh_HSVXd63W3IUqEHeIKnCFkLU1kixWKKwSKRQL0p3dFK2_-V3RcpvfFq2u-X3RYprfGK0deIvIx1zP71tPrSVmZsiMqTVkZqxBa7aImcNm1oCZw06sCpqx1vIEAQk1Zq9ClqLRMtodmqtMfxBK1QoeUdcpebVzNk4GAKWstJ0Xpa7T_CYPB5EPEF8BbsdL_vlxhJT7QwlA8HzPDxrR9NE_-ImyVFDYqrBwNISqu0MzWk9fwqPfZAXe-qwrP9V6NvzxqH6R7zT2_cXGYgLuw8AHBfhuFPmuz0AJJ0ocj5Ql3_McPodRchW4XuK7LL4KQVDul9Fu4321iNrmJQ5XefG9YNaLIX-LFz9g67yE4awXIwRtXtJknZc4mvViBKvFS8DoKi8BZbNejFRk8RL663Y_COJZL0Zexrnz3ovBAwXSjv9gh-iMKy_VrkL_KlrtC2Xiqa8wCadegtFLo91Erh-l4CU2fAQ2HzhzovWEbOrDN32k1OLDt_nAYTr1AeG5yFYcrGcLhynyEoeLXjwarneD43TqBuJz2U0QrXeDAxW5SZNlN4ytd4MjdeoGInTZTRqvd4NDFSnZX1aA7ydzbmAcdORRksB_meeiGgqY2AldOu6doqsyWVe6FFat6jHH4TC0qvNjFTHaodMwHc06uffpCqjaKqkeDp1Qbf3iJRjC359eFWX3j_oVgrA0URNMWDJj0NXQHrQUQj1kXMGshLpAnYJY2hyEGvnJCTWDgs7n5opAelTcN5xQ-8wZpsB72KNCkVdyL_V894e6ucCdwljaLjTbNDxN9o1odmXd8Oubd29_NkERhqUYI1AvYhbU6-vXJioCsRRfhOp7iQ319gIVgViKLUZN6AXqzfW7t7-YqAjEUlwRahD6VtQ7ExWBWIopFiy17dbdr9cmKgKxpIFTHPqh_oPGH2Sre0ZZ9VCHrmprkgtyDtgRGiHp0P_d2cQBhTay4nsBneLQaAIGVzAaHqi6buF70-33XEGn6ngeOS4LAh8G9gbnVvOg6keRtfZec8g1HqUzuSYreSNwWjGbWvdoNC7ep_3ix3mj2el1QyfNX5kgx5V7LEEr_2m68qEln6ybjF20btzr3yt9FDAvLizTxVcVFgN8DLUY4JOnxQCfvSwG-LhlMcAnLIsBPlRZDPC9g80Anext-4pOYhaDi_PNoL2TBk9fq7oVcMovhrMUnI_a_hQFnxvx8UHmWllmqC62QWYOMhKdkUuMbOs0j_ttXTaXavni5LU-1b3eKgjWkgyVhjRCSUFeiEo_Ex87eaiJErwkWV0Vctcprl_8_fW7XwknYUIp2fIul3Xz8urI0iSQi7IGpbeqE1B6mgedEkDNBS8beHCMWR0x7VDjjYPrQx-YPj1-a1quWh03kG1Eq2TWL-p8j-ehGxYYlWW6xzjF2LT4n0INNkR7LEBBQQxbEOgy97HjpX1QI3cVbzulX8mqJaihAIaalmQfuCJ_ruo98PpSCwLH4Ej7X4QgXUWgb_j2T904QMrEe_BMdAYGnX7wPXT6ZzpR27OaT3PUlNCeOdxNfapl3pOI89RIYl_BNkR1oHHySD6Jss5kznPS1EdVNx08eyYq4QSFqEz9VVR6F8pEBXk1leaoKZWaN4LrvJarrCRUp55QnNdHQm9UvVPQvBNoE6GQHXi50Tuimby-uQWK8yMmENuQVps25K9vf3m9muLh-0qG-3srRHEyQzFFFKdHiqMzx7pBWU3t0diM9r7JOUkSF76zJKFZ3RBoroHqb_-uXAjxstekDvBCfgYSq2__2QvVd0kNb7_9q5RQI55JpLGHGWTJD4sUFvgEkQ6jFkSqm3xDpLh1OIlU99gb0t94EtG0Eg6bPZkn0skL6AQPUsCSJSfXXO1l9Vz1KQkwwXAo-DGC--V9N8HjqFmCh5OJQTBuvSYavgUNn7VJIBtD89mAdg9KZLIZSH7zt5vnYjWOMatwSfXDsr19kmxv_0i2txeyxf3qVLZ3m0mRgh4rePN_laqRTRP2P5Dq3ZOkevdHUr0zScU9_kjq2w4SAPSkMIwMdxrQPcF0ICM0kA8UtK26ROW62eJDwXomcuGGBZEbpDPkMltjFZzJNe5oVtN7Oe6CYPP657JjdYlJOzo5jbT_LPX1FCm55rcDaz7kXQA89grP1b4yg-XgiacBdL-2mmNz1AXD-Nru1Cvg4-U5z8J12YZ8qBV3dSED0brAaSvbLocPdbUbPp1TxiMpBGzXM5HLjIY2ir8nP_i2pAsLfELSHUYtJF19zWgIFeGOFJ9_Lb2g6kjNHFf7Ou9g1NrG1FvVlx5l2P8AO3Pr1ZM0THtCzWgzpWR4pu-DWr4tT3cOX_8LVc1bRA==","meta":{"format":2,"generator":"Desglosa","name":"gps-c","sources":true,"start":"#\/mapa","version":"0.1.0"},"packs":{"gps.c":"eNrtPV2PI8dxf2XMRL5beXOe_pie6ZUV4yydDgF01uFWWgTYOxy45OyJJy65JpeyBYWvAfKaXxA_5iFPfstLgNw_8S9Jd1V_zUzPcDjk2o6w-8Cdj-7qquqq6q7u6pofR9fz5e_Xo7MfRySdpGUh-PQqT_V9OX1XqheXl6NFOjodLcjodLGZz9XVcnUzno_enF7Cw9GCxt5Q_YbV37w5Hc3HPyw3d7qFyXK-uVmoNsipul4sysndcqWbVKW-HZ3RoniS6vJX5dw8nZfvysVUXY_uytXNbKFAno5uV8tJuV7qq_Hibjyfj0e66GyB6F8SgJPpH7zUP28cTqd3q02pUDblCBOuIBGioyRNU1eSsrRZEu6nARMp10X1D6O6FtOXl6N_Wswms-VZMr5azVZvbzfl6m75eLG8uVqVJ8DMaAHFsfVdMvl2vEo-doVtp0AjgBm2xAto6cWmXN-txmfJ69FTBUvxcpl8tE7GCS9S3clX4810tly_Hp0mCBKav13NFnfXj2N1Elvj9UJV0l1ewUQJAeGp5eSpFJ7oV6Xq7MU4IdDEqrzbrBb6BuoxWw_4Wqn3xWwBNeC_ZvHvR2csVwW2jts_amar37GSLKGIwn_fzbTkhIJzN169K5UkoojelRMldP15vQWdMM0U2EzhmnGi2NJMb54mYXvUtiexPenbc0oQbc7xdwtaiVBoClD0v57M0UzfKhBKvBeT8V2p6lyP5-tSPSKT_LqYZmOZ5fkRzcdo_eG_RtVX-umCt1bKoHitDjwUh1ijjGQVa3QJjRAOKk2p_iVP6CnJdHuANE31O5Kz4N1uGzYtJ7P1bLkYAdPn4-myZs04cdYMLlusGU31SyJBi0CBwmuapfFa-LbgriQjPG4DoXFKU4cIE6xSEiTDFyXMFyUi7QAKgCxQyTpKcpq7kjzL9zLBFAxKzQTPy3L1djJejSeqcx5XrW_13ffL2TQwuMJ2BdKmMAO4X5ZlMi3nienK5M__-u_JBKAq9U8myaeJUjJtVx4HJrNwLDolwF-4vBz97__oCs---uLXAEHdwJ23mRT7JIOaJG0a20evX6ePQoNrHgAArgEUtss7jK5RqDyz_aP6ljYbe6zpOpmEzblHAEPpI9SGnuth5LMWI08Z2jG2t5GPdWlo12mGkLMAMupkC-Bmr4Zmm-JoRP1oFGp7DJ7r44rdzhFMvqf1x87egvVsg9RrBAArayDgSET3HYmsJGzBLiMshuMRO8p4RPkkZ2xK06LkB45He01awbbsnrSuN1eWUVXzLrQu5BQsABi3lMYNIL7F2Spex2arXQawEH5maDRCYfZ5uX43X67Hz19efP388QyeVw1hvcRd4kpZLoI9ANRPaR4Yoi_n45uxmufMbtQE6Gamle_mdrk2lrb-9PUImtCzoGoLel5JZHReGTUd-l3UdEgKIqf_7Wk62pkQGhDJET538IOO9y2MrgQrM5GWQozTkbcmu_kRmheJ1kpmx9AfnqZFen0l-bVg9-YOhtO5yEyPm_lcs1J8PufA5bE5IDwsYnUK_UZGUZBAaxolFvlAovXg8YJEeUGAGYR1AOUxAvCpo2AF4-zy7dVmMi8DQkh0BoxPiYhjK-BlHsUI-EaKeEVsUXZUlFFs4CmN8pWmlopWOpEYSmKg8SmlUXzh8YLGHQt4vKC862WUt_iUxnlrXkZFEp_SOG_Nyyj_8ClL4xVBTlhUQwHJtndF-ztoqq2etO8iiKLi09g7fMpavDzgN-NdL6OdgU9ZvDMYsiYq6Ex0vMvsu0iDQDiLWhas0fKO2ncRmIUV8FYdQDlnUfHApzyqXhx6kpN-sxxWm-VcjlRFIsCzpSIDR0OD1U9ToqchzD-k7qGAVSj_VODalCmKUyfCwVVuuNgwuWGsiLjYDGcYhYy8MzMp8C2Cdx6kJCTmtYNrXQjarEYBhzyNYaLmOrgayNtfNmgAXFJJYjTAO-PK0TxKH1RsaVFmQABjMRK58PO_Oo3UrEx2VOQpa63IwVdtqZjRtLWiWjZqryhY3lpRSB7rYeSqTNuZU3Qxp-hgjuxiDkk7uENSkbYiW8jYO4lLHBUR2L2KVJllBk5msCyp1Bq0uu5_cLe8JHjHYjkSK3xBIlsWoqSWbJZqfmbAm8p1yxI7vuWwEmGuOe8qmReuZJZ24cyMywSQa2tGfskKNYT7ojQXHUABkAVa5B0lBRpNvJZZR8k88yXzIl6SQpkiBxbLonYtmYzWMm_B3OI1Sm1rUZKCAtob0UWgTKWXCUJEF4ML4ssWXHZJGkByYLnoLCu5L0sBH1S_4FoUqe-HApcjq6OsR5bCQJXTDGxYXrsm6PPb5ijvoliwoPtF1lW0BjdrWYfFATYH7uA1SUVXUVJQX5YS2lXWKIu5EZ1wOe6HmRvSRluKQz_YALVI2biBmj3AIPo8wK9VRQNYDjDPOsuCFpmbLJVdZY3umxtYuslhOTi8xrEay-jrDmkjlOOqNsdVc1K_AQPjGizyTg6FDMpFZ9EKXEHalBz6D-UNr1vlzbxGecObVnmTXLq1azVaZo0b0WIBOfCX4agrYM-lekNaxiXzGidK5ganfTlO1wSNs8tgxMwOCN4UtAs9jjMfbKV6w7Iu9LiQQVmQSoMe3HSgx2EQtzdSdqGX4fwKW6neZLQLvQynSeYGN48QPbjpQC-D7QNzI4joQk9k3LdSvRGyC708FIScMI8e3HSgJyT16OU1EfKFA0nxkIs-NYP3rjBvkVTzughRQvxyPcLjTXwgQaUzG1MY_dCtgUWodNWbbg2UIa-rN90aKEMNlCEr5Q4NlKEGym4NND6YaaZ-162EysDJsHSohnjXgSRJQ0VUYxzvlKUKA7B0j7phAVectGzduvc8RIwgmihReNchUkUoUmpu1qZNgYB62Li_u6tupYAv3rYhbN5TnJPZO9iHVbEkpHGHIzKW2zUiS5yJ4WZ_npPGDc0qrba7FUXhxmQ_kHZRX4NcdI7Kah82oIqwjHSXLrKgdH2uFd8_QtnHyIa0uYF-M54tavvm8Ki2XY6zeeQ9XOEON0TYfD6-014rbKmordTUXL9X18RcfwfP3-xfw-0epZl1WRUuQYQUbOAu1Y8Ho2-Ja7C7gNuJl3Y-ava_3Bb-YlkNLXo9-uyrF-z16AQ39X8Wf-m36BnoEEzFW2O7frtM1mVyu5mathSeKgYBYb4eVWO66mUTX1LHH534_X4Ovia44f0juYStB075jqACtViaOQ_axJYY6uzGYS1AQwdU6D1LLQAahL5QPdEI47C7IxBvAG63knca9gvU_PO__Ufy6O8f_drD-tmn-oEBIK3ggjteIea7X_wCKsF_t5MDHjY4tmYW7JrT8vji6T-_fXb-8tmrp9jgd3qz3z-0cHQ4H2AM7rwKKxLN_dRJuVqNndig_jWeuc0nhsuKuFIV68o07Eor1nrDytYU-c7O1LtVmffWj9-dehMoL5zDa5YeQecgVkYr6a-S337z4u3Xr56-eHqe_KCsw68U-K-fvnj7m2---OLZKxNI0yj585_rookvaJvUISvc-c0mSNGw4Deb6-tydTl7ozB2FDQfur0xiWxBTyoijJ_WRPHTUBT1xpsU3hSEfaHpMeJoL92mG9YB77dSZ2YqzFxpvQ0nU-f_Hr__9AYG4Rn1HWj8ZcOE95UeUL2Hdlb3oO8q5E-tqOo-UzboVNsqxKRS34cZrbRqOux98g8JeYN9kPygmrTP4dlz0y-1wlhatR4UhtK2bR3XKnGlH5YBaxQr-72Y3Nw-_rmrr0Nq9a7_qxef6V3_7EQPM9h2pHBSKxoMeTq4K4N5D0OXI2ZFfEyDAmKsSPXZe9d5mSMFXN_-pDx__rQvKUHRgBThSAHfeRcpCkiDFP3Mk5I7UsBN3oOU8_6knMdIKRwpGTpBO0g5j5ByHpIiHSngUvcnxYSV9CElKBrMeVJHihByNyk6aKZOin7mSNG7qpTAphD4xQ0LRwITR5zVYl69i8Hq_XIv9X5p1Zt59S72Ue-Xz1-9eNaP-5WiAfe9esvd6g1AatzHZ577Xr3lPuqtwVz0J-UiQopXb3TLd9NyEaHlIqAld5KELnFfUSpgpzt1Xmel3ntT570vr5UvQ5eK4gz2sKma3qm3CIAr13-uxomviuveu2LkaKF5Hg-Sw9MNstg7SC5w_SrHJVKM9FQd3Dds1Pl5rxfOzcNL8PLwEp28LUZsmabsCRDSP-i2Pg_fYpiXBZgbgPmumD5ZqiD86eQqLYSP6at39RbDxCxwc5AkPEnSK57WkM06APUN7SU2OpiYAyIkOCESJ7Vy-MMBbJn9bTG6y7bBTRu8f1B0j_n6FoPdbCOZaSTry9bGvH2LAXIWoJGqPUK5wzn8FiPqLDAjUf0Dus20fovxdRaMORTUPxZ7ZmA48UtNZ6S9-RQuh6AS-tWQLYb4GdgmupuwowsTdbrJDP6svzD1ch22GFFoWzHSxLLerfR2FLYYnmhbMmLG-otZT7dgi5GOth0jgWyXTZuIKxUTPM7y62nYN3UfYYuhkha6sUWsOJiKmkewxbBL245RACZ3UCHk1VhtstKx2kuKUWHcgy3GbRro3MgvTw-n4rxJhbMGnJh2yA4qimmpQobGY8muplEqzj0VzkhwaqDTg6mo-QHhCRW1KWIMSd7VTPXMsWuwbQ10iyGvlhJmKGE7-FQ5CRLhk3E7thjDaqEbHefZPjaZGIPKnK3gRoO5OLKteIm2gjmWc8Nynh_Ysw0fY4uBuLYdo8282MH3_Pqay4xMBJmKJt-dw7HFSF4L3egwl0eg4qJBhbMVmdHmbNdoNC6EHF8pFZte8TgVF44KZysyo2UZHSQ9zhZkZjzLeF847y0Mp_GZkYvsePNVJwupkYV0wMHnnRsPWwxhtmSYprJhM2PuNDszEpbJwYfeVMyuoXvYAWzRAacvLk7WiLGDhB17XuXEkBgxJHy_2e7P_GzXiSMxhpX0Nqx6S6XlkFJlIH845DfkkJ-e63Qf8sMS93rIz0zr7umQn0DTIYoDDvnVmRAuZ-Q4luTp0Q751fgR-mg5Tg9zcoxDfpUh-kF_9tcfnMV06Y8tcY_64yZs96Q_Bcp3kQ7WnyYTQv0pcLZU0CPpT4Mfof4UOFwW7Bj6U3HBHvRn0PhzvnP8Ob__8ef8PsefHKdPOT9k_DnvGH_Qx8zF8caf8_bxB92JPD-G_lScqwf9GTb-XOwcfy7uf_y5uM_xB-W7EAeNPxft4w_OD4viiOPPRev4gy5fIY-hPxWM_spJGiKv2rM08NYsDaI1S8OO_A2s46w0swkeGs215HfYx5oUmawdW8bzoHjuUcROC-M7c0KjeuCTSTxiGzkOnGFGrMqx5b0SisXzI2KeLzwogInC2uL18S1os00pJrrSiIkg4ZjsSjjGApisE6Y5QozXnUnMeOZh8kK0nG7EwzkImdWvi05MgiRpmWw5A4CAEGlzDV2_o1rw2hQVVHbgIiBE3lznhTvj6C8pHrcxJ3SyznD3jPnEkQJlLrgWMmhLsi4CMHtjIAztRUOoOWUdtGLEvRHalPQYTU38KZ4Mg2BsXhtO6zYccy6eQnx3c2itl_bZIVUFkx9SG__IkItJ5zDinABGYdy5BhfEld-qa4TgI887irhBF86RE-Q6CRKzBRHiH63P2pJ8Vl6d-JB2PHYlMQiUh8FAt_VATbMQf_tGYQkh1R8_Cp9imLWJsbpt7L_6cnr98GO99-EDtMxTtUQcpq3DwMYgy6GLpPXVVK3TalzXLe6knD7yMe6YAA8UvxolpPluo4TstR2vKMxyMgyNzniU4cm_JPXIe3h04kPfOSOubczqUAfj-QqANphjzj0N4tyRDjAaFTpuDQ23Dn8IWsqt1inbED9SkDz-aIrStz7BTK9wU6MoLITZS-HuJAiJR8yKlPSYEoq8LSTJbPUyufeUsF15k6jqhhNFszXL6V7REVZlMTwi0NhKoJLZ6sn43jsBdmZpNkSD_dDeezE1nQ-3cjnixfsv_ffS6CSiz-HWktl_5XuHWHilDndszDZssAu7az_OKHm4XWN2WIMN1t4MNroebtyYnc5go3MntKbCh9s0GUpnRvrSeGvos3szGQpQNkCA2jW_zXMJNxv_9jz_lkziQvjkKKIrOYoI3H7R2-3nsjM5bSxyNP6udtrOZwPHzL5N8_7Z8majII0nqGAAbTquj1hhqcSWCU-Jgctf7OHy0zb7jqLI9k_pGmNEaMNN8FYQu9VbyDvID-2wCdpi4hgefiXg6q-UVrs9DSM1Dn6LG58flHBbylg2sBxPpEe9aoy9zuVxUyUNW_qjmPUC3U88gR5c0yzuWtpkFtyVhGWx9pKi8CVl0bEISalfhOS89Xxyr_VKV5JjphK8zvOOkhkhriSsYxxzD0FHHXbvIWCJiEOGvhKsgVam7tWpWvKLRDgfrP7YagKeZBPe8W04Iap8Do7IRc0RMS_gjfe4GKaVx3WMlnk5kHaWTFW4xToBLfx-PJ9N1c3dcjr-ftaw4bUKiSmuTZOpEBp0pfoc0maAGMbOHwSnD4KjwsSnluo-JSrMMjTH9G-HbeOYGNdqJ-d2GRqXz3b6HLRtGdoEUmX5Ads4dTkMRyYTmJTJfbyLmjCG45DAbVuR7j2Frohj6AwInGIKsv_g2SJ3SVXqQhdA4LawoPvFWFXm_U0Yfb0qO-kX6P-I42Vwrklp6BMInJyII2RwVs_W5e825WJSauD1dOjhMLy41lZ3VP5BBX_BcHe9Gr-7KRd3fjAmDL_FM7su3ViIGTBUPB7mGVEFb8r1evwufIu_MOkckbOIKiuYWs2nWoBqLDT4mNHpjR6RV3eKZ1rkoIkcBgc4hX2qY8vf3a6fTFTFm-V0M4cFMTzYVIBCI8VvlbDGqNbNKV4vGvRfSjufLeDYNNWHyNTvaL5c3iaXQ51dvTSmIeAMSRkhPAKtpzeFMfnqNIZuZzy_Sy7rzq2uPrvWeSUlsv5b_YEE2t5HDHMLXTJaeXDPnXZqIGKr-DGLEXmigBq7UIGFgm37wU4gQgj4ySUFgQ6GAOOzgsAUhI39SMNeIPAAtQLB-yMxQHpPL2lWK_IMYC6dsDoZz9S8im4jWdt7q_klTjCowqqAmVChU894OQ_iORuiaxLJKgCqkgIgFLK65vJWSW7tMJ0VXFsVpzVUSz1TkwaqP37iGu1x0KuJDCYCBX1latwvII-mA9nnuE8LgRnops6_IpQlEI7Cvmd76qTDRl8GDEfSuQJtFb7fMR4LUmAWoUvMh5yrXwuTpcVOmNVDNRZmkaYIEz4kUzDfRfos7U6Y5zGYEpNjGpgyKzztnp_9zpvUuYnL5gQkycznpSe91NYI0uCsy1oPEL0PY_uVSLJnv76s9yv2gYLqidOr-d0Mq5-5sDAJuG2OY0SPDBZqxnawrH4EooKoy7ktOgZ2jtn__KhhnkSHDSzkhg2TCSocKyrWqTlWGPPaGCsqx4GqEGsHiDohwqBqNj11XbP96Q12R13IX4bjTj1SvoJONcS-CyQuYQxDh6WFG8Tqi4KVsbl6oqMTZEbdoHYkClkxnEKeoRg9yY6GDgdXfxg6ws47xFkjSUqITu14ZCdIZiYi4smhc6wQbE4N4_KzRg6UEGTtCGQnSGGIz4-KacGNEBdnjRQnIcjaMcdOkMb4PCmOiqnMjW7Is0YGkxBk7aBhp0FJrQrLo6KqjtVYu5meNRJ-hEBrp_O6gRbCAj0utjQ3HUbIWSOlRwi0dgqvEygOlQD0uNgyxwZ6BLtrfS1Y5Otrlnr4Ed-sN-PVTDsJY5Pev-lIxD1loeIAxAGesnEhiJ6iUNAZ8JdxitJyqDfuDxDqQBCZ7-OFcGwdxvqc7-WFiHCKS_JjuCG5TJ0bovLQsqP4IbkM5quC8OM4IkUws1T-31BPBJOXu2mwzkakSLdr-TVMKwuN8Wl0Cl4lLrwoZh5_3cVMrNMCRA6scsF2rruo6b0MyFR5VwPZ0bCG-VxE4NaIxUrPzi31Bbs_6tVnhx31udhNfYYRerZ6TryvI9CBH-AcUpOF2UItwDVG4hGp-yG-ABFD4oXcTbwkeYAmJcQrjkqidJgba2Bq02dJR5TuhXRKQb4M6XT3aiPEHvsVHy79aqWeJfbwtlUdb73ywIU9yNtWn0ERgQQWA71tlbWr0rU5oX8J9VPtiH3UT8XvyhBNmfFAAvNDVgUsTKY_H_wXUD6m9w72UD5GMuYXvDEXceuKN03rS97mSZZWn_z_Ws5A7M1yhoK433J6ZFljT5cY26fZkKX4ygqI5G4V42AfH5FizCDFNFP8R5j3wgsPIwxct-DCLaMc7CEgTbywKzPDOzqj4njLKUZ7hEErO4DVmRy-RCQEd2syR6Ipd8s8B9CUMzFYqYpg9cZa7z2bL6y4FEdYqkKsJE-DZZVhEij90gw9ik-ehd_xQLhDsDNgSBqAocPB2N1FDWa_HcYKHGq3GDUcPhgdapkuB4uTSqVHmwtKB64oqjxzxZEXlAzF-MFAA_gAeeAyhDNcIDKRBnAOkAhBaABouEgIx3kyXCZyFiyEHWntVm0qWgrpcWWisEutGvABMoGfvLFwhsuEtHsbAGe4TKhgCBEAGiwTNHWcZ4NlghI79SL8aKvk1NlTwo8qE-pbBtQDHi4TlBYhnMEyQZndDAE4B8gET9MA0HCZyJzDkg2XicwZG3G0zQgqnIkXx5UJ4bZOxEEykbMQznCZyKUI4BwgE26nDQANlwnpOD98ekrdZhopjrblw9xuGimOKhMqEJ97wMNlghEawqHD4cg0gDNcJhh107pimEyYXxcMR-TRPF7G3Agph_DcrN-wvTb872ln7fSSs75RfLk6uQJRfPW0hg_Bug_Bug_Buj-5YN169sUHNX9Q8wc1_8mpeT1J5IOaP6j5g5r_5NS8nsvyQc0f1PxBzX9yal5PyPGg5nupeU5jwcE94kGhNmX0L2IkKBP7GQn9fW5jJHhXD8P-ZGgkeHuX25MCwvT5vupofnFVmx7TymAcPD3AyggDYbCVgdRBGsIBVga1if7tWRl9dn-5WemT-6Nffvx6kXycfKmy42xW42RaJirzx814nfz2xbOn-nazSJ6_PE9ulyvz-Rz1WZ3VrHwC1Z69L29u58tEIe2_mXqWrEqVwWC6mZTJXH3D-8Of3qmsRgbWdDZ-pxvQt9fzzftlMpl_-ON6NlkCwG9V2gH1wR4VDqdyODwu17clIDXX4Zoq59fydqZSdsyTK1AUlfRxim2WGtxEsRWxPwHsfvl68XezxWS-Ue9-tb6bzpZPvv3H6jPVLe_goXo8La-VPoVqnhHqn_vo_kRFc6T-RRC3LzQgyPVnNDmI4P9Ev_vlx8lTlQLPf4sImakoXehnKqHCTCXzW5WKRG34Zu90n6gX3zx99bXiioqjTpOr8UaRsj55AhTqJB2ViL9mwsGT14sfFT_Un8uWoZCYqaRFy-SjdQ2sya5man6C9ezXhdTt1pDxZQndqYKiPvxRR0VBJ1UEBNADPKrhU5Azy6EEKQxVkhEXDWWanF0njyfaDD776ouTxBQOcFHmNX1kym4rWD7WcE4mAa6fzfTGgZbFiUux9eFPC81izVwl3oisxiyW4KvJv_ZUXUGzJo1OouTT5K5TnNGaovOSaH1S2ChFA70wghvgsWciySpDbU7IT_wzn8nlkxox1eyM5u3vv53NlVwOHfgqXab7sj60VQroP5MR8ZPq01qGw-DtNtHh33UozRyGYRV_eeta2ta4kbTmGgy61mSb-Xa5Gp8mqpdVl54q-bqb3W2m6mK5eIdX35fz5WQ2HU-VqbpWpi3s4NasPZWurCbgCZQjNqepMHW_1Dif1DWsyp7diWYq3FHhW2rQWyqzrhVNM3AOXNBG4nr2B8WNxYf_vilXSy396_Hdh_-cz-7KdZQ7tU8jee7s_LBRFaVzhZJvKlHGaPa94sIPilGQt0hbhMeff_XyJI7F-R5YnLdgAbEJZ4myF0r7ldjM1EwAWOBYpTRupQa5UiXjUSPd87HOzhNDqPHFmw6E6t-rqSF0cRaIqRqH2Of7IHGxBxIXbX2jonjUpGFzc7VU3eGRWS_NWLneqGfRbtHxP327xZyMiXBhtcQ5iVYZPfWaQ8ivGRv8LGOsEFmH8yM_BPsvkTsU3CfFAyM8qxll-Lh4cP9d7b399HHtETHPvDVoOf4YNwi7Po3YsAUOx61tU3GNPEmewfwM6hsbFQ5mwBxdOP4NwOpAExy9rCD9XWVI0KTWzlo2B5JqlEBtQLFfbYwPC52YhsTTJ8lnejK6MqM7FtVmxU1OdUeN9RzLCIzlhiG4x6nPCmn1L4bXuBJ8_rvJEficd5ziWeVFb_rZE4XQWhUJZt2Boqzm4zq9fU6kts0adh45bZCsK_c7WdqoCnyofXG6JkRm7tHVSPUA5o5G8IPQAxo536eR82GNVA8U7mgEP3Zcb6QpjqQqjx6Lvuf09ujx-nG8ThLsd4P35VP92NvORi6G8Mlfvg8nsGbAiRq-wOCpkqPt_wEaRJ33"}}</script>
 <script>
 /* Desglosa — visor interactivo. Sin dependencias externas.
  * Seguridad: todo texto que viene del código analizado se pinta con textContent o
@@ -465,6 +500,9 @@ button, input, select { font: inherit; color: inherit; }
     route: null, // vista "Trazar ruta": cadena dibujada y controles
     routeStep: null,
     routeTimer: null,
+    walk: null, // recorrido animado del flujo
+    tour: null, // modo presentación
+    tourChecked: false,
   };
 
   // ------------------------------------------------------------------ utilidades DOM
@@ -566,6 +604,12 @@ button, input, select { font: inherit; color: inherit; }
     if (["flujo", "secuencia", "codigo"].includes(view) && id) updateTrail(id);
     if (!sameView) { state.selectedNode = null; state.routeStep = null; }
     if (view !== "ruta") { stopRoutePlay(); state.route = null; }
+    if (state.walk && !(view === "flujo" && id === state.walk.sid)) stopWalk();
+    if (!state.tourChecked) {
+      state.tourChecked = true;
+      const want = r.params.get("presentar");
+      if (want !== null) setTimeout(() => startTour(want === "auto"), 0);
+    }
 
     renderToolbar();
     // Vistas de una función: primero se abre el paquete de su archivo.
@@ -592,6 +636,7 @@ button, input, select { font: inherit; color: inherit; }
     else if (view === "ruta") renderRoute(id);
     else renderMap(null);
     renderCrumbs();
+    tourHook();
   }
 
   function updateTrail(id) {
@@ -623,7 +668,8 @@ button, input, select { font: inherit; color: inherit; }
       tools.exportSvg = h("button", { class: "boton", type: "button", title: "Exportar la vista como SVG", onclick: exportSVG }, "SVG");
       tools.exportPng = h("button", { class: "boton", type: "button", title: "Exportar la vista como PNG", onclick: exportPNG }, "PNG");
       const helpBtn = h("button", { class: "boton", type: "button", title: "Ayuda y atajos de teclado (?)", "aria-label": "Ayuda", onclick: showHelp }, "?");
-      appendAll(bar, [search, tools.mode, tools.theme, zoomOut, zoomIn, fitBtn, tools.exportSvg, tools.exportPng, helpBtn]);
+      const tourBtn = h("button", { class: "boton", type: "button", title: "Presentación guiada del proyecto (p)", onclick: () => (state.tour ? endTour() : startTour(false)) }, "Presentar");
+      appendAll(bar, [search, tools.mode, tools.theme, zoomOut, zoomIn, fitBtn, tools.exportSvg, tools.exportPng, tourBtn, helpBtn]);
     }
     tools.mode.textContent = state.mode === "facil" ? "Modo: fácil" : "Modo: técnico";
     tools.mode.setAttribute("aria-pressed", state.mode === "tecnico" ? "true" : "false");
@@ -643,6 +689,8 @@ button, input, select { font: inherit; color: inherit; }
     ["M", "Modo fácil (español) o técnico (código)"],
     ["Trazar ruta", "Botón del panel de una función: el camino de llamadas hasta otra función o la base de datos"],
     ["←  →  espacio", "En «Trazar ruta»: paso anterior, siguiente y reproducir"],
+    ["R", "En un flujo: recorrerlo paso a paso, como una prueba de escritorio"],
+    ["P", "Presentación guiada del proyecto (con avance automático para un stand)"],
     ["T", "Tema claro u oscuro"],
     ["?", "Mostrar esta ayuda"],
   ];
@@ -693,6 +741,7 @@ button, input, select { font: inherit; color: inherit; }
     else if (state.view === "arquitectura") renderArch();
     else if (state.view === "ruta") renderRoute(state.id);
     state.selectedNode = keep;
+    if (state.tour) paintTour();
   }
 
   // ------------------------------------------------------------------ buscador
@@ -1097,6 +1146,10 @@ button, input, select { font: inherit; color: inherit; }
     const infoParts = [h("code", null, sym.signature), "  ·  " + sym.file + ":" + sym.line_start];
     if (sym.doc) infoParts.push(h("div", { class: "doc" }, sym.doc));
     if (flow && flow.truncated) infoParts.push(h("div", null, "Función muy grande: algunos bloques se muestran colapsados (clic para ver el código)."));
+    if (flow && flow.edges && flow.edges.length) {
+      infoParts.push(h("div", { class: "acciones-flujo" },
+        h("button", { class: "boton", type: "button", id: "boton-recorrer", title: "Animación paso a paso, como una prueba de escritorio (r)", onclick: () => (state.walk ? stopWalk() : walkStart(sid, false)) }, state.walk && state.walk.sid === sid ? "✕ Terminar recorrido" : "▶ Recorrer")));
+    }
     renderInfo(infoParts);
     renderPanel(sid);
     if (!flow) {
@@ -1136,6 +1189,7 @@ button, input, select { font: inherit; color: inherit; }
     }
     mount(svg, g, lay.w, lay.h, lay.legend || []);
     if (state.selectedNode) selectNode(sid, state.selectedNode, false);
+    if (state.walk && state.walk.sid === sid) paintWalk(false);
   }
 
   function drawFlowNode(sid, nid, info, x, y, w, hh, lines) {
@@ -1783,6 +1837,404 @@ button, input, select { font: inherit; color: inherit; }
     paintRouteControls();
   }
 
+  // ------------------------------------------------------------------ recorrer un flujo
+
+  // Prueba de escritorio animada: avanza nodo por nodo desde Inicio. En cada decisión
+  // elige la persona ("sí" / "no") o, en automático, una regla fija y explicable (ver
+  // `autoChoice`): en un bucle entra una vez y sale; en un "si" sigue el camino principal.
+  // Las excepciones solo se toman a mano.
+  const WALK_MS = 1300;
+  const WALK_MS_TOUR = 850;
+  const WALK_MAX_STEPS = 400;
+  const REDUCED_MOTION = typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  function walkOptions(flow, nid) {
+    const rank = (e) => (e[3] === "excepcion" ? 2 : e[2] === "sí" ? 0 : 1);
+    return (flow.edges || [])
+      .map((e, i) => [e, i])
+      .filter(([e]) => e[0] === nid)
+      .sort((a, b) => rank(a[0]) - rank(b[0]) || a[1] - b[1])
+      .map(([e]) => e);
+  }
+
+  /** Cuántos nodos distintos se pueden alcanzar desde `start`. Se cuentan también las
+   * vueltas de los bucles: dentro de un bucle, la rama que sigue iterando llega a todo lo
+   * que viene después del bucle, y la del `return` de error solo llega a Fin. */
+  function stepsAhead(flow, start) {
+    const seen = new Set([start]);
+    const queue = [start];
+    while (queue.length) {
+      const cur = queue.shift();
+      for (const e of flow.edges) {
+        if (e[0] === cur && e[3] !== "excepcion" && !seen.has(e[1])) {
+          seen.add(e[1]);
+          queue.push(e[1]);
+        }
+      }
+    }
+    return seen.size;
+  }
+
+  /** Salida automática de un nodo: en la cabecera de un bucle, entrar la primera vez y salir
+   * después; en un "si" o un "según", la salida con más pasos por delante (el camino
+   * principal, no el `return` de un error). En empate gana "sí". */
+  function autoChoice(flow, cur, opts, visits) {
+    const normal = opts.filter((e) => e[3] !== "excepcion");
+    let pool = normal.length ? normal : opts;
+    if (pool.length === 1) return pool[0];
+    const isHeader = flow.edges.some((e) => e[1] === cur && e[3] === "retorno_bucle");
+    if (isHeader) {
+      const enter = pool.find((e) => e[2] === "sí") || pool[0];
+      const leave = pool.find((e) => e !== enter) || enter;
+      return visits > 1 ? leave : enter;
+    }
+    const forward = pool.filter((e) => e[3] !== "retorno_bucle");
+    if (forward.length) pool = forward;
+    let best = pool[0];
+    let most = -1;
+    for (const e of pool) {
+      const n = stepsAhead(flow, e[1]);
+      if (n > most) { best = e; most = n; }
+    }
+    return best;
+  }
+
+  function walkStartNode(flow) {
+    const incoming = new Set((flow.edges || []).map((e) => e[1]));
+    const ids = (flow.layout.nodes || []).map((n) => n[0]);
+    return ids.find((id) => flow.nodes[id] && flow.nodes[id].kind === "terminal" && !incoming.has(id)) || ids[0];
+  }
+
+  function stopWalkTimer() {
+    if (state.walk && state.walk.timer) { clearInterval(state.walk.timer); state.walk.timer = null; }
+  }
+
+  function stopWalk() {
+    stopWalkTimer();
+    state.walk = null;
+    const cap = $("recorrido");
+    if (cap) cap.remove();
+    $("lienzo").classList.remove("con-recorrido");
+    const btn = $("boton-recorrer");
+    if (btn) btn.textContent = "▶ Recorrer";
+    document.querySelectorAll("#lienzo .nodo.actual, #lienzo .nodo.visitado").forEach((n) => n.classList.remove("actual", "visitado"));
+  }
+
+  function walkStart(sid, auto, fast) {
+    const flow = flowOf(sid);
+    if (!flow || !flow.edges || !flow.layout.nodes.length) return;
+    stopWalk();
+    const first = walkStartNode(flow);
+    state.walk = { sid, auto: auto !== false, fast: !!fast, path: [first], visits: { [first]: 1 }, timer: null, playing: false, done: false, zoomed: false };
+    paintWalk(true);
+    walkPlay(true);
+  }
+
+  function walkCurrent() {
+    const w = state.walk;
+    return w.path[w.path.length - 1];
+  }
+
+  /** Opciones que la persona puede elegir en el nodo actual (null si no hay que elegir). */
+  function walkChoices() {
+    const w = state.walk;
+    const flow = flowOf(w.sid);
+    const opts = walkOptions(flow, walkCurrent());
+    return opts.length > 1 ? opts : null;
+  }
+
+  function walkStep(choice) {
+    const w = state.walk;
+    if (!w || w.done) return;
+    const flow = flowOf(w.sid);
+    const cur = walkCurrent();
+    const opts = walkOptions(flow, cur);
+    if (!opts.length || w.path.length >= WALK_MAX_STEPS) {
+      w.done = true;
+      stopWalkTimer();
+      w.playing = false;
+      paintWalk(false);
+      return;
+    }
+    const edge = (choice !== undefined && opts[choice]) || autoChoice(flow, cur, opts, w.visits[cur] || 1);
+    w.path.push(edge[1]);
+    w.visits[edge[1]] = (w.visits[edge[1]] || 0) + 1;
+    paintWalk(true);
+  }
+
+  function walkBack() {
+    const w = state.walk;
+    if (!w || w.path.length < 2) return;
+    const last = w.path.pop();
+    w.visits[last] -= 1;
+    w.done = false;
+    paintWalk(true);
+  }
+
+  function walkTick() {
+    const w = state.walk;
+    if (!w) return;
+    if (!w.auto && walkChoices()) {
+      // Espera a que la persona elija; después sigue reproduciendo sola.
+      stopWalkTimer();
+      w.playing = false;
+      w.resume = true;
+      paintWalk(false);
+      return;
+    }
+    walkStep();
+  }
+
+  function walkPlay(on) {
+    const w = state.walk;
+    if (!w) return;
+    stopWalkTimer();
+    w.playing = on && !w.done;
+    if (w.playing) w.timer = setInterval(walkTick, w.fast ? WALK_MS_TOUR : WALK_MS);
+    paintWalk(false);
+  }
+
+  function nodeText(flow, nid) {
+    const n = (flow.layout.nodes || []).find((x) => x[0] === nid);
+    if (!n) return "";
+    return (state.mode === "facil" ? n[5] : n[6]).join(" ");
+  }
+
+  function paintWalk(move) {
+    const w = state.walk;
+    if (!w || state.view !== "flujo" || state.id !== w.sid) return;
+    const flow = flowOf(w.sid);
+    const cur = walkCurrent();
+    const visited = new Set(w.path.slice(0, -1));
+    document.querySelectorAll("#lienzo .nodo[data-id]").forEach((n) => {
+      const id = n.getAttribute("data-id");
+      n.classList.toggle("actual", id === cur);
+      n.classList.toggle("visitado", id !== cur && visited.has(id));
+    });
+    selectNode(w.sid, cur, true);
+    const el = document.querySelector('#lienzo .nodo[data-id="' + cur + '"]');
+    if (el && move) centerOn(el);
+    // Leyenda del recorrido: paso, texto del nodo y controles.
+    let cap = $("recorrido");
+    if (!cap) {
+      cap = h("div", { class: "recorrido", id: "recorrido", role: "region", "aria-label": "Recorrido del diagrama" });
+      $("lienzo").appendChild(cap);
+    }
+    $("lienzo").classList.add("con-recorrido");
+    const btn = $("boton-recorrer");
+    if (btn) btn.textContent = "✕ Terminar recorrido";
+    clear(cap);
+    const info = flow.nodes[cur] || {};
+    const kind = NODE_NAMES[info.kind] ? NODE_NAMES[info.kind].replace(" (clic para abrir)", "") : "";
+    const head = w.done
+      ? "Fin del recorrido: " + w.path.length + " pasos."
+      : "Paso " + w.path.length + (kind ? " · " + kind : "");
+    cap.appendChild(h("div", { class: "recorrido-paso", "aria-live": "polite" }, head));
+    cap.appendChild(h("div", { class: "recorrido-texto" }, nodeText(flow, cur)));
+    const choices = !w.done && walkChoices();
+    if (choices && !w.auto) {
+      const row = h("div", { class: "recorrido-opciones" }, h("span", null, "¿Por dónde sigue? "));
+      choices.forEach((e, i) => {
+        const label = e[3] === "excepcion" ? "excepción" + (e[2] ? ": " + e[2] : "") : e[2] || "seguir";
+        row.appendChild(h("button", { class: "boton opcion", type: "button", onclick: () => {
+          const resume = w.resume;
+          w.resume = false;
+          walkStep(i);
+          if (resume) walkPlay(true);
+        } }, label));
+      });
+      cap.appendChild(row);
+    }
+    const ctl = h("div", { class: "recorrido-controles" });
+    appendAll(ctl, [
+      h("button", { class: "boton", type: "button", title: "Volver a empezar", onclick: () => walkStart(w.sid, w.auto, w.fast) }, "⏮"),
+      h("button", { class: "boton", type: "button", title: "Paso anterior (←)", disabled: w.path.length < 2, onclick: () => { walkPlay(false); walkBack(); } }, "◀"),
+      h("button", { class: "boton", type: "button", title: "Reproducir o pausar (espacio)", disabled: w.done, onclick: () => walkPlay(!w.playing) }, w.playing ? "⏸ Pausa" : "▶ Seguir"),
+      h("button", { class: "boton", type: "button", title: "Paso siguiente (→)", disabled: w.done || (!w.auto && !!choices), onclick: () => { walkPlay(false); walkStep(); } }, "▶|"),
+      h("button", { class: "boton", type: "button", "aria-pressed": w.auto ? "true" : "false", title: "En automático: en un bucle entra una vez y sale; en un «si» sigue el camino principal (la salida con más pasos por delante)", onclick: () => { w.auto = !w.auto; paintWalk(false); } }, w.auto ? "Decide: automático" : "Decide: yo"),
+      info.target && SYMBOLS[info.target] ? h("button", { class: "boton", type: "button", title: "Abrir el flujo de la función llamada", onclick: () => openSub(info.target) }, "Entrar a " + SYMBOLS[info.target].name + "()") : null,
+      h("button", { class: "boton", type: "button", title: "Terminar el recorrido (Esc)", "aria-label": "Cerrar el recorrido", onclick: stopWalk }, "✕"),
+    ]);
+    cap.appendChild(ctl);
+  }
+
+  /** Mueve la vista para que el nodo quede a la vista (y legible, si estaba muy lejos). */
+  function centerOn(el) {
+    const w = state.walk;
+    const r = $("lienzo").getBoundingClientRect();
+    if (w && !w.zoomed && state.transform.k < 0.75) {
+      w.zoomed = true;
+      state.transform.k = 0.95;
+      apply();
+    }
+    const b = el.getBoundingClientRect();
+    const margin = 50;
+    const bottom = r.bottom - 150; // la leyenda del recorrido ocupa el pie
+    if (b.left > r.left + margin && b.right < r.right - margin && b.top > r.top + margin && b.bottom < bottom) return;
+    const dx = r.left + r.width / 2 - (b.left + b.width / 2);
+    const dy = r.top + (r.height - 150) / 2 - (b.top + b.height / 2);
+    tweenTo(state.transform.x + dx, state.transform.y + dy);
+  }
+
+  function tweenTo(x, y) {
+    const from = { k: state.transform.k, x: state.transform.x, y: state.transform.y };
+    const dur = REDUCED_MOTION ? 0 : 380;
+    const t0 = performance.now();
+    const frame = (now) => {
+      const p = dur ? Math.min(1, (now - t0) / dur) : 1;
+      const e = p * (2 - p);
+      state.transform = { k: from.k, x: from.x + (x - from.x) * e, y: from.y + (y - from.y) * e };
+      apply();
+      if (p < 1) requestAnimationFrame(frame);
+    };
+    requestAnimationFrame(frame);
+  }
+
+  // ------------------------------------------------------------------ modo presentación
+
+  // Visita guiada armada con los datos del proyecto, con un texto sencillo en cada paso.
+  // En automático avanza sola y vuelve a empezar: sirve para dejarla corriendo en un stand.
+  const TOUR_MS = 9000;
+
+  function tourEntry() {
+    const cands = Object.keys(SYMBOLS).filter((id) => hasFlow(id) && (SYMBOLS[id].kind === "function" || SYMBOLS[id].kind === "method"));
+    const base = (id) => (DATA.routes && DATA.routes[id] ? 4 : 0) + (SYMBOLS[id].is_entry ? 2 : 0) + Math.min(((DATA.calls_out || {})[id] || []).length, 5) / 10;
+    cands.sort((a, b) => base(b) - base(a) || SYMBOLS[a].qualname.localeCompare(SYMBOLS[b].qualname));
+    // Entre las mejores: primero las que llegan a la base de datos (para el paso de la
+    // ruta) y, de ellas, la más rica (más decisiones y llamadas) para que el recorrido luzca.
+    const top = cands.slice(0, 20).map((id, i) => ({
+      id, i,
+      db: tracePath(id, ANY_TABLE) ? 1 : 0,
+      size: ((SYMBOLS[id].metrics || {}).cc || 0) + Math.min(((DATA.calls_out || {})[id] || []).length, 5),
+    }));
+    top.sort((a, b) => b.db - a.db || b.size - a.size || a.i - b.i);
+    return top.length ? top[0].id : null;
+  }
+
+  function buildTour() {
+    const slides = [];
+    const files = Object.values(DATA.files || {}).filter((f) => !f.skipped);
+    const langs = [...new Set(files.map((f) => f.lang))].sort();
+    const funcs = Object.values(SYMBOLS).filter((s) => s.kind === "function" || s.kind === "method").length;
+    const doc = MAP && MAP.groups[MAP.root] && MAP.groups[MAP.root].doc;
+    slides.push({ view: "mapa", id: null, cover: true, title: (DATA.meta && DATA.meta.name) || "Proyecto",
+      text: (doc ? doc + " · " : "") + files.length + " archivos (" + langs.join(", ") + ") y " + funcs + " funciones, leídos sin ejecutarlos, sin IA y sin internet." });
+    if (MAP) slides.push({ view: "mapa", id: null, title: "El mapa", text: "Cada caja es una carpeta, un archivo o una clase. Las flechas dicen quién llama a quién y cuántas veces; con clic se baja de nivel." });
+    if (DATA.arch) slides.push({ view: "arquitectura", id: null, title: "La arquitectura", text: "Las capas del programa según sus nombres y carpetas (controladores → servicios → datos) y lo que usa de afuera: base de datos, correo, APIs." });
+    if (DATA.galaxy) slides.push({ view: "galaxia", id: null, title: "La galaxia", text: "Todo el proyecto de un vistazo: cada punto es un archivo y los colores son grupos que se llaman mucho entre sí." });
+    const entry = tourEntry();
+    if (entry) {
+      const name = SYMBOLS[entry].name + "()";
+      slides.push({ view: "flujo", id: entry, walk: true, title: "Diagrama de flujo de " + name, text: "Así se ejecuta paso a paso. Lo recorremos como una prueba de escritorio: en cada rombo se elige «sí» o «no»." });
+      if ((DATA.seq_ids || []).includes(entry)) slides.push({ view: "secuencia", id: entry, title: "Diagrama de secuencia de " + name, text: "Quién llama a quién y en qué orden, con sus bucles y condiciones." });
+      if (tracePath(entry, ANY_TABLE)) slides.push({ view: "ruta", id: entry + "/" + encodeURIComponent(ANY_TABLE), route: true, title: "¿Cómo llega " + name + " a la base de datos?", text: "El camino de llamadas más corto, paso a paso, hasta la tabla que lee o escribe." });
+    }
+    if (DATA.er && DATA.er.tables && DATA.er.tables.length) slides.push({ view: "er", id: null, title: "La base de datos", text: "Las tablas y cómo se relacionan (claves foráneas), sacadas de los archivos .sql." });
+    slides.push({ view: "mapa", id: null, cover: true, title: "Hecho con Desglosa", text: "De código a diagramas, sin IA y sin internet. Pulsa Esc para explorar por tu cuenta." });
+    return slides;
+  }
+
+  function startTour(auto) {
+    if (state.tour) endTour();
+    document.body.classList.add("en-presentacion");
+    state.tour = { slides: buildTour(), i: 0, auto: !!auto, timer: null, started: -1, since: 0 };
+    showSlide(0);
+  }
+
+  function endTour() {
+    const t = state.tour;
+    if (!t) return;
+    if (t.timer) clearInterval(t.timer);
+    state.tour = null;
+    document.body.classList.remove("en-presentacion");
+    const box = $("presentacion");
+    if (box) box.remove();
+    stopWalk();
+    stopRoutePlay();
+  }
+
+  function showSlide(i) {
+    const t = state.tour;
+    if (!t) return;
+    t.i = (i + t.slides.length) % t.slides.length;
+    t.started = -1;
+    stopWalk();
+    stopRoutePlay();
+    const sl = t.slides[t.i];
+    const target = buildHash(sl.view, sl.id);
+    if (location.hash === target) render();
+    else location.hash = target;
+  }
+
+  /** Se llama al final de cada render: pinta la leyenda y arranca la animación del paso. */
+  function tourHook() {
+    const t = state.tour;
+    if (!t) return;
+    const sl = t.slides[t.i];
+    paintTour();
+    if (t.started === t.i || state.view !== sl.view || (state.id || null) !== (sl.id ? decodeURIComponent(sl.id) : null)) return;
+    t.started = t.i;
+    t.since = performance.now();
+    t.endedAt = 0;
+    hidePanel();
+    if (sl.walk) setTimeout(() => { if (state.tour && state.view === "flujo") walkStart(sl.id, true, true); }, 700);
+    if (sl.route) setTimeout(() => { if (state.tour && state.route && !state.routeTimer) toggleRoutePlay(); }, 700);
+    if (t.timer) clearInterval(t.timer);
+    t.timer = setInterval(tourTick, 400);
+  }
+
+  /** En automático: un paso normal dura TOUR_MS; uno animado, hasta que termina la
+   * animación (o 45 nodos del flujo) más 2,5 s para verlo. */
+  function tourTick() {
+    const t = state.tour;
+    if (!t || !t.auto) return;
+    const sl = t.slides[t.i];
+    const now = performance.now();
+    const elapsed = now - t.since;
+    let finished = elapsed > TOUR_MS;
+    if (sl.walk) {
+      const w = state.walk;
+      finished = w ? w.done || w.path.length >= 45 : elapsed > 3000; // sin flujo: seguir
+    } else if (sl.route) {
+      const r = state.route;
+      finished = r ? !state.routeTimer && state.routeStep >= r.chain.length - 1 && elapsed > 1500 : elapsed > 3000;
+    }
+    if (!finished) return;
+    if (sl.walk || sl.route) {
+      if (!t.endedAt) t.endedAt = now;
+      if (now - t.endedAt < 2500) return;
+    }
+    showSlide(t.i + 1);
+  }
+
+  /** El texto del paso va en la franja de información (o centrado y grande en la
+   * portada), con los controles de la presentación. */
+  function paintTour() {
+    const t = state.tour;
+    if (!t) return;
+    const sl = t.slides[t.i];
+    const old = $("presentacion");
+    if (old) old.remove();
+    const full = document.fullscreenElement
+      ? h("button", { class: "boton", type: "button", onclick: () => { if (document.exitFullscreen) document.exitFullscreen().then(paintTour, () => {}); } }, "Salir de pantalla completa")
+      : h("button", { class: "boton", type: "button", title: "Ideal para proyectar", onclick: () => { const d = document.documentElement; if (d.requestFullscreen) d.requestFullscreen().then(paintTour, () => {}); } }, "Pantalla completa");
+    const controls = h("div", { class: "presentacion-controles" },
+      h("span", { class: "presentacion-numero" }, (t.i + 1) + " / " + t.slides.length),
+      h("button", { class: "boton", type: "button", title: "Anterior (←)", "aria-label": "Anterior", onclick: () => showSlide(t.i - 1) }, "◀"),
+      h("button", { class: "boton", type: "button", title: "Siguiente (→)", "aria-label": "Siguiente", onclick: () => showSlide(t.i + 1) }, "▶"),
+      h("button", { class: "boton", type: "button", "aria-pressed": t.auto ? "true" : "false", title: "Avanza sola y vuelve a empezar (espacio)", onclick: () => { t.auto = !t.auto; t.since = performance.now(); t.endedAt = 0; paintTour(); } }, t.auto ? "Automático: sí" : "Automático: no"),
+      full,
+      h("button", { class: "boton", type: "button", title: "Salir de la presentación (Esc)", onclick: endTour }, "Salir"));
+    if (sl.cover) {
+      renderInfo([]);
+      document.body.appendChild(h("div", { id: "presentacion", class: "presentacion portada", role: "region", "aria-label": "Presentación" },
+        h("h2", null, sl.title), h("p", null, sl.text), controls));
+      return;
+    }
+    renderInfo([h("div", { class: "presentacion-info", role: "region", "aria-label": "Presentación", "aria-live": "polite" },
+      h("h2", null, sl.title), h("p", null, sl.text), controls)]);
+  }
+
   // ------------------------------------------------------------------ vista: entidad-relación
 
   // ------------------------------------------------------------------ vista: galaxia
@@ -2028,6 +2480,23 @@ button, input, select { font: inherit; color: inherit; }
       if (tag === "INPUT" || tag === "TEXTAREA") return;
       if (helpDialog && helpDialog.open) return; // el diálogo maneja Esc solo
       if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (state.tour && ["Escape", "ArrowRight", "ArrowLeft", " ", "p"].includes(e.key)) {
+        e.preventDefault();
+        if (e.key === "Escape" || e.key === "p") endTour();
+        else if (e.key === " ") { state.tour.auto = !state.tour.auto; state.tour.since = performance.now(); state.tour.endedAt = 0; paintTour(); }
+        else showSlide(state.tour.i + (e.key === "ArrowRight" ? 1 : -1));
+        return;
+      }
+      if (state.walk && ["Escape", "ArrowRight", "ArrowLeft", " "].includes(e.key)) {
+        e.preventDefault();
+        if (e.key === "Escape") stopWalk();
+        else if (e.key === " ") walkPlay(!state.walk.playing);
+        else if (e.key === "ArrowLeft") { walkPlay(false); walkBack(); }
+        else if (state.walk.auto || !walkChoices()) { walkPlay(false); walkStep(); }
+        return;
+      }
+      if (e.key === "p") { startTour(false); return; }
+      if (e.key === "r" && state.view === "flujo" && state.id) { walkStart(state.id, false); return; }
       if (state.view === "ruta" && state.route && ["ArrowRight", "ArrowLeft", " "].includes(e.key)) {
         e.preventDefault();
         if (e.key === " ") toggleRoutePlay();

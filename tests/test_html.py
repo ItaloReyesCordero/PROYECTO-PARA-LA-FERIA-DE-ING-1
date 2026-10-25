@@ -127,6 +127,18 @@ def test_flow_legend_lists_only_present_kinds(tmp_path):
         assert set(lay["legend"]) == kinds
 
 
+def test_flow_payload_has_graph_edges_for_the_walk(tmp_path):
+    """El recorrido animado sigue las aristas del grafo, no las líneas dibujadas."""
+    page = _flow_html(tmp_path, ROOT / "examples" / "gps-c", "gps.c:main")
+    flows = _data(page)["flows"]
+    main = max(flows.values(), key=lambda f: len(f["nodes"]))  # main es el flujo más grande
+    ids = set(main["nodes"])
+    assert main["edges"] and all(e[0] in ids and e[1] in ids for e in main["edges"])
+    labels = {e[2] for e in main["edges"]}
+    assert {"sí", "no"} <= labels
+    assert any(e[3] == "retorno_bucle" for e in main["edges"])
+
+
 @pytest.mark.parametrize("spec", ["gps.c:no_existe", "nada"])
 def test_flow_command_unknown_function(tmp_path, spec):
     out = tmp_path / "x.html"

@@ -123,6 +123,9 @@
     route: null, // vista "Trazar ruta": cadena dibujada y controles
     routeStep: null,
     routeTimer: null,
+    walk: null, // recorrido animado del flujo
+    tour: null, // modo presentación
+    tourChecked: false,
   };
 
   // ------------------------------------------------------------------ utilidades DOM
@@ -224,6 +227,12 @@
     if (["flujo", "secuencia", "codigo"].includes(view) && id) updateTrail(id);
     if (!sameView) { state.selectedNode = null; state.routeStep = null; }
     if (view !== "ruta") { stopRoutePlay(); state.route = null; }
+    if (state.walk && !(view === "flujo" && id === state.walk.sid)) stopWalk();
+    if (!state.tourChecked) {
+      state.tourChecked = true;
+      const want = r.params.get("presentar");
+      if (want !== null) setTimeout(() => startTour(want === "auto"), 0);
+    }
 
     renderToolbar();
     // Vistas de una función: primero se abre el paquete de su archivo.
@@ -250,6 +259,7 @@
     else if (view === "ruta") renderRoute(id);
     else renderMap(null);
     renderCrumbs();
+    tourHook();
   }
 
   function updateTrail(id) {
@@ -281,7 +291,8 @@
       tools.exportSvg = h("button", { class: "boton", type: "button", title: "Exportar la vista como SVG", onclick: exportSVG }, "SVG");
       tools.exportPng = h("button", { class: "boton", type: "button", title: "Exportar la vista como PNG", onclick: exportPNG }, "PNG");
       const helpBtn = h("button", { class: "boton", type: "button", title: "Ayuda y atajos de teclado (?)", "aria-label": "Ayuda", onclick: showHelp }, "?");
-      appendAll(bar, [search, tools.mode, tools.theme, zoomOut, zoomIn, fitBtn, tools.exportSvg, tools.exportPng, helpBtn]);
+      const tourBtn = h("button", { class: "boton", type: "button", title: "Presentación guiada del proyecto (p)", onclick: () => (state.tour ? endTour() : startTour(false)) }, "Presentar");
+      appendAll(bar, [search, tools.mode, tools.theme, zoomOut, zoomIn, fitBtn, tools.exportSvg, tools.exportPng, tourBtn, helpBtn]);
     }
     tools.mode.textContent = state.mode === "facil" ? "Modo: fácil" : "Modo: técnico";
     tools.mode.setAttribute("aria-pressed", state.mode === "tecnico" ? "true" : "false");
@@ -301,6 +312,8 @@
     ["M", "Modo fácil (español) o técnico (código)"],
     ["Trazar ruta", "Botón del panel de una función: el camino de llamadas hasta otra función o la base de datos"],
     ["←  →  espacio", "En «Trazar ruta»: paso anterior, siguiente y reproducir"],
+    ["R", "En un flujo: recorrerlo paso a paso, como una prueba de escritorio"],
+    ["P", "Presentación guiada del proyecto (con avance automático para un stand)"],
     ["T", "Tema claro u oscuro"],
     ["?", "Mostrar esta ayuda"],
   ];
@@ -351,6 +364,7 @@
     else if (state.view === "arquitectura") renderArch();
     else if (state.view === "ruta") renderRoute(state.id);
     state.selectedNode = keep;
+    if (state.tour) paintTour();
   }
 
   // ------------------------------------------------------------------ buscador
@@ -755,6 +769,10 @@
     const infoParts = [h("code", null, sym.signature), "  ·  " + sym.file + ":" + sym.line_start];
     if (sym.doc) infoParts.push(h("div", { class: "doc" }, sym.doc));
     if (flow && flow.truncated) infoParts.push(h("div", null, "Función muy grande: algunos bloques se muestran colapsados (clic para ver el código)."));
+    if (flow && flow.edges && flow.edges.length) {
+      infoParts.push(h("div", { class: "acciones-flujo" },
+        h("button", { class: "boton", type: "button", id: "boton-recorrer", title: "Animación paso a paso, como una prueba de escritorio (r)", onclick: () => (state.walk ? stopWalk() : walkStart(sid, false)) }, state.walk && state.walk.sid === sid ? "✕ Terminar recorrido" : "▶ Recorrer")));
+    }
     renderInfo(infoParts);
     renderPanel(sid);
     if (!flow) {
@@ -794,6 +812,7 @@
     }
     mount(svg, g, lay.w, lay.h, lay.legend || []);
     if (state.selectedNode) selectNode(sid, state.selectedNode, false);
+    if (state.walk && state.walk.sid === sid) paintWalk(false);
   }
 
   function drawFlowNode(sid, nid, info, x, y, w, hh, lines) {
@@ -1441,6 +1460,404 @@
     paintRouteControls();
   }
 
+  // ------------------------------------------------------------------ recorrer un flujo
+
+  // Prueba de escritorio animada: avanza nodo por nodo desde Inicio. En cada decisión
+  // elige la persona ("sí" / "no") o, en automático, una regla fija y explicable (ver
+  // `autoChoice`): en un bucle entra una vez y sale; en un "si" sigue el camino principal.
+  // Las excepciones solo se toman a mano.
+  const WALK_MS = 1300;
+  const WALK_MS_TOUR = 850;
+  const WALK_MAX_STEPS = 400;
+  const REDUCED_MOTION = typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  function walkOptions(flow, nid) {
+    const rank = (e) => (e[3] === "excepcion" ? 2 : e[2] === "sí" ? 0 : 1);
+    return (flow.edges || [])
+      .map((e, i) => [e, i])
+      .filter(([e]) => e[0] === nid)
+      .sort((a, b) => rank(a[0]) - rank(b[0]) || a[1] - b[1])
+      .map(([e]) => e);
+  }
+
+  /** Cuántos nodos distintos se pueden alcanzar desde `start`. Se cuentan también las
+   * vueltas de los bucles: dentro de un bucle, la rama que sigue iterando llega a todo lo
+   * que viene después del bucle, y la del `return` de error solo llega a Fin. */
+  function stepsAhead(flow, start) {
+    const seen = new Set([start]);
+    const queue = [start];
+    while (queue.length) {
+      const cur = queue.shift();
+      for (const e of flow.edges) {
+        if (e[0] === cur && e[3] !== "excepcion" && !seen.has(e[1])) {
+          seen.add(e[1]);
+          queue.push(e[1]);
+        }
+      }
+    }
+    return seen.size;
+  }
+
+  /** Salida automática de un nodo: en la cabecera de un bucle, entrar la primera vez y salir
+   * después; en un "si" o un "según", la salida con más pasos por delante (el camino
+   * principal, no el `return` de un error). En empate gana "sí". */
+  function autoChoice(flow, cur, opts, visits) {
+    const normal = opts.filter((e) => e[3] !== "excepcion");
+    let pool = normal.length ? normal : opts;
+    if (pool.length === 1) return pool[0];
+    const isHeader = flow.edges.some((e) => e[1] === cur && e[3] === "retorno_bucle");
+    if (isHeader) {
+      const enter = pool.find((e) => e[2] === "sí") || pool[0];
+      const leave = pool.find((e) => e !== enter) || enter;
+      return visits > 1 ? leave : enter;
+    }
+    const forward = pool.filter((e) => e[3] !== "retorno_bucle");
+    if (forward.length) pool = forward;
+    let best = pool[0];
+    let most = -1;
+    for (const e of pool) {
+      const n = stepsAhead(flow, e[1]);
+      if (n > most) { best = e; most = n; }
+    }
+    return best;
+  }
+
+  function walkStartNode(flow) {
+    const incoming = new Set((flow.edges || []).map((e) => e[1]));
+    const ids = (flow.layout.nodes || []).map((n) => n[0]);
+    return ids.find((id) => flow.nodes[id] && flow.nodes[id].kind === "terminal" && !incoming.has(id)) || ids[0];
+  }
+
+  function stopWalkTimer() {
+    if (state.walk && state.walk.timer) { clearInterval(state.walk.timer); state.walk.timer = null; }
+  }
+
+  function stopWalk() {
+    stopWalkTimer();
+    state.walk = null;
+    const cap = $("recorrido");
+    if (cap) cap.remove();
+    $("lienzo").classList.remove("con-recorrido");
+    const btn = $("boton-recorrer");
+    if (btn) btn.textContent = "▶ Recorrer";
+    document.querySelectorAll("#lienzo .nodo.actual, #lienzo .nodo.visitado").forEach((n) => n.classList.remove("actual", "visitado"));
+  }
+
+  function walkStart(sid, auto, fast) {
+    const flow = flowOf(sid);
+    if (!flow || !flow.edges || !flow.layout.nodes.length) return;
+    stopWalk();
+    const first = walkStartNode(flow);
+    state.walk = { sid, auto: auto !== false, fast: !!fast, path: [first], visits: { [first]: 1 }, timer: null, playing: false, done: false, zoomed: false };
+    paintWalk(true);
+    walkPlay(true);
+  }
+
+  function walkCurrent() {
+    const w = state.walk;
+    return w.path[w.path.length - 1];
+  }
+
+  /** Opciones que la persona puede elegir en el nodo actual (null si no hay que elegir). */
+  function walkChoices() {
+    const w = state.walk;
+    const flow = flowOf(w.sid);
+    const opts = walkOptions(flow, walkCurrent());
+    return opts.length > 1 ? opts : null;
+  }
+
+  function walkStep(choice) {
+    const w = state.walk;
+    if (!w || w.done) return;
+    const flow = flowOf(w.sid);
+    const cur = walkCurrent();
+    const opts = walkOptions(flow, cur);
+    if (!opts.length || w.path.length >= WALK_MAX_STEPS) {
+      w.done = true;
+      stopWalkTimer();
+      w.playing = false;
+      paintWalk(false);
+      return;
+    }
+    const edge = (choice !== undefined && opts[choice]) || autoChoice(flow, cur, opts, w.visits[cur] || 1);
+    w.path.push(edge[1]);
+    w.visits[edge[1]] = (w.visits[edge[1]] || 0) + 1;
+    paintWalk(true);
+  }
+
+  function walkBack() {
+    const w = state.walk;
+    if (!w || w.path.length < 2) return;
+    const last = w.path.pop();
+    w.visits[last] -= 1;
+    w.done = false;
+    paintWalk(true);
+  }
+
+  function walkTick() {
+    const w = state.walk;
+    if (!w) return;
+    if (!w.auto && walkChoices()) {
+      // Espera a que la persona elija; después sigue reproduciendo sola.
+      stopWalkTimer();
+      w.playing = false;
+      w.resume = true;
+      paintWalk(false);
+      return;
+    }
+    walkStep();
+  }
+
+  function walkPlay(on) {
+    const w = state.walk;
+    if (!w) return;
+    stopWalkTimer();
+    w.playing = on && !w.done;
+    if (w.playing) w.timer = setInterval(walkTick, w.fast ? WALK_MS_TOUR : WALK_MS);
+    paintWalk(false);
+  }
+
+  function nodeText(flow, nid) {
+    const n = (flow.layout.nodes || []).find((x) => x[0] === nid);
+    if (!n) return "";
+    return (state.mode === "facil" ? n[5] : n[6]).join(" ");
+  }
+
+  function paintWalk(move) {
+    const w = state.walk;
+    if (!w || state.view !== "flujo" || state.id !== w.sid) return;
+    const flow = flowOf(w.sid);
+    const cur = walkCurrent();
+    const visited = new Set(w.path.slice(0, -1));
+    document.querySelectorAll("#lienzo .nodo[data-id]").forEach((n) => {
+      const id = n.getAttribute("data-id");
+      n.classList.toggle("actual", id === cur);
+      n.classList.toggle("visitado", id !== cur && visited.has(id));
+    });
+    selectNode(w.sid, cur, true);
+    const el = document.querySelector('#lienzo .nodo[data-id="' + cur + '"]');
+    if (el && move) centerOn(el);
+    // Leyenda del recorrido: paso, texto del nodo y controles.
+    let cap = $("recorrido");
+    if (!cap) {
+      cap = h("div", { class: "recorrido", id: "recorrido", role: "region", "aria-label": "Recorrido del diagrama" });
+      $("lienzo").appendChild(cap);
+    }
+    $("lienzo").classList.add("con-recorrido");
+    const btn = $("boton-recorrer");
+    if (btn) btn.textContent = "✕ Terminar recorrido";
+    clear(cap);
+    const info = flow.nodes[cur] || {};
+    const kind = NODE_NAMES[info.kind] ? NODE_NAMES[info.kind].replace(" (clic para abrir)", "") : "";
+    const head = w.done
+      ? "Fin del recorrido: " + w.path.length + " pasos."
+      : "Paso " + w.path.length + (kind ? " · " + kind : "");
+    cap.appendChild(h("div", { class: "recorrido-paso", "aria-live": "polite" }, head));
+    cap.appendChild(h("div", { class: "recorrido-texto" }, nodeText(flow, cur)));
+    const choices = !w.done && walkChoices();
+    if (choices && !w.auto) {
+      const row = h("div", { class: "recorrido-opciones" }, h("span", null, "¿Por dónde sigue? "));
+      choices.forEach((e, i) => {
+        const label = e[3] === "excepcion" ? "excepción" + (e[2] ? ": " + e[2] : "") : e[2] || "seguir";
+        row.appendChild(h("button", { class: "boton opcion", type: "button", onclick: () => {
+          const resume = w.resume;
+          w.resume = false;
+          walkStep(i);
+          if (resume) walkPlay(true);
+        } }, label));
+      });
+      cap.appendChild(row);
+    }
+    const ctl = h("div", { class: "recorrido-controles" });
+    appendAll(ctl, [
+      h("button", { class: "boton", type: "button", title: "Volver a empezar", onclick: () => walkStart(w.sid, w.auto, w.fast) }, "⏮"),
+      h("button", { class: "boton", type: "button", title: "Paso anterior (←)", disabled: w.path.length < 2, onclick: () => { walkPlay(false); walkBack(); } }, "◀"),
+      h("button", { class: "boton", type: "button", title: "Reproducir o pausar (espacio)", disabled: w.done, onclick: () => walkPlay(!w.playing) }, w.playing ? "⏸ Pausa" : "▶ Seguir"),
+      h("button", { class: "boton", type: "button", title: "Paso siguiente (→)", disabled: w.done || (!w.auto && !!choices), onclick: () => { walkPlay(false); walkStep(); } }, "▶|"),
+      h("button", { class: "boton", type: "button", "aria-pressed": w.auto ? "true" : "false", title: "En automático: en un bucle entra una vez y sale; en un «si» sigue el camino principal (la salida con más pasos por delante)", onclick: () => { w.auto = !w.auto; paintWalk(false); } }, w.auto ? "Decide: automático" : "Decide: yo"),
+      info.target && SYMBOLS[info.target] ? h("button", { class: "boton", type: "button", title: "Abrir el flujo de la función llamada", onclick: () => openSub(info.target) }, "Entrar a " + SYMBOLS[info.target].name + "()") : null,
+      h("button", { class: "boton", type: "button", title: "Terminar el recorrido (Esc)", "aria-label": "Cerrar el recorrido", onclick: stopWalk }, "✕"),
+    ]);
+    cap.appendChild(ctl);
+  }
+
+  /** Mueve la vista para que el nodo quede a la vista (y legible, si estaba muy lejos). */
+  function centerOn(el) {
+    const w = state.walk;
+    const r = $("lienzo").getBoundingClientRect();
+    if (w && !w.zoomed && state.transform.k < 0.75) {
+      w.zoomed = true;
+      state.transform.k = 0.95;
+      apply();
+    }
+    const b = el.getBoundingClientRect();
+    const margin = 50;
+    const bottom = r.bottom - 150; // la leyenda del recorrido ocupa el pie
+    if (b.left > r.left + margin && b.right < r.right - margin && b.top > r.top + margin && b.bottom < bottom) return;
+    const dx = r.left + r.width / 2 - (b.left + b.width / 2);
+    const dy = r.top + (r.height - 150) / 2 - (b.top + b.height / 2);
+    tweenTo(state.transform.x + dx, state.transform.y + dy);
+  }
+
+  function tweenTo(x, y) {
+    const from = { k: state.transform.k, x: state.transform.x, y: state.transform.y };
+    const dur = REDUCED_MOTION ? 0 : 380;
+    const t0 = performance.now();
+    const frame = (now) => {
+      const p = dur ? Math.min(1, (now - t0) / dur) : 1;
+      const e = p * (2 - p);
+      state.transform = { k: from.k, x: from.x + (x - from.x) * e, y: from.y + (y - from.y) * e };
+      apply();
+      if (p < 1) requestAnimationFrame(frame);
+    };
+    requestAnimationFrame(frame);
+  }
+
+  // ------------------------------------------------------------------ modo presentación
+
+  // Visita guiada armada con los datos del proyecto, con un texto sencillo en cada paso.
+  // En automático avanza sola y vuelve a empezar: sirve para dejarla corriendo en un stand.
+  const TOUR_MS = 9000;
+
+  function tourEntry() {
+    const cands = Object.keys(SYMBOLS).filter((id) => hasFlow(id) && (SYMBOLS[id].kind === "function" || SYMBOLS[id].kind === "method"));
+    const base = (id) => (DATA.routes && DATA.routes[id] ? 4 : 0) + (SYMBOLS[id].is_entry ? 2 : 0) + Math.min(((DATA.calls_out || {})[id] || []).length, 5) / 10;
+    cands.sort((a, b) => base(b) - base(a) || SYMBOLS[a].qualname.localeCompare(SYMBOLS[b].qualname));
+    // Entre las mejores: primero las que llegan a la base de datos (para el paso de la
+    // ruta) y, de ellas, la más rica (más decisiones y llamadas) para que el recorrido luzca.
+    const top = cands.slice(0, 20).map((id, i) => ({
+      id, i,
+      db: tracePath(id, ANY_TABLE) ? 1 : 0,
+      size: ((SYMBOLS[id].metrics || {}).cc || 0) + Math.min(((DATA.calls_out || {})[id] || []).length, 5),
+    }));
+    top.sort((a, b) => b.db - a.db || b.size - a.size || a.i - b.i);
+    return top.length ? top[0].id : null;
+  }
+
+  function buildTour() {
+    const slides = [];
+    const files = Object.values(DATA.files || {}).filter((f) => !f.skipped);
+    const langs = [...new Set(files.map((f) => f.lang))].sort();
+    const funcs = Object.values(SYMBOLS).filter((s) => s.kind === "function" || s.kind === "method").length;
+    const doc = MAP && MAP.groups[MAP.root] && MAP.groups[MAP.root].doc;
+    slides.push({ view: "mapa", id: null, cover: true, title: (DATA.meta && DATA.meta.name) || "Proyecto",
+      text: (doc ? doc + " · " : "") + files.length + " archivos (" + langs.join(", ") + ") y " + funcs + " funciones, leídos sin ejecutarlos, sin IA y sin internet." });
+    if (MAP) slides.push({ view: "mapa", id: null, title: "El mapa", text: "Cada caja es una carpeta, un archivo o una clase. Las flechas dicen quién llama a quién y cuántas veces; con clic se baja de nivel." });
+    if (DATA.arch) slides.push({ view: "arquitectura", id: null, title: "La arquitectura", text: "Las capas del programa según sus nombres y carpetas (controladores → servicios → datos) y lo que usa de afuera: base de datos, correo, APIs." });
+    if (DATA.galaxy) slides.push({ view: "galaxia", id: null, title: "La galaxia", text: "Todo el proyecto de un vistazo: cada punto es un archivo y los colores son grupos que se llaman mucho entre sí." });
+    const entry = tourEntry();
+    if (entry) {
+      const name = SYMBOLS[entry].name + "()";
+      slides.push({ view: "flujo", id: entry, walk: true, title: "Diagrama de flujo de " + name, text: "Así se ejecuta paso a paso. Lo recorremos como una prueba de escritorio: en cada rombo se elige «sí» o «no»." });
+      if ((DATA.seq_ids || []).includes(entry)) slides.push({ view: "secuencia", id: entry, title: "Diagrama de secuencia de " + name, text: "Quién llama a quién y en qué orden, con sus bucles y condiciones." });
+      if (tracePath(entry, ANY_TABLE)) slides.push({ view: "ruta", id: entry + "/" + encodeURIComponent(ANY_TABLE), route: true, title: "¿Cómo llega " + name + " a la base de datos?", text: "El camino de llamadas más corto, paso a paso, hasta la tabla que lee o escribe." });
+    }
+    if (DATA.er && DATA.er.tables && DATA.er.tables.length) slides.push({ view: "er", id: null, title: "La base de datos", text: "Las tablas y cómo se relacionan (claves foráneas), sacadas de los archivos .sql." });
+    slides.push({ view: "mapa", id: null, cover: true, title: "Hecho con Desglosa", text: "De código a diagramas, sin IA y sin internet. Pulsa Esc para explorar por tu cuenta." });
+    return slides;
+  }
+
+  function startTour(auto) {
+    if (state.tour) endTour();
+    document.body.classList.add("en-presentacion");
+    state.tour = { slides: buildTour(), i: 0, auto: !!auto, timer: null, started: -1, since: 0 };
+    showSlide(0);
+  }
+
+  function endTour() {
+    const t = state.tour;
+    if (!t) return;
+    if (t.timer) clearInterval(t.timer);
+    state.tour = null;
+    document.body.classList.remove("en-presentacion");
+    const box = $("presentacion");
+    if (box) box.remove();
+    stopWalk();
+    stopRoutePlay();
+  }
+
+  function showSlide(i) {
+    const t = state.tour;
+    if (!t) return;
+    t.i = (i + t.slides.length) % t.slides.length;
+    t.started = -1;
+    stopWalk();
+    stopRoutePlay();
+    const sl = t.slides[t.i];
+    const target = buildHash(sl.view, sl.id);
+    if (location.hash === target) render();
+    else location.hash = target;
+  }
+
+  /** Se llama al final de cada render: pinta la leyenda y arranca la animación del paso. */
+  function tourHook() {
+    const t = state.tour;
+    if (!t) return;
+    const sl = t.slides[t.i];
+    paintTour();
+    if (t.started === t.i || state.view !== sl.view || (state.id || null) !== (sl.id ? decodeURIComponent(sl.id) : null)) return;
+    t.started = t.i;
+    t.since = performance.now();
+    t.endedAt = 0;
+    hidePanel();
+    if (sl.walk) setTimeout(() => { if (state.tour && state.view === "flujo") walkStart(sl.id, true, true); }, 700);
+    if (sl.route) setTimeout(() => { if (state.tour && state.route && !state.routeTimer) toggleRoutePlay(); }, 700);
+    if (t.timer) clearInterval(t.timer);
+    t.timer = setInterval(tourTick, 400);
+  }
+
+  /** En automático: un paso normal dura TOUR_MS; uno animado, hasta que termina la
+   * animación (o 45 nodos del flujo) más 2,5 s para verlo. */
+  function tourTick() {
+    const t = state.tour;
+    if (!t || !t.auto) return;
+    const sl = t.slides[t.i];
+    const now = performance.now();
+    const elapsed = now - t.since;
+    let finished = elapsed > TOUR_MS;
+    if (sl.walk) {
+      const w = state.walk;
+      finished = w ? w.done || w.path.length >= 45 : elapsed > 3000; // sin flujo: seguir
+    } else if (sl.route) {
+      const r = state.route;
+      finished = r ? !state.routeTimer && state.routeStep >= r.chain.length - 1 && elapsed > 1500 : elapsed > 3000;
+    }
+    if (!finished) return;
+    if (sl.walk || sl.route) {
+      if (!t.endedAt) t.endedAt = now;
+      if (now - t.endedAt < 2500) return;
+    }
+    showSlide(t.i + 1);
+  }
+
+  /** El texto del paso va en la franja de información (o centrado y grande en la
+   * portada), con los controles de la presentación. */
+  function paintTour() {
+    const t = state.tour;
+    if (!t) return;
+    const sl = t.slides[t.i];
+    const old = $("presentacion");
+    if (old) old.remove();
+    const full = document.fullscreenElement
+      ? h("button", { class: "boton", type: "button", onclick: () => { if (document.exitFullscreen) document.exitFullscreen().then(paintTour, () => {}); } }, "Salir de pantalla completa")
+      : h("button", { class: "boton", type: "button", title: "Ideal para proyectar", onclick: () => { const d = document.documentElement; if (d.requestFullscreen) d.requestFullscreen().then(paintTour, () => {}); } }, "Pantalla completa");
+    const controls = h("div", { class: "presentacion-controles" },
+      h("span", { class: "presentacion-numero" }, (t.i + 1) + " / " + t.slides.length),
+      h("button", { class: "boton", type: "button", title: "Anterior (←)", "aria-label": "Anterior", onclick: () => showSlide(t.i - 1) }, "◀"),
+      h("button", { class: "boton", type: "button", title: "Siguiente (→)", "aria-label": "Siguiente", onclick: () => showSlide(t.i + 1) }, "▶"),
+      h("button", { class: "boton", type: "button", "aria-pressed": t.auto ? "true" : "false", title: "Avanza sola y vuelve a empezar (espacio)", onclick: () => { t.auto = !t.auto; t.since = performance.now(); t.endedAt = 0; paintTour(); } }, t.auto ? "Automático: sí" : "Automático: no"),
+      full,
+      h("button", { class: "boton", type: "button", title: "Salir de la presentación (Esc)", onclick: endTour }, "Salir"));
+    if (sl.cover) {
+      renderInfo([]);
+      document.body.appendChild(h("div", { id: "presentacion", class: "presentacion portada", role: "region", "aria-label": "Presentación" },
+        h("h2", null, sl.title), h("p", null, sl.text), controls));
+      return;
+    }
+    renderInfo([h("div", { class: "presentacion-info", role: "region", "aria-label": "Presentación", "aria-live": "polite" },
+      h("h2", null, sl.title), h("p", null, sl.text), controls)]);
+  }
+
   // ------------------------------------------------------------------ vista: entidad-relación
 
   // ------------------------------------------------------------------ vista: galaxia
@@ -1686,6 +2103,23 @@
       if (tag === "INPUT" || tag === "TEXTAREA") return;
       if (helpDialog && helpDialog.open) return; // el diálogo maneja Esc solo
       if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (state.tour && ["Escape", "ArrowRight", "ArrowLeft", " ", "p"].includes(e.key)) {
+        e.preventDefault();
+        if (e.key === "Escape" || e.key === "p") endTour();
+        else if (e.key === " ") { state.tour.auto = !state.tour.auto; state.tour.since = performance.now(); state.tour.endedAt = 0; paintTour(); }
+        else showSlide(state.tour.i + (e.key === "ArrowRight" ? 1 : -1));
+        return;
+      }
+      if (state.walk && ["Escape", "ArrowRight", "ArrowLeft", " "].includes(e.key)) {
+        e.preventDefault();
+        if (e.key === "Escape") stopWalk();
+        else if (e.key === " ") walkPlay(!state.walk.playing);
+        else if (e.key === "ArrowLeft") { walkPlay(false); walkBack(); }
+        else if (state.walk.auto || !walkChoices()) { walkPlay(false); walkStep(); }
+        return;
+      }
+      if (e.key === "p") { startTour(false); return; }
+      if (e.key === "r" && state.view === "flujo" && state.id) { walkStart(state.id, false); return; }
       if (state.view === "ruta" && state.route && ["ArrowRight", "ArrowLeft", " "].includes(e.key)) {
         e.preventDefault();
         if (e.key === " ") toggleRoutePlay();

@@ -135,4 +135,7 @@ def flow_payload(graph: FlowGraph, layout: FlowLayout) -> dict:
         "connectors": [[c.label, c.x, c.y, c.r] for c in layout.connectors],
         "legend": flow_legend(graph, layout),
     }
-    return {"truncated": graph.truncated, "nodes": nodes, "layout": lay}
+    # Aristas del grafo (no las líneas dibujadas): el recorrido animado las sigue nodo a
+    # nodo. [origen, destino, etiqueta ("sí", "no", "caso 1"…) o null, tipo].
+    edges = [[e.src, e.dst, e.label, e.kind] for e in graph.edges]
+    return {"truncated": graph.truncated, "nodes": nodes, "layout": lay, "edges": edges}
