@@ -135,6 +135,7 @@ class ScanEntry:
     path: str  # POSIX relativo
     abs_path: Path
     lang: str
+    size: int = 0  # bytes (para decidir si vale la pena usar varios procesos)
 
 
 @dataclass
@@ -234,7 +235,7 @@ def _consider_file(
                 _make_skipped(rel, lang, data, "minificado", lines=count_lines(text))
             )
             return
-    result.entries.append(ScanEntry(rel, abs_path, lang))
+    result.entries.append(ScanEntry(rel, abs_path, lang, len(data)))
 
 
 def scan(target: Path, options: ScanOptions | None = None) -> ScanResult:

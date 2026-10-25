@@ -21,6 +21,9 @@ from desglosa.ir import Call, ControlCtx, FlowGraph, Project, Symbol
 FUNC_KINDS = ("function", "method")
 ACTOR = "actor"
 EXTERNAL = "externo"
+SEVERAL = "varios"
+# Con más destinos posibles que esto, un alt sería ilegible (y enorme): se resume.
+MAX_ALTERNATIVES = 4
 CONSTRUCTORS = frozenset({"__construct", "__init__", "constructor", "init", "initialize"})
 
 
@@ -71,6 +74,25 @@ def _returns_value(flow: FlowGraph | None) -> bool:
     )
 
 
+@dataclass(frozen=True)
+class SequenceIndex:
+    """Símbolos por id y llamadas por función, ordenadas. Se arma una vez por proyecto
+    (rearmarlo en cada diagrama hacía la etapa cuadrática: funciones × llamadas)."""
+
+    by_id: dict[str, Symbol]
+    calls: dict[str, list[Call]]
+
+    @classmethod
+    def of(cls, project: Project) -> SequenceIndex:
+        calls: dict[str, list[Call]] = defaultdict(list)
+        for c in project.calls:
+            calls[c.caller_id].append(c)
+        for lst in calls.values():
+            # Misma posición (`f()->g()`): primero la llamada interna (receptor más corto).
+            lst.sort(key=lambda c: (c.line, c.col, len(c.receiver_text or ""), c.callee_text))
+        return cls({s.id: s for s in project.symbols}, dict(calls))
+
+
 class SequenceBuilder:
     def __init__(
         self,
@@ -80,19 +102,16 @@ class SequenceBuilder:
         depth: int = 4,
         max_messages: int = 200,
         new_calls: set[str] | frozenset[str] = frozenset(),
+        index: SequenceIndex | None = None,
     ) -> None:
+        index = index or SequenceIndex.of(project)
         self.new_calls = new_calls  # ids de llamadas `new X()` (para dibujar "crear")
-        self.by_id: dict[str, Symbol] = {s.id: s for s in project.symbols}
+        self.by_id: dict[str, Symbol] = index.by_id
         self.flows = flows
         self.routes = routes or {}
         self.depth = depth
         self.max_messages = max_messages
-        self.calls: dict[str, list[Call]] = defaultdict(list)
-        for c in project.calls:
-            self.calls[c.caller_id].append(c)
-        for lst in self.calls.values():
-            # Misma posición (`f()->g()`): primero la llamada interna (receptor más corto).
-            lst.sort(key=lambda c: (c.line, c.col, len(c.receiver_text or ""), c.callee_text))
+        self.calls: dict[str, list[Call]] = index.calls
         self.participants: dict[str, Participant] = {}
         self.order: list[str] = []
         self.messages: list[Message] = []
@@ -157,8 +176,9 @@ class SequenceBuilder:
             self.participant_of(entry)
             self._visit(entry, prefix, self.depth, [entry.id], start_frags)
         ordered = [self.participants[p] for p in self.order]
-        externals = [p for p in ordered if p.id == EXTERNAL]
-        ordered = [p for p in ordered if p.id != EXTERNAL] + externals
+        # "Varios posibles" y "Externo" van al final (derecha) del diagrama.
+        tail = [p for pid in (SEVERAL, EXTERNAL) for p in ordered if p.id == pid]
+        ordered = [p for p in ordered if p.id not in (SEVERAL, EXTERNAL)] + tail
         return SequenceDiagram(
             entry=entry_id,
             participants=tuple(ordered),
@@ -199,6 +219,12 @@ class SequenceBuilder:
         # Interfaz con varias implementaciones: alt "posible implementación".
         if call.candidates and (target is None or len(call.candidates) > 1):
             impls = [self.by_id[c] for c in call.candidates if c in self.by_id]
+            if len(impls) > MAX_ALTERNATIVES:
+                self._add_participant(Participant(SEVERAL, "Varios posibles", "externo"))
+                return self._emit(
+                    Message(number, src, SEVERAL, f"{label} — {len(impls)} posibles", "llamada",
+                            None, call.confidence, chain)
+                )
             if call.confidence == "ambigua" or len(impls) > 1:
                 title = "ambigua" if call.confidence == "ambigua" else "posible implementación"
                 for i, impl in enumerate(impls):
@@ -307,5 +333,7 @@ def build_sequence(
     depth: int = 4,
     routes: dict[str, str] | None = None,
     new_calls: set[str] | frozenset[str] = frozenset(),
+    index: SequenceIndex | None = None,
 ) -> SequenceDiagram:
-    return SequenceBuilder(project, flows, routes, depth, new_calls=new_calls).build(entry_id)
+    builder = SequenceBuilder(project, flows, routes, depth, new_calls=new_calls, index=index)
+    return builder.build(entry_id)

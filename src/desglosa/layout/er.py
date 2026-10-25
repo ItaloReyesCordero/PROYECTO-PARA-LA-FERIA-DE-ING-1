@@ -71,18 +71,39 @@ def layout_er(tables: list[Table], fks: list[ForeignKey]) -> dict:
         if yd is None:
             pk = next((c.name for c in by_id[e.dst].columns if c.primary_key), None)
             yd = row_y(by_id[e.dst], pk, dst_box.y) if pk else None
+        rebuilt = False
         if len(pts) >= 4:
             if ys is not None:
                 pts[0][1] = pts[1][1] = round(ys, 1)
             if yd is not None:
                 pts[-1][1] = pts[-2][1] = round(yd, 1)
+        elif ys is not None and yd is not None:
+            # Tablas en capas vecinas: la línea venía de centro a centro. Se rehace en
+            # ángulo recto: fila FK → mitad del hueco → fila referenciada.
+            if src_box.x + src_box.w <= dst_box.x:
+                x0, x3 = src_box.x + src_box.w, dst_box.x
+            elif dst_box.x + dst_box.w <= src_box.x:
+                x0, x3 = src_box.x, dst_box.x + dst_box.w
+            else:
+                x0 = x3 = None
+            if x0 is not None and x3 is not None:
+                y0, y3 = round(ys, 1), round(yd, 1)
+                xm = round((x0 + x3) / 2, 1)
+                if abs(y0 - y3) < 0.5:
+                    pts = [[x0, y0], [x3, y0]]
+                else:
+                    pts = [[x0, y0], [xm, y0], [xm, y3], [x3, y3]]
+                    rebuilt = True
         flat: list[float] = []
         for x, y in pts:
             flat.extend((x, y))
         box = e.label_box or (0, 0, 0, 0)
         if e.label_box:
-            # Re-centrar la etiqueta en el tramo que cruza el hueco más ancho.
-            a, b = max(zip(pts, pts[1:], strict=False), key=lambda s: abs(s[1][0] - s[0][0]))
+            # Re-centrar la etiqueta en el tramo que cruza el hueco más ancho (o, si la
+            # línea se rehízo en ángulo recto, en el tramo que llega a la tabla destino).
+            a, b = (pts[2], pts[3]) if rebuilt else max(
+                zip(pts, pts[1:], strict=False), key=lambda s: abs(s[1][0] - s[0][0])
+            )
             mx, my = (a[0] + b[0]) / 2, (a[1] + b[1]) / 2
             box = (round(mx - box[2] / 2, 1), round(my - box[3] / 2, 1), box[2], box[3])
         edges_out.append([flat, e.label, box[0], box[1], box[2], box[3]])

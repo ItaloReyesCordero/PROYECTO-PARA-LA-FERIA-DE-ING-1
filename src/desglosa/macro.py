@@ -187,33 +187,42 @@ class MapBuilder:
         chain.reverse()
         return chain
 
-    def aggregate(self) -> dict[str, dict[tuple[str, str], list]]:
-        """Grupo → (hijo origen, hijo destino) → [conteo, peor confianza]."""
+    def aggregate(
+        self, routes: list[tuple[str, str]] | None = None
+    ) -> dict[str, dict[tuple[str, str], list]]:
+        """Grupo → (hijo origen, hijo destino) → [llamadas, peor confianza, rutas].
+
+        `routes` son pares (archivo de rutas, método destino): se dibujan como "N rutas".
+        """
         edges: dict[str, dict[tuple[str, str], list]] = defaultdict(dict)
+        links: list[tuple[str | None, str, str, int]] = []  # (origen, destino, confianza, ruta)
         for c in self.project.calls:
             if c.confidence == "externa":
                 continue
             targets = [c.resolved_id] if c.resolved_id else list(c.candidates)
-            for t in targets:
-                a = self._element(c.caller_id)
-                b = self._element(t)
-                if a is None or b is None or a == b:
-                    continue
-                pa, pb = self._path(a), self._path(b)
-                i = 0
-                while i < min(len(pa), len(pb)) and pa[i] == pb[i]:
-                    i += 1
-                if i == 0 or i >= len(pa) or i >= len(pb):
-                    continue
-                group = pa[i - 1]
-                key = (pa[i], pb[i])
-                cur = edges[group].get(key)
-                if cur is None:
-                    edges[group][key] = [1, c.confidence]
-                else:
-                    cur[0] += 1
-                    if CONFIDENCE_RANK[c.confidence] > CONFIDENCE_RANK[cur[1]]:
-                        cur[1] = c.confidence
+            links.extend((self._element(c.caller_id), t, c.confidence, 0) for t in targets)
+        for path, target in routes or []:
+            links.append((self.file_element.get(path), target, "exacta", 1))
+        for a, t, conf, is_route in links:
+            b = self._element(t)
+            if a is None or b is None or a == b:
+                continue
+            pa, pb = self._path(a), self._path(b)
+            i = 0
+            while i < min(len(pa), len(pb)) and pa[i] == pb[i]:
+                i += 1
+            if i == 0 or i >= len(pa) or i >= len(pb):
+                continue
+            group = pa[i - 1]
+            key = (pa[i], pb[i])
+            cur = edges[group].get(key)
+            if cur is None:
+                edges[group][key] = [1 - is_route, conf, is_route]
+            else:
+                cur[0] += 1 - is_route
+                cur[2] += is_route
+                if CONFIDENCE_RANK[conf] > CONFIDENCE_RANK[cur[1]]:
+                    cur[1] = conf
         return edges
 
     # ------------------------------------------------------------------ "Otros (N)"
@@ -227,9 +236,9 @@ class MapBuilder:
         if len(g.children) <= MAX_CHILDREN:
             return
         degree: dict[str, int] = defaultdict(int)
-        for (a, b), (count, _) in edges.get(gid, {}).items():
-            degree[a] += count
-            degree[b] += count
+        for (a, b), (count, _, n_routes) in edges.get(gid, {}).items():
+            degree[a] += count + n_routes
+            degree[b] += count + n_routes
         ranked = sorted(g.children, key=lambda c: (-degree[c], self._name(c).lower(), c))
         keep = set(ranked[: MAX_CHILDREN - 1])
         rest = [c for c in g.children if c not in keep]
@@ -245,16 +254,17 @@ class MapBuilder:
         old = edges.get(gid, {})
         new_parent: dict[tuple[str, str], list] = {}
         inner: dict[tuple[str, str], list] = {}
-        for (a, b), (count, conf) in old.items():
+        for (a, b), (count, conf, n_routes) in old.items():
             a2 = oid if a in rest else a
             b2 = oid if b in rest else b
             target = inner if (a2 == oid and b2 == oid) else new_parent
             key = (a, b) if target is inner else (a2, b2)
             cur = target.get(key)
             if cur is None:
-                target[key] = [count, conf]
+                target[key] = [count, conf, n_routes]
             else:
                 cur[0] += count
+                cur[2] += n_routes
                 if CONFIDENCE_RANK[conf] > CONFIDENCE_RANK[cur[1]]:
                     cur[1] = conf
         edges[gid] = new_parent
@@ -316,8 +326,8 @@ class MapBuilder:
             # Los hijos ya vienen ordenados (carpetas por nombre, miembros por línea).
             lnodes.append(LNode(c, max(120.0, float(int(w + 1) // 2 * 2)), h, f"{i:05d}"))
         ledges = [
-            LEdge(a, b, _plural(count, "llamada", "llamadas"))
-            for (a, b), (count, _) in sorted(edges.get(gid, {}).items())
+            LEdge(a, b, _edge_label(count, n_routes))
+            for (a, b), (count, _, n_routes) in sorted(edges.get(gid, {}).items())
         ]
         lay = layout_layered(lnodes, ledges)
         conf = {k: v[1] for k, v in edges.get(gid, {}).items()}
@@ -374,11 +384,23 @@ def _plural(n: int, one: str, many: str) -> str:
     return f"{n} {one if n == 1 else many}"
 
 
-def build_map(project: Project) -> dict:
-    """Datos del mapa para el visor: grupos con su layout y dueño de cada elemento."""
+def _edge_label(calls: int, routes: int) -> str:
+    parts = []
+    if routes:
+        parts.append(_plural(routes, "ruta", "rutas"))
+    if calls:
+        parts.append(_plural(calls, "llamada", "llamadas"))
+    return " · ".join(parts)
+
+
+def build_map(project: Project, routes: list[tuple[str, str]] | None = None) -> dict:
+    """Datos del mapa para el visor: grupos con su layout y dueño de cada elemento.
+
+    `routes`: pares (archivo de rutas, método destino) que se dibujan como aristas.
+    """
     mb = MapBuilder(project)
     mb.build_tree()
-    edges = mb.aggregate()
+    edges = mb.aggregate(routes)
     mb.limit_children(edges)
     groups_out = {}
     for gid in sorted(mb.groups):

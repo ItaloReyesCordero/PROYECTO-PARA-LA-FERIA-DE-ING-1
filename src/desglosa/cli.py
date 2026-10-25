@@ -249,7 +249,9 @@ def _write_app(args: argparse.Namespace, analysis, start: str, depth: int = 4) -
         analysis,
         include_source=not args.no_source,
         start=start,
-        map_data=build_map(analysis.project),
+        map_data=build_map(
+            analysis.project, [(r.file, r.symbol_id) for r in analysis.routes if r.symbol_id]
+        ),
         depth=depth,
     )
     page = render_html(payload, f"{analysis.project.root_name} — Desglosa")
@@ -308,9 +310,15 @@ def cmd_analyze(args: argparse.Namespace) -> int:
     print(summary(analysis))
     size_mb = len(page.encode("utf-8")) / (1024 * 1024)
     print(f"HTML escrito en {args.output} ({size_mb:.1f} MB)")
+    if args.report:
+        from desglosa.report import build_report
+
+        _write_text(args.report, build_report(analysis))
+        print(f"Reporte escrito en {args.report}")
     if size_mb > MAX_HTML_MB:
         print(
-            f"Aviso: el HTML pesa más de {MAX_HTML_MB} MB. Prueba con --no-source o --lang.",
+            f"Aviso: el HTML pesa más de {MAX_HTML_MB} MB y el navegador tardará en abrirlo. "
+            "Analiza una parte del proyecto (una subcarpeta, --lang o --ignore).",
             file=sys.stderr,
         )
     return EXIT_OK
@@ -383,6 +391,7 @@ def build_parser() -> argparse.ArgumentParser:
     _add_analysis_args(p)
     _add_flow_args(p)
     p.add_argument("-o", "--output", default="desglosa.html", help="archivo HTML de salida")
+    p.add_argument("--report", metavar="reporte.md", help="escribir también un reporte Markdown")
     p.set_defaults(func=cmd_analyze)
 
     p = sub.add_parser("sequence", help="genera el diagrama de secuencia desde una función")

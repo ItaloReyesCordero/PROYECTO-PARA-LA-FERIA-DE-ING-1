@@ -1,6 +1,23 @@
 # Cambios
 
-## [Sin publicar]
+## [0.1.0] — 2026-10-25
+
+### Fase 6 — Pulido y publicación
+- Reporte Markdown con `analyze --report`: archivos por lenguaje, funciones más llamadas,
+  nunca llamadas, ciclos, archivos no parseados, complejidad y tablas.
+- Visor: ayuda de atajos (`?`), enfoque con teclado (`E`), aviso de enfoque con botón
+  para quitarlo, `Esc` quita el enfoque antes de subir de nivel.
+- El mapa dibuja las rutas de Laravel (`routes/ → app/`, "3 rutas").
+- ER: las relaciones salen de la fila de la columna FK y llegan a la de la PK, en ángulo
+  recto.
+- Rendimiento: el resolvedor ya no recorre todos los archivos por cada import, las
+  secuencias comparten un índice (antes la etapa era cuadrática), un solo grupo de
+  procesos para extracción y flujos, y varios procesos solo con 2 MB de código o más.
+- Secuencia: una llamada con más de 4 destinos posibles se resume en un mensaje a
+  "Varios posibles" en vez de un `alt` gigante.
+- HTML más liviano: sin textos duplicados y con coordenadas enteras.
+- README completo con capturas, `docs/ARCHITECTURE.md`, `docs/IR.md`, `docs/DISENO.md`
+  y ejemplos con el HTML generado.
 
 ### Fase 5 — Secuencia, SQL/ER y rutas
 - Diagrama de secuencia desde una función (fragmentos loop/alt/opt/try, recursión,

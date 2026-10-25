@@ -18,8 +18,19 @@ from desglosa.ir import FlowGraph
 from desglosa.layout.flow import FlowLayout
 
 
+def _compact(obj: Any) -> Any:
+    """`184.0` → `184`: las coordenadas enteras ocupan menos en el HTML."""
+    if isinstance(obj, float):
+        return int(obj) if obj.is_integer() else obj
+    if isinstance(obj, dict):
+        return {k: _compact(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [_compact(v) for v in obj]
+    return obj
+
+
 def safe_json(data: Any) -> str:
-    text = json.dumps(data, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
+    text = json.dumps(_compact(data), sort_keys=True, ensure_ascii=False, separators=(",", ":"))
     return (
         text.replace("<", "\\u003c")
         .replace(">", "\\u003e")
@@ -79,14 +90,14 @@ def flow_legend(graph: FlowGraph, layout: FlowLayout) -> list[str]:
 
 
 def flow_payload(graph: FlowGraph, layout: FlowLayout) -> dict:
+    # El texto fácil ya va en `layout.nodes` (partido en líneas); aquí solo lo que usa el
+    # visor para el tooltip y el clic.
     nodes = {
         n.id: {
             "kind": n.kind,
-            "easy": n.text_easy,
             "tech": n.text_tech,
             "a": n.line_start,
             "b": n.line_end,
-            "call": n.call_id,
             "target": n.target_symbol,
         }
         for n in graph.nodes

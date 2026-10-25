@@ -275,3 +275,49 @@ uv run desglosa analyze tests/fixtures/kotlin -o kotlin.html
 uv run desglosa sequence examples/laravel-mini --entry FacturaController.store -o secuencia.html
 uv run desglosa sql examples/laravel-mini -o er.html
 ```
+
+## Fase 6 — Pulido y publicación ✅
+
+**Qué se hizo**
+- **Reporte `.md`** (`analyze --report reporte.md`): resumen, archivos por lenguaje,
+  funciones más llamadas, nunca llamadas (sin contar declaraciones de interfaz, puntos de
+  entrada ni constructores), ciclos de llamadas (Tarjan iterativo), archivos no
+  parseados, complejidad más alta y tablas SQL. Sin fechas: es determinista.
+- **Visor**: ayuda de atajos (`?`, un `<dialog>` nativo), enfoque con teclado (`E`),
+  aviso "Enfocado: X" con botón "Quitar enfoque", `Esc` quita el enfoque antes de subir.
+- **Mapa**: las rutas de Laravel se dibujan como aristas (`routes/ → app/`, "3 rutas");
+  antes `routes/` aparecía suelto.
+- **ER**: las relaciones salen de la fila de la FK y llegan a la fila de la PK, en ángulo
+  recto (antes iban de centro a centro de las cajas).
+- **Rendimiento** (medido con un proyecto sintético y con 1 600 archivos Python reales,
+  perfilando con `cProfile`): ver la sección "Rendimiento" del README.
+- **Docs**: README completo con capturas, `ARCHITECTURE.md`, `IR.md`, `DISENO.md`, y los
+  ejemplos con su HTML generado.
+
+**Qué falló / encontré**
+- Con varios procesos el análisis era **más lento** que con uno (14,6 s contra 8,7 s en
+  1 000 archivos pequeños): en Windows cada proceso arranca de cero. Ahora hay un solo
+  grupo de procesos y solo se usa con 2 MB de código o más.
+- La etapa de **secuencias era cuadrática**: cada diagrama reindexaba todas las llamadas.
+  En 400 archivos reales pasó de 163 s a 8 s con un índice compartido.
+- El **resolvedor** recorría todos los archivos por cada import: de 7,3 s a 0,5 s.
+- Al medir apareció un **error real**: con clases del mismo nombre en dos carpetas, el
+  resolvedor usaba un índice antes de crearlo. Ningún fixture repetía nombres; ahora hay
+  un test que sí.
+- Con muchas clases homónimas, una llamada ambigua generaba un `alt` con 30 ramas y el
+  HTML llegaba a 40 MB. Ahora se resume en un mensaje "N posibles".
+
+**Decisiones (revísalas)**
+1. Más de 4 destinos posibles → un mensaje "Varios posibles" (honesto y legible).
+2. Varios procesos solo con ≥ 2 MB de código: es el punto donde, medido, empieza a ganar.
+3. El HTML sigue pesando ~10× el código porque lleva todo precalculado. Calcular el
+   layout en el navegador lo achicaría, pero rompería las garantías de "nada se
+   superpone" que hoy se prueban en Python. Queda documentado como límite.
+4. RF-18 (exportar a Mermaid, prioridad C) no se hizo: es lo primero que la SPEC permite
+   recortar.
+
+**Probar**
+```powershell
+uv run desglosa analyze examples/laravel-mini -o demo.html --report reporte.md
+```
+Abre `demo.html`, pulsa `?` para ver la ayuda y Alt+clic sobre una carpeta para enfocarla.

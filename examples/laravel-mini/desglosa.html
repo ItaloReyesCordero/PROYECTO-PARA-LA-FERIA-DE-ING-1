@@ -1,0 +1,1410 @@
+<!doctype html>
+<html lang="es" data-tema="oscuro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="generator" content="Desglosa">
+<link rel="icon" href="data:,">
+<title>laravel-mini — Desglosa</title>
+<style>
+/* Desglosa — estilos del visor. Tokens de color según SPEC §11.3. */
+:root {
+  --fondo: #0b1120;
+  --rejilla: #1e293b;
+  --superficie: #0f172a;
+  --superficie-2: #111c33;
+  --borde: #1f2a44;
+  --texto: #e5e7eb;
+  --texto-suave: #94a3b8;
+  --linea: #94a3b8;
+  --acento: #60a5fa;
+  --foco: #fbbf24;
+
+  --c-terminal: #34d399;
+  --c-proceso: #60a5fa;
+  --c-subproceso: #a78bfa;
+  --c-decision: #fbbf24;
+  --c-es: #22d3ee;
+  --c-teclado: #22d3ee;
+  --c-pantalla: #f472b6;
+  --c-documento: #f472b6;
+  --c-excepcion: #fb7185;
+  --c-externo: #94a3b8;
+  --c-conector: #94a3b8;
+  --c-modulo: #818cf8;
+  --c-clase: #60a5fa;
+  --c-funcion: #a78bfa;
+  --c-entrada: #34d399;
+  --c-tabla: #fb923c;
+  --relleno: 0.18;
+
+  --mono: ui-monospace, "Cascadia Mono", "Consolas", "SFMono-Regular", Menlo, monospace;
+  --sans: system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  color-scheme: dark;
+}
+
+[data-tema="claro"] {
+  --fondo: #f8fafc;
+  --rejilla: #e2e8f0;
+  --superficie: #ffffff;
+  --superficie-2: #f1f5f9;
+  --borde: #cbd5e1;
+  --texto: #0f172a;
+  --texto-suave: #475569;
+  --linea: #475569;
+  --acento: #2563eb;
+  --foco: #b45309;
+
+  --c-terminal: #059669;
+  --c-proceso: #2563eb;
+  --c-subproceso: #7c3aed;
+  --c-decision: #b45309;
+  --c-es: #0891b2;
+  --c-teclado: #0891b2;
+  --c-pantalla: #db2777;
+  --c-documento: #db2777;
+  --c-excepcion: #e11d48;
+  --c-externo: #64748b;
+  --c-conector: #64748b;
+  --c-modulo: #4f46e5;
+  --c-clase: #2563eb;
+  --c-funcion: #7c3aed;
+  --c-entrada: #059669;
+  --c-tabla: #c2410c;
+  --relleno: 0.14;
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body {
+  background: var(--fondo);
+  color: var(--texto);
+  font: 14px/1.45 var(--sans);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--foco); outline-offset: 2px; }
+
+/* ---------------------------------------------------------------- barra superior */
+.barra {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  padding: 8px 14px; background: var(--superficie); border-bottom: 1px solid var(--borde);
+}
+.marca { font-weight: 700; letter-spacing: .02em; }
+.marca span { color: var(--acento); }
+.migas { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; min-width: 0; flex: 1; }
+.migas a, .migas span { color: var(--texto-suave); text-decoration: none; white-space: nowrap; }
+.migas a:hover { color: var(--texto); text-decoration: underline; }
+.migas .actual { color: var(--texto); font-weight: 600; }
+.migas .sep { opacity: .6; }
+.herramientas { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.boton {
+  background: var(--superficie-2); border: 1px solid var(--borde); border-radius: 6px;
+  padding: 4px 10px; cursor: pointer; line-height: 1.4;
+}
+.boton:hover { border-color: var(--acento); }
+.boton[aria-pressed="true"] { border-color: var(--acento); color: var(--acento); }
+.buscador { position: relative; }
+.buscador input {
+  background: var(--superficie-2); border: 1px solid var(--borde); border-radius: 6px;
+  padding: 4px 10px; width: 220px;
+}
+.resultados {
+  position: absolute; top: 110%; left: 0; right: 0; z-index: 10; list-style: none; margin: 0;
+  padding: 4px; background: var(--superficie); border: 1px solid var(--borde); border-radius: 6px;
+  max-height: 320px; overflow: auto;
+}
+.resultados li { padding: 4px 8px; border-radius: 4px; cursor: pointer; }
+.resultados li[aria-selected="true"], .resultados li:hover { background: var(--superficie-2); }
+.resultados small { color: var(--texto-suave); margin-left: 6px; }
+
+/* ---------------------------------------------------------------- cuerpo */
+.cuerpo { flex: 1; display: flex; min-height: 0; }
+.escenario { flex: 1; position: relative; min-width: 0; display: flex; flex-direction: column; }
+.pestanas { display: flex; gap: 2px; padding: 6px 14px 0; }
+.pestanas button {
+  background: transparent; border: 1px solid transparent; border-bottom: none;
+  padding: 4px 12px; border-radius: 6px 6px 0 0; cursor: pointer; color: var(--texto-suave);
+}
+.pestanas button[aria-selected="true"] {
+  background: var(--superficie); border-color: var(--borde); color: var(--texto);
+}
+.info { padding: 6px 14px; color: var(--texto-suave); font-size: 13px; }
+.info .doc { color: var(--texto); white-space: pre-wrap; }
+.info .pista { font-size: 12px; opacity: .85; margin-top: 2px; }
+.info .aviso-foco { margin-top: 4px; color: var(--texto); }
+.info .aviso-foco strong { color: var(--foco); }
+
+/* ---------------------------------------------------------------- ayuda */
+.ayuda {
+  max-width: min(560px, 92vw); padding: 16px 20px; border-radius: 10px;
+  background: var(--superficie); color: var(--texto); border: 1px solid var(--borde);
+}
+.ayuda::backdrop { background: color-mix(in srgb, var(--fondo) 70%, transparent); }
+.ayuda h2 { font-size: 16px; margin: 0 0 8px; }
+.ayuda p { margin: 6px 0 10px; color: var(--texto-suave); }
+.ayuda table { border-collapse: collapse; width: 100%; margin-bottom: 8px; }
+.ayuda th { text-align: left; white-space: nowrap; padding: 4px 12px 4px 0; font-weight: 400; }
+.ayuda td { padding: 4px 0; }
+.ayuda kbd {
+  font: 12px var(--mono); padding: 1px 6px; border: 1px solid var(--borde); border-radius: 4px;
+  background: var(--superficie-2);
+}
+.ayuda .nota { font-size: 12px; }
+.lienzo {
+  flex: 1; position: relative; overflow: hidden; cursor: grab;
+  background-color: var(--fondo);
+  /* SPEC: líneas de 0,5 px; en pantallas 1x eso no se ve, así que usamos 1 px. */
+  background-image:
+    linear-gradient(to right, var(--rejilla) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--rejilla) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+.lienzo.arrastrando { cursor: grabbing; }
+.lienzo svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.vacio { padding: 40px; color: var(--texto-suave); text-align: center; }
+
+.leyenda {
+  position: absolute; left: 12px; bottom: 12px; display: flex; flex-wrap: wrap; gap: 10px;
+  max-width: calc(100% - 24px); padding: 6px 10px; border-radius: 8px;
+  background: var(--superficie); border: 1px solid var(--borde); font-size: 12px;
+}
+.leyenda .item { display: flex; align-items: center; gap: 6px; color: var(--texto-suave); }
+.leyenda svg { width: 26px; height: 16px; position: static; }
+
+/* ---------------------------------------------------------------- panel lateral */
+.panel {
+  width: 420px; max-width: 45vw; border-left: 1px solid var(--borde); background: var(--superficie);
+  display: flex; flex-direction: column; min-height: 0;
+}
+.panel[hidden] { display: none; }
+.panel h2 { font-size: 14px; margin: 0; padding: 10px 14px 4px; }
+.panel .meta { padding: 0 14px 8px; color: var(--texto-suave); font-size: 12px; }
+.panel .meta code { font-family: var(--mono); color: var(--texto); }
+.panel .seccion { padding: 4px 14px 8px; font-size: 13px; }
+.panel .seccion h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .05em;
+  color: var(--texto-suave); margin: 6px 0 4px; }
+.panel .seccion ul { margin: 0; padding-left: 18px; }
+.panel .seccion a { color: var(--acento); cursor: pointer; text-decoration: none; }
+.panel .seccion a:hover { text-decoration: underline; }
+.codigo {
+  flex: 1; overflow: auto; margin: 0; padding: 8px 0; font: 12px/1.5 var(--mono);
+  background: var(--superficie-2); border-top: 1px solid var(--borde); counter-reset: none;
+}
+.codigo .ln { display: flex; padding: 0 10px 0 0; white-space: pre; }
+.codigo .ln .num { width: 48px; flex: none; text-align: right; padding-right: 10px;
+  color: var(--texto-suave); user-select: none; }
+.codigo .ln.marcada { background: color-mix(in srgb, var(--acento) 18%, transparent); }
+
+/* ---------------------------------------------------------------- SVG: nodos */
+.nodo .forma { fill: var(--c); fill-opacity: var(--relleno); stroke: var(--c); stroke-width: 1.6; }
+.nodo .linea-interna { stroke: var(--c); stroke-width: 1.4; }
+.nodo text { fill: var(--texto); font: 12px var(--mono); dominant-baseline: middle; }
+.nodo.clicable { cursor: pointer; }
+.nodo.clicable:hover .forma, .nodo.clicable:focus .forma { stroke-width: 3; }
+.nodo.seleccionado .forma { stroke-width: 3; stroke: var(--foco); }
+.nodo:focus { outline: none; }
+.nodo:focus-visible .forma { stroke-width: 3; stroke: var(--foco); }
+.nodo.atenuado { opacity: .25; }
+.k-terminal { --c: var(--c-terminal); }
+.k-proceso { --c: var(--c-proceso); }
+.k-subproceso { --c: var(--c-subproceso); }
+.k-decision { --c: var(--c-decision); }
+.k-es { --c: var(--c-es); }
+.k-teclado { --c: var(--c-teclado); }
+.k-pantalla { --c: var(--c-pantalla); }
+.k-documento { --c: var(--c-documento); }
+.k-externo { --c: var(--c-externo); }
+.k-externo .forma { stroke-dasharray: 4 3; }
+.k-conector { --c: var(--c-conector); }
+.k-modulo { --c: var(--c-modulo); }
+.k-clase { --c: var(--c-clase); }
+.k-interfaz { --c: var(--c-clase); }
+.k-funcion { --c: var(--c-funcion); }
+.k-entrada { --c: var(--c-entrada); }
+.k-tabla { --c: var(--c-tabla); }
+.k-otros { --c: var(--c-externo); }
+.k-otros .forma { stroke-dasharray: 4 3; }
+
+/* ---------------------------------------------------------------- SVG: aristas */
+.arista { fill: none; stroke: var(--linea); stroke-width: 1.5; }
+.arista.k-excepcion { stroke: var(--c-excepcion); stroke-dasharray: 5 4; }
+.arista.c-exacta { stroke-width: 1.8; }
+.arista.c-probable { stroke-dasharray: 6 4; }
+.arista.c-ambigua { stroke-dasharray: 2 4; }
+.arista.c-externa { stroke: var(--c-externo); stroke-width: 1; stroke-dasharray: 1 3; }
+.arista.atenuado, .etiqueta.atenuado { opacity: .15; }
+.arista.resaltada { stroke: var(--foco); stroke-width: 2.4; }
+.punta { fill: var(--linea); }
+.punta-exc { fill: var(--c-excepcion); }
+.punta-foco { fill: var(--foco); }
+.arista.k-retorno { stroke-dasharray: 5 4; stroke-width: 1.2; }
+.linea-vida { stroke: var(--texto-suave); stroke-width: 1; stroke-dasharray: 4 4; opacity: .6; }
+.fragmento { fill: none; stroke: var(--texto-suave); stroke-width: 1.2; }
+.fragmento-divisor { stroke: var(--texto-suave); stroke-width: 1; stroke-dasharray: 6 4; }
+.msg { fill: var(--texto); font: 11px var(--mono); }
+.msg.retorno { fill: var(--texto-suave); }
+.msg.enlace { cursor: pointer; text-decoration: underline; }
+.etiqueta rect { fill: var(--superficie); stroke: var(--borde); stroke-width: .6; }
+.etiqueta text { fill: var(--texto-suave); font: 11px var(--mono); dominant-baseline: middle; }
+
+@media print {
+  .barra, .panel, .pestanas, .leyenda, .herramientas, .ayuda, .info .pista { display: none !important; }
+  body { overflow: visible; height: auto; background: #fff; }
+  .lienzo { background: #fff; overflow: visible; }
+}
+
+</style>
+</head>
+<body>
+<header class="barra">
+  <div class="marca">Desglo<span>sa</span></div>
+  <nav class="migas" id="migas" aria-label="Migas de pan"></nav>
+  <div class="herramientas" id="herramientas"></div>
+</header>
+<div class="cuerpo">
+  <main class="escenario">
+    <div class="pestanas" id="pestanas" role="tablist"></div>
+    <div class="info" id="info"></div>
+    <div class="lienzo" id="lienzo" tabindex="0" aria-label="Diagrama"></div>
+  </main>
+  <aside class="panel" id="panel" aria-label="Detalle" hidden></aside>
+</div>
+<script type="application/json" id="desglosa-data">{"calls_in":{"01894a436c9e":[["a0bda82707c5","probable"]],"0c14058dbe3a":[["15a76b602ceb","probable"]],"28f5492317ac":[["01894a436c9e","probable"]],"44b7da3e7ac4":[["0c14058dbe3a","probable"]],"659f500cf1b3":[["715a258d2af0","exacta"],["e4fc11afc2d3","exacta"]],"715a258d2af0":[["28f5492317ac","exacta"],["44b7da3e7ac4","exacta"]],"adfa046a752a":[["e4fc11afc2d3","probable"]],"e4fc11afc2d3":[["838c57edc01e","probable"]],"ecca55e78e78":[["e4fc11afc2d3","probable"]]},"calls_out":{"01894a436c9e":[["28f5492317ac","probable"]],"0c14058dbe3a":[["44b7da3e7ac4","probable"]],"15a76b602ceb":[["0c14058dbe3a","probable"]],"28f5492317ac":[["715a258d2af0","exacta"]],"44b7da3e7ac4":[["715a258d2af0","exacta"]],"715a258d2af0":[["659f500cf1b3","exacta"]],"838c57edc01e":[["e4fc11afc2d3","probable"]],"a0bda82707c5":[["01894a436c9e","probable"]],"e4fc11afc2d3":[["659f500cf1b3","exacta"],["adfa046a752a","probable"],["ecca55e78e78","probable"]]},"er":{"fks":[{"columns":["factura_id"],"file":"database\/schema.sql","form":"tabla","line":22,"ref_columns":["id"],"ref_table":"facturas","table":"factura_items"},{"columns":["producto_id"],"file":"database\/schema.sql","form":"alter","line":31,"ref_columns":["id"],"ref_table":"productos","table":"factura_items"},{"columns":["cliente_id"],"file":"database\/schema.sql","form":"en_linea","line":15,"ref_columns":["id"],"ref_table":"clientes","table":"facturas"}],"layout":{"edges":[[[264,58,388,58],"N:1",312.1,50.5,27.8,15],[[264,74,324,74,324,180,384,180],"N:1",340.1,172.5,27.8,15],[[620,74,682,74,682,66,744,66],"N:1",699.1,58.5,27.8,15]],"h":250,"tables":[["21485786ece2",744,32,226,80,"clientes",["PK id INT","nombre VARCHAR(120) NOT NULL","ruc CHAR(11)"]],["ddfb5373eac6",24,24,240,96,"factura_items",["PK FK factura_id INT","PK FK producto_id INT","cantidad INT NOT NULL","precio DECIMAL(10, 2) NOT NULL"]],["9b0a185a322f",388,24,232,96,"facturas",["PK id INT","FK cliente_id INT NOT NULL","total DECIMAL(10, 2) NOT NULL","creada DATETIME"]],["a8b9ce952afc",384,146,240,80,"productos",["PK id INT","nombre VARCHAR(120) NOT NULL","precio DECIMAL(10, 2) NOT NULL"]]],"w":994},"tables":[{"access":{"escribe":[],"lee":["28f5492317ac"]},"file":"database\/schema.sql","id":"21485786ece2","line":3,"name":"clientes"},{"access":{"escribe":["ecca55e78e78"],"lee":[]},"file":"database\/schema.sql","id":"ddfb5373eac6","line":22,"name":"factura_items"},{"access":{"escribe":["ecca55e78e78"],"lee":["28f5492317ac","44b7da3e7ac4"]},"file":"database\/schema.sql","id":"9b0a185a322f","line":15,"name":"facturas"},{"access":{"escribe":[],"lee":[]},"file":"database\/schema.sql","id":"a8b9ce952afc","line":9,"name":"productos"}]},"files":{"app\/Http\/Controllers\/Controller.php":{"errors":0,"lang":"php","lines":7,"skipped":null},"app\/Http\/Controllers\/FacturaController.php":{"errors":0,"lang":"php","lines":49,"skipped":null},"app\/Models\/Factura.php":{"errors":0,"lang":"php","lines":19,"skipped":null},"app\/Repositories\/FacturaRepository.php":{"errors":0,"lang":"php","lines":14,"skipped":null},"app\/Repositories\/MySqlFacturaRepository.php":{"errors":0,"lang":"php","lines":61,"skipped":null},"app\/Services\/CalculadoraImpuestos.php":{"errors":0,"lang":"php","lines":25,"skipped":null},"app\/Services\/FacturacionService.php":{"errors":0,"lang":"php","lines":46,"skipped":null},"database\/schema.sql":{"errors":0,"lang":"sql","lines":32,"skipped":null},"routes\/web.php":{"errors":0,"lang":"php","lines":8,"skipped":null}},"flows":{"01894a436c9e":{"layout":{"columns":1,"connectors":[],"h":224,"labels":[],"legend":["terminal","subproceso"],"lines":[[[188,58,188,88],"normal",true],[[188,136,188,166],"normal",true]],"nodes":[["n0",56,24,264,34,["Inicio: listar(cliente)"],["Inicio: listar(string $cliente)"]],["n1",24,88,328,48,["Retorna el resultado de","porCliente()"],["return","$this-\u003erepositorio-\u003eporCliente($cliente)"]],["n2",140,166,96,34,["Fin"],["Fin"]]],"w":376},"nodes":{"n0":{"a":36,"b":36,"kind":"terminal","target":null,"tech":"Inicio: listar(string $cliente)"},"n1":{"a":38,"b":38,"kind":"subproceso","target":"28f5492317ac","tech":"return $this-\u003erepositorio-\u003eporCliente($cliente)"},"n2":{"a":39,"b":39,"kind":"terminal","target":null,"tech":"Fin"}},"truncated":false},"083154cf2e5e":{"layout":{"columns":1,"connectors":[],"h":146,"labels":[],"legend":["terminal"],"lines":[[[174,58,174,88],"normal",true]],"nodes":[["n0",24,24,300,34,["Inicio: __construct(db)"],["Inicio: __construct(private PDO $db)"]],["n1",126,88,96,34,["Fin"],["Fin"]]],"w":348},"nodes":{"n0":{"a":11,"b":11,"kind":"terminal","target":null,"tech":"Inicio: __construct(private PDO $db)"},"n1":{"a":13,"b":13,"kind":"terminal","target":null,"tech":"Fin"}},"truncated":false},"0c14058dbe3a":{"layout":{"columns":1,"connectors":[],"h":224,"labels":[],"legend":["terminal","subproceso"],"lines":[[[181,58,181,88],"normal",true],[[181,136,181,166],"normal",true]],"nodes":[["n0",78,24,206,34,["Inicio: buscar(id)"],["Inicio: buscar(int $id)"]],["n1",24,88,314,48,["Retorna el resultado de","buscar()"],["return $this-\u003erepositorio-\u003ebuscar($id)"]],["n2",133,166,96,34,["Fin"],["Fin"]]],"w":362},"nodes":{"n0":{"a":42,"b":42,"kind":"terminal","target":null,"tech":"Inicio: buscar(int $id)"},"n1":{"a":44,"b":44,"kind":"subproceso","target":"44b7da3e7ac4","tech":"return $this-\u003erepositorio-\u003ebuscar($id)"},"n2":{"a":45,"b":45,"kind":"terminal","target":null,"tech":"Fin"}},"truncated":false},"15a76b602ceb":{"layout":{"columns":1,"connectors":[],"h":457,"labels":[["sí",187,214,21.2,15],["no",282,165,21.2,15]],"legend":["terminal","proceso","subproceso","decision","externo"],"lines":[[[184,58,184,88],"normal",true],[[184,212,184,242],"normal",true],[[184,276,184,291],"normal",false],[[279,182,299,182,299,291,184,291],"normal",false],[[184,122,184,152],"normal",true],[[184,291,184,321],"normal",true],[[184,369,184,399],"normal",true]],"nodes":[["n0",88,24,192,34,["Inicio: show(id)"],["Inicio: show(int $id)"]],["n1",24,88,320,34,["Llama a buscar() → factura"],["$factura = $this-\u003eservicio-\u003ebuscar($id)"]],["n2",89,152,190,60,["¿factura = null?"],["$factura === null"]],["n3",118,242,132,34,["Llama a abort()"],["abort(404)"]],["n4",53,321,262,48,["Retorna","response().json(factura)"],["return response()-\u003ejson($factura)"]],["n5",136,399,96,34,["Fin"],["Fin"]]],"w":368},"nodes":{"n0":{"a":41,"b":41,"kind":"terminal","target":null,"tech":"Inicio: show(int $id)"},"n1":{"a":43,"b":43,"kind":"subproceso","target":"0c14058dbe3a","tech":"$factura = $this-\u003eservicio-\u003ebuscar($id)"},"n2":{"a":44,"b":44,"kind":"decision","target":null,"tech":"$factura === null"},"n3":{"a":45,"b":45,"kind":"externo","target":null,"tech":"abort(404)"},"n4":{"a":47,"b":47,"kind":"proceso","target":null,"tech":"return response()-\u003ejson($factura)"},"n5":{"a":48,"b":48,"kind":"terminal","target":null,"tech":"Fin"}},"truncated":false},"28f5492317ac":{"layout":{"columns":1,"connectors":[],"h":660,"labels":[["sí",217,402,21.2,15],["no",337,353,21.2,15]],"legend":["terminal","proceso","subproceso","decision","externo"],"lines":[[[214,58,214,88],"normal",true],[[214,152,214,182],"normal",true],[[214,216,214,246],"normal",true],[[214,310,214,340],"normal",true],[[214,400,214,430],"normal",true],[[214,478,214,493,28,493,28,325,214,325],"retorno_bucle",false],[[334,370,400,370,400,508,214,508],"normal",false],[[214,280,214,310],"normal",false],[[214,508,214,538],"normal",true],[[214,572,214,602],"normal",true]],"nodes":[["n0",68,24,292,34,["Inicio: porCliente(cliente)"],["Inicio: porCliente(string $cliente)"]],["n1",58,88,312,64,["stmt = this.db.prepare(","'SELECT f.* FROM facturas f","JOIN clientes c ON c.id…"],["$stmt = $this-\u003edb-\u003eprepare( 'SELECT f.*","FROM facturas f JOIN clientes c ON c.id…"]],["n2",108,182,212,34,["Llama a execute()"],["$stmt-\u003eexecute([$cliente])"]],["n3",152,246,124,34,["facturas = []"],["$facturas = []"]],["n4",94,340,240,60,["¿fila = stmt.fetch()?"],["$fila = $stmt-\u003efetch()"]],["n5",54,430,320,48,["Llama a desdeFila() →","facturas[]"],["$facturas[] = Factura::desdeFila($fila)"]],["n6",144,538,140,34,["Retorna facturas"],["return $facturas"]],["n7",166,602,96,34,["Fin"],["Fin"]]],"w":430},"nodes":{"n0":{"a":37,"b":37,"kind":"terminal","target":null,"tech":"Inicio: porCliente(string $cliente)"},"n1":{"a":39,"b":41,"kind":"proceso","target":null,"tech":"$stmt = $this-\u003edb-\u003eprepare( 'SELECT f.* FROM facturas f JOIN clientes c ON c.id…"},"n2":{"a":42,"b":42,"kind":"externo","target":null,"tech":"$stmt-\u003eexecute([$cliente])"},"n3":{"a":43,"b":43,"kind":"proceso","target":null,"tech":"$facturas = []"},"n4":{"a":44,"b":44,"kind":"decision","target":null,"tech":"$fila = $stmt-\u003efetch()"},"n5":{"a":45,"b":45,"kind":"subproceso","target":"715a258d2af0","tech":"$facturas[] = Factura::desdeFila($fila)"},"n6":{"a":47,"b":47,"kind":"proceso","target":null,"tech":"return $facturas"},"n7":{"a":48,"b":48,"kind":"terminal","target":null,"tech":"Fin"}},"truncated":false},"44b7da3e7ac4":{"layout":{"columns":1,"connectors":[],"h":679,"labels":[["no",169,372,21.2,15],["sí",255,323,21.2,15]],"legend":["terminal","proceso","subproceso","decision","externo"],"lines":[[[166,58,166,88],"normal",true],[[166,152,166,182],"normal",true],[[166,216,166,246],"normal",true],[[252,340,347,340,347,400],"normal",true],[[347,434,347,464],"normal",true],[[166,370,166,513],"normal",false],[[166,280,166,310],"normal",true],[[166,513,166,543],"normal",true],[[166,591,166,621],"normal",true]],"nodes":[["n0",63,24,206,34,["Inicio: buscar(id)"],["Inicio: buscar(int $id)"]],["n1",24,88,284,64,["stmt =","this.db.prepare('SELECT *","FROM facturas WHERE id = ?')"],["$stmt = $this-\u003edb-\u003eprepare('SELECT *","FROM facturas WHERE id = ?')"]],["n2",78,182,176,34,["Llama a execute()"],["$stmt-\u003eexecute([$id])"]],["n3",75,246,182,34,["fila = stmt.fetch()"],["$fila = $stmt-\u003efetch()"]],["n4",80,310,172,60,["¿fila = false?"],["$fila === false"]],["n5",292,400,110,34,["Retorna null"],["return null"]],["n6",299,464,96,34,["Fin"],["Fin"]],["n7",31,543,270,48,["Retorna el resultado de","desdeFila()"],["return Factura::desdeFila($fila)"]],["n8",118,621,96,34,["Fin"],["Fin"]]],"w":426},"nodes":{"n0":{"a":51,"b":51,"kind":"terminal","target":null,"tech":"Inicio: buscar(int $id)"},"n1":{"a":53,"b":53,"kind":"proceso","target":null,"tech":"$stmt = $this-\u003edb-\u003eprepare('SELECT * FROM facturas WHERE id = ?')"},"n2":{"a":54,"b":54,"kind":"externo","target":null,"tech":"$stmt-\u003eexecute([$id])"},"n3":{"a":55,"b":55,"kind":"proceso","target":null,"tech":"$fila = $stmt-\u003efetch()"},"n4":{"a":56,"b":56,"kind":"decision","target":null,"tech":"$fila === false"},"n5":{"a":57,"b":57,"kind":"proceso","target":null,"tech":"return null"},"n6":{"a":57,"b":57,"kind":"terminal","target":null,"tech":"Fin"},"n7":{"a":59,"b":59,"kind":"subproceso","target":"715a258d2af0","tech":"return Factura::desdeFila($fila)"},"n8":{"a":60,"b":60,"kind":"terminal","target":null,"tech":"Fin"}},"truncated":false},"55254a578864":{"layout":{"columns":1,"connectors":[],"h":176,"labels":[],"legend":["terminal"],"lines":[[[192,88,192,118],"normal",true]],"nodes":[["n0",24,24,336,64,["Inicio:","__construct(repositorio,","impuestos)"],["Inicio: __construct( private","FacturaRepository $repositorio, private","CalculadoraImpuesto…"]],["n1",144,118,96,34,["Fin"],["Fin"]]],"w":384},"nodes":{"n0":{"a":10,"b":10,"kind":"terminal","target":null,"tech":"Inicio: __construct( private FacturaRepository $repositorio, private CalculadoraImpuesto…"},"n1":{"a":14,"b":14,"kind":"terminal","target":null,"tech":"Fin"}},"truncated":false},"659f500cf1b3":{"layout":{"columns":1,"connectors":[],"h":176,"labels":[],"legend":["terminal"],"lines":[[[192,88,192,118],"normal",true]],"nodes":[["n0",24,24,336,64,["Inicio:","__construct(clienteId,","items, total)"],["Inicio: __construct( public int","$clienteId, public array $items, public","float $total, )"]],["n1",144,118,96,34,["Fin"],["Fin"]]],"w":384},"nodes":{"n0":{"a":7,"b":7,"kind":"terminal","target":null,"tech":"Inicio: __construct( public int $clienteId, public array $items, public float $total, )"},"n1":{"a":12,"b":12,"kind":"terminal","target":null,"tech":"Fin"}},"truncated":false},"715a258d2af0":{"layout":{"columns":1,"connectors":[],"h":240,"labels":[],"legend":["terminal","subproceso"],"lines":[[[159,58,159,88],"normal",true],[[159,152,159,182],"normal",true]],"nodes":[["n0",31,24,256,34,["Inicio: desdeFila(fila)"],["Inicio: desdeFila(array $fila)"]],["n1",24,88,270,64,["Retorna el resultado de","Factura()"],["return new Factura((int)","$fila['cliente_id'], [], (float)","$fila['total'])"]],["n2",111,182,96,34,["Fin"],["Fin"]]],"w":318},"nodes":{"n0":{"a":15,"b":15,"kind":"terminal","target":null,"tech":"Inicio: desdeFila(array $fila)"},"n1":{"a":17,"b":17,"kind":"subproceso","target":"659f500cf1b3","tech":"return new Factura((int) $fila['cliente_id'], [], (float) $fila['total'])"},"n2":{"a":18,"b":18,"kind":"terminal","target":null,"tech":"Fin"}},"truncated":false},"7b0a3239ea42":{"layout":{"columns":1,"connectors":[],"h":160,"labels":[],"legend":["terminal"],"lines":[[[152,72,152,102],"normal",true]],"nodes":[["n0",24,24,256,48,["Inicio:","__construct(servicio)"],["Inicio: __construct(private","FacturacionService $servicio)"]],["n1",104,102,96,34,["Fin"],["Fin"]]],"w":304},"nodes":{"n0":{"a":10,"b":10,"kind":"terminal","target":null,"tech":"Inicio: __construct(private FacturacionService $servicio)"},"n1":{"a":12,"b":12,"kind":"terminal","target":null,"tech":"Fin"}},"truncated":false},"838c57edc01e":{"layout":{"columns":1,"connectors":[],"h":587,"labels":[["excepción: DomainException",533,217,179.6,15]],"legend":["terminal","proceso","subproceso","excepcion"],"lines":[[[188,58,188,88],"normal",true],[[188,232,188,262],"normal",true],[[236,215,530,215],"excepcion",false],[[530,215,530,262],"excepcion",true],[[530,326,530,356],"normal",true],[[188,326,188,405],"normal",false],[[188,168,188,198],"normal",true],[[188,405,188,435],"normal",true],[[188,499,188,529],"normal",true]],"nodes":[["n0",56,24,264,34,["Inicio: store(request)"],["Inicio: store(Request $request)"]],["n1",32,88,312,80,["datos = request.validate([","'cliente' =\u003e","'required|string', 'items'","=\u003e 'requi…"],["$datos = $request-\u003evalidate([ 'cliente'","=\u003e 'required|string', 'items' =\u003e 'requi…"]],["n2",140,198,96,34,["Intentar"],["try"]],["n3",24,262,328,64,["Llama a emitir() → factura"],["$factura =","$this-\u003eservicio-\u003eemitir($datos['cliente'","], $datos['items'], $datos['…"]],["n4",392,262,276,64,["Retorna","response().json(['error' =\u003e","e.getMessage()], 400)"],["return response()-\u003ejson(['error' =\u003e","$e-\u003egetMessage()], 400)"]],["n5",482,356,96,34,["Fin"],["Fin"]],["n6",39,435,298,64,["Retorna","response().json(factura,","201)"],["return response()-\u003ejson($factura, 201)"]],["n7",140,529,96,34,["Fin"],["Fin"]]],"w":736.6},"nodes":{"n0":{"a":25,"b":25,"kind":"terminal","target":null,"tech":"Inicio: store(Request $request)"},"n1":{"a":27,"b":31,"kind":"proceso","target":null,"tech":"$datos = $request-\u003evalidate([ 'cliente' =\u003e 'required|string', 'items' =\u003e 'requi…"},"n2":{"a":32,"b":32,"kind":"proceso","target":null,"tech":"try"},"n3":{"a":33,"b":33,"kind":"subproceso","target":"e4fc11afc2d3","tech":"$factura = $this-\u003eservicio-\u003eemitir($datos['cliente'], $datos['items'], $datos['…"},"n4":{"a":35,"b":35,"kind":"proceso","target":null,"tech":"return response()-\u003ejson(['error' =\u003e $e-\u003egetMessage()], 400)"},"n5":{"a":35,"b":35,"kind":"terminal","target":null,"tech":"Fin"},"n6":{"a":37,"b":37,"kind":"proceso","target":null,"tech":"return response()-\u003ejson($factura, 201)"},"n7":{"a":38,"b":38,"kind":"terminal","target":null,"tech":"Fin"}},"truncated":false},"a0bda82707c5":{"layout":{"columns":1,"connectors":[],"h":581,"labels":[["no",191,228,21.2,15],["sí",286,179,21.2,15]],"legend":["terminal","proceso","subproceso","decision"],"lines":[[[188,58,188,88],"normal",true],[[283,196,461,196,461,256],"normal",true],[[461,320,461,350],"normal",true],[[188,226,188,399],"normal",false],[[188,136,188,166],"normal",true],[[188,399,188,429],"normal",true],[[188,493,188,523],"normal",true]],"nodes":[["n0",56,24,264,34,["Inicio: index(request)"],["Inicio: index(Request $request)"]],["n1",43,88,290,48,["cliente =","request.input('cliente')"],["$cliente = $request-\u003einput('cliente')"]],["n2",93,166,190,60,["¿cliente = null?"],["$cliente === null"]],["n3",323,256,276,64,["Retorna","response().json(['error' =\u003e","'Falta el cliente'], 422)"],["return response()-\u003ejson(['error' =\u003e","'Falta el cliente'], 422)"]],["n4",413,350,96,34,["Fin"],["Fin"]],["n5",24,429,328,64,["Retorna el resultado de","listar()"],["return","response()-\u003ejson($this-\u003eservicio-\u003elistar","($cliente))"]],["n6",140,523,96,34,["Fin"],["Fin"]]],"w":623},"nodes":{"n0":{"a":15,"b":15,"kind":"terminal","target":null,"tech":"Inicio: index(Request $request)"},"n1":{"a":17,"b":17,"kind":"proceso","target":null,"tech":"$cliente = $request-\u003einput('cliente')"},"n2":{"a":18,"b":18,"kind":"decision","target":null,"tech":"$cliente === null"},"n3":{"a":19,"b":19,"kind":"proceso","target":null,"tech":"return response()-\u003ejson(['error' =\u003e 'Falta el cliente'], 422)"},"n4":{"a":19,"b":19,"kind":"terminal","target":null,"tech":"Fin"},"n5":{"a":21,"b":21,"kind":"subproceso","target":"01894a436c9e","tech":"return response()-\u003ejson($this-\u003eservicio-\u003elistar($cliente))"},"n6":{"a":22,"b":22,"kind":"terminal","target":null,"tech":"Fin"}},"truncated":false},"adfa046a752a":{"layout":{"columns":1,"connectors":[],"h":606,"labels":[["caso 'efectivo'",191,179,107,15],["caso 'tarjeta'",354,179,100.4,15],["otro",600,179,34.4,15]],"legend":["terminal","proceso","decision","excepcion"],"lines":[[[188,162,188,177],"normal",false],[[188,177,597,177],"normal",false],[[188,177,188,203],"normal",true],[[351,177,351,203],"normal",true],[[597,177,597,203],"normal",true],[[597,283,597,313],"excepcion",true],[[188,237,188,362],"normal",false],[[351,237,351,362],"normal",false],[[188,362,351,362],"normal",false],[[188,72,188,102],"normal",true],[[188,362,188,392],"normal",true],[[188,440,188,470],"normal",true],[[188,518,188,548],"normal",true]],"nodes":[["n0",24,24,328,48,["Inicio: aplicar(subtotal,","tipoPago)"],["Inicio: aplicar(float $subtotal, string","$tipoPago)"]],["n1",88,102,200,60,["Según tipoPago"],["switch ($tipoPago)"]],["n2",115,203,146,34,["descuento = 0.05"],["$descuento = 0.05"]],["n3",281,203,140,34,["descuento = 0.0"],["$descuento = 0.0"]],["n4",441,203,312,80,["Lanza excepción:","\\DomainException(\"Tipo de","pago no válido:","{$tipoPago}\")"],["throw new \\DomainException(\"Tipo de pago","no válido: {$tipoPago}\")"]],["n5",523,313,148,34,["Fin (excepción)"],["Fin (excepción)"]],["n6",46,392,284,48,["base = subtotal * (1 -","descuento)"],["$base = $subtotal * (1 - $descuento)"]],["n7",32,470,312,48,["Retorna round(base * (1 +","self::IGV), 2)"],["return round($base * (1 + self::IGV), 2)"]],["n8",140,548,96,34,["Fin"],["Fin"]]],"w":777},"nodes":{"n0":{"a":10,"b":10,"kind":"terminal","target":null,"tech":"Inicio: aplicar(float $subtotal, string $tipoPago)"},"n1":{"a":12,"b":12,"kind":"decision","target":null,"tech":"switch ($tipoPago)"},"n2":{"a":14,"b":14,"kind":"proceso","target":null,"tech":"$descuento = 0.05"},"n3":{"a":17,"b":17,"kind":"proceso","target":null,"tech":"$descuento = 0.0"},"n4":{"a":20,"b":20,"kind":"proceso","target":null,"tech":"throw new \\DomainException(\"Tipo de pago no válido: {$tipoPago}\")"},"n5":{"a":20,"b":20,"kind":"terminal","target":null,"tech":"Fin (excepción)"},"n6":{"a":22,"b":22,"kind":"proceso","target":null,"tech":"$base = $subtotal * (1 - $descuento)"},"n7":{"a":23,"b":23,"kind":"proceso","target":null,"tech":"return round($base * (1 + self::IGV), 2)"},"n8":{"a":24,"b":24,"kind":"terminal","target":null,"tech":"Fin"}},"truncated":false},"e4fc11afc2d3":{"layout":{"columns":1,"connectors":[],"h":1120,"labels":[["no",237,164,21.2,15],["sí",342,115,21.2,15],["sí",237,521,21.2,15],["no",237,611,21.2,15],["sí",89.8,562,21.2,15],["no",372,472,21.2,15]],"legend":["terminal","proceso","subproceso","decision","excepcion"],"lines":[[[339,132,528,132,528,192],"normal",true],[[528,256,528,286],"excepcion",true],[[234,162,234,335],"normal",false],[[234,72,234,102],"normal",true],[[234,335,234,365],"normal",true],[[234,429,234,459],"normal",true],[[234,519,234,549],"normal",true],[[234,609,234,624],"normal",false],[[234,624,234,654],"normal",true],[[234,702,234,717,60,717,60,444,234,444],"retorno_bucle",false],[[369,489,423,489,423,732,234,732],"normal",false],[[234,399,234,429],"normal",false],[[234,732,234,762],"normal",true],[[234,826,234,856],"normal",true],[[234,904,234,934],"normal",true],[[234,968,234,998],"normal",true],[[234,1032,234,1062],"normal",true],[[114,579,60,579],"salto",false]],"nodes":[["n0",77,24,314,48,["Inicio: emitir(cliente,","items, tipoPago)"],["Inicio: emitir(string $cliente, array","$items, string $tipoPago)"]],["n1",129,102,210,60,["¿count(items) = 0?"],["count($items) === 0"]],["n2",379,192,298,64,["Lanza excepción:","\\DomainException('La factura","no tiene ítems')"],["throw new \\DomainException('La factura","no tiene ítems')"]],["n3",454,286,148,34,["Fin (excepción)"],["Fin (excepción)"]],["n4",175,365,118,34,["subtotal = 0"],["$subtotal = 0"]],["n5",99,459,270,60,["Para cada item en items"],["foreach ($items as $item)"]],["n6",114,549,240,60,["¿item['cantidad'] ≤ 0?"],["$item['cantidad'] \u003c= 0"]],["n7",114,654,240,48,["subtotal += item['precio'] *","item['cantidad']"],["$subtotal += $item['precio'] *","$item['cantidad']"]],["n8",84,762,300,64,["Llama a aplicar() → total"],["$total =","$this-\u003eimpuestos-\u003eaplicar($subtotal,","$tipoPago)"]],["n9",70,856,328,48,["Llama a Factura() → factura"],["$factura = new Factura($cliente, $items,","$total)"]],["n10",81,934,306,34,["Llama a guardar()"],["$this-\u003erepositorio-\u003eguardar($factura)"]],["n11",168,998,132,34,["Retorna factura"],["return $factura"]],["n12",186,1062,96,34,["Fin"],["Fin"]]],"w":701},"nodes":{"n0":{"a":17,"b":17,"kind":"terminal","target":null,"tech":"Inicio: emitir(string $cliente, array $items, string $tipoPago)"},"n1":{"a":19,"b":19,"kind":"decision","target":null,"tech":"count($items) === 0"},"n10":{"a":31,"b":31,"kind":"subproceso","target":"ecca55e78e78","tech":"$this-\u003erepositorio-\u003eguardar($factura)"},"n11":{"a":32,"b":32,"kind":"proceso","target":null,"tech":"return $factura"},"n12":{"a":33,"b":33,"kind":"terminal","target":null,"tech":"Fin"},"n2":{"a":20,"b":20,"kind":"proceso","target":null,"tech":"throw new \\DomainException('La factura no tiene ítems')"},"n3":{"a":20,"b":20,"kind":"terminal","target":null,"tech":"Fin (excepción)"},"n4":{"a":22,"b":22,"kind":"proceso","target":null,"tech":"$subtotal = 0"},"n5":{"a":23,"b":23,"kind":"decision","target":null,"tech":"foreach ($items as $item)"},"n6":{"a":24,"b":24,"kind":"decision","target":null,"tech":"$item['cantidad'] \u003c= 0"},"n7":{"a":27,"b":27,"kind":"proceso","target":null,"tech":"$subtotal += $item['precio'] * $item['cantidad']"},"n8":{"a":29,"b":29,"kind":"subproceso","target":"adfa046a752a","tech":"$total = $this-\u003eimpuestos-\u003eaplicar($subtotal, $tipoPago)"},"n9":{"a":30,"b":30,"kind":"subproceso","target":"659f500cf1b3","tech":"$factura = new Factura($cliente, $items, $total)"}},"truncated":false},"ecca55e78e78":{"layout":{"columns":1,"connectors":[],"h":973,"labels":[["sí",280,590,21.2,15],["no",503,533,21.2,15],["excepción: PDOException",691,171,159.8,15]],"legend":["terminal","proceso","decision","externo","excepcion"],"lines":[[[277,58,277,88],"normal",true],[[277,186,277,216],"normal",true],[[277,296,277,326],"normal",true],[[277,374,277,404],"normal",true],[[277,482,277,512],"normal",true],[[277,588,277,618],"normal",true],[[277,682,277,712],"normal",true],[[277,776,277,791,28,791,28,497,277,497],"retorno_bucle",false],[[500,550,554,550,554,806,277,806],"normal",false],[[277,452,277,482],"normal",false],[[277,806,277,836],"normal",true],[[325,169,688,169],"excepcion",false],[[688,169,688,216],"excepcion",true],[[688,250,688,280],"normal",true],[[688,314,688,344],"excepcion",true],[[277,870,277,885],"normal",false],[[277,122,277,152],"normal",true],[[277,885,277,915],"normal",true]],"nodes":[["n0",138,24,278,34,["Inicio: guardar(factura)"],["Inicio: guardar(Factura $factura)"]],["n1",161,88,232,34,["Llama a beginTransaction()"],["$this-\u003edb-\u003ebeginTransaction()"]],["n2",229,152,96,34,["Intentar"],["try"]],["n3",121,216,312,80,["stmt =","this.db.prepare('INSERT INTO","facturas (cliente_id, total)","VALUES (?,…"],["$stmt = $this-\u003edb-\u003eprepare('INSERT INTO","facturas (cliente_id, total) VALUES (?,…"]],["n4",135,326,284,48,["Llama a execute()"],["$stmt-\u003eexecute([$factura-\u003eclienteId,","$factura-\u003etotal])"]],["n5",132,404,290,48,["id = (int)","this.db.lastInsertId()"],["$id = (int) $this-\u003edb-\u003elastInsertId()"]],["n6",54,512,446,76,["Para cada item en","factura.items"],["foreach ($factura-\u003eitems as $item)"]],["n7",135,618,284,64,["linea = this.db.prepare(","'INSERT INTO factura_items","(factura_id, producto_i…"],["$linea = $this-\u003edb-\u003eprepare( 'INSERT","INTO factura_items (factura_id,","producto_i…"]],["n8",121,712,312,64,["Llama a execute()"],["$linea-\u003eexecute([$id,","$item['producto_id'], $item['cantidad'],","$item['precio']])"]],["n9",197,836,160,34,["Llama a commit()"],["$this-\u003edb-\u003ecommit()"]],["n10",600,216,176,34,["Llama a rollBack()"],["$this-\u003edb-\u003erollBack()"]],["n11",611,280,154,34,["Lanza excepción: e"],["throw $e"]],["n12",614,344,148,34,["Fin (excepción)"],["Fin (excepción)"]],["n13",229,915,96,34,["Fin"],["Fin"]]],"w":874.8},"nodes":{"n0":{"a":16,"b":16,"kind":"terminal","target":null,"tech":"Inicio: guardar(Factura $factura)"},"n1":{"a":18,"b":18,"kind":"externo","target":null,"tech":"$this-\u003edb-\u003ebeginTransaction()"},"n10":{"a":31,"b":31,"kind":"externo","target":null,"tech":"$this-\u003edb-\u003erollBack()"},"n11":{"a":32,"b":32,"kind":"proceso","target":null,"tech":"throw $e"},"n12":{"a":32,"b":32,"kind":"terminal","target":null,"tech":"Fin (excepción)"},"n13":{"a":34,"b":34,"kind":"terminal","target":null,"tech":"Fin"},"n2":{"a":19,"b":19,"kind":"proceso","target":null,"tech":"try"},"n3":{"a":20,"b":20,"kind":"proceso","target":null,"tech":"$stmt = $this-\u003edb-\u003eprepare('INSERT INTO facturas (cliente_id, total) VALUES (?,…"},"n4":{"a":21,"b":21,"kind":"externo","target":null,"tech":"$stmt-\u003eexecute([$factura-\u003eclienteId, $factura-\u003etotal])"},"n5":{"a":22,"b":22,"kind":"proceso","target":null,"tech":"$id = (int) $this-\u003edb-\u003elastInsertId()"},"n6":{"a":23,"b":23,"kind":"decision","target":null,"tech":"foreach ($factura-\u003eitems as $item)"},"n7":{"a":24,"b":26,"kind":"proceso","target":null,"tech":"$linea = $this-\u003edb-\u003eprepare( 'INSERT INTO factura_items (factura_id, producto_i…"},"n8":{"a":27,"b":27,"kind":"externo","target":null,"tech":"$linea-\u003eexecute([$id, $item['producto_id'], $item['cantidad'], $item['precio']])"},"n9":{"a":29,"b":29,"kind":"externo","target":null,"tech":"$this-\u003edb-\u003ecommit()"}},"truncated":false}},"impl":{"1d89c4bdefad":["44b7da3e7ac4"],"88d55ca351eb":["ecca55e78e78"],"c89e7e4402db":["28f5492317ac"]},"map":{"groups":{"100dd2721c81":{"kind":"clase","layout":{"edges":[],"h":24,"legend":[],"nodes":[],"w":48},"name":"Controller","parent":"dir-d76f090199","summary":""},"114791991065":{"kind":"interfaz","layout":{"edges":[],"h":84,"legend":["funcion"],"nodes":[["88d55ca351eb","funcion",24,24,120,36,"guardar()","","#\/flujo\/88d55ca351eb"],["c89e7e4402db","funcion",168,24,120,36,"porCliente()","","#\/flujo\/c89e7e4402db"],["1d89c4bdefad","funcion",312,24,120,36,"buscar()","","#\/flujo\/1d89c4bdefad"]],"w":456},"name":"FacturaRepository","parent":"dir-d072e297b4","summary":"3 funciones"},"6ccc833d3bb2":{"kind":"clase","layout":{"edges":[],"h":144,"legend":["funcion"],"nodes":[["55254a578864","funcion",24,24,126,36,"__construct()","","#\/flujo\/55254a578864"],["e4fc11afc2d3","funcion",177,24,120,36,"emitir()","","#\/flujo\/e4fc11afc2d3"],["01894a436c9e","funcion",327,24,120,36,"listar()","","#\/flujo\/01894a436c9e"],["0c14058dbe3a","funcion",27,84,120,36,"buscar()","","#\/flujo\/0c14058dbe3a"]],"w":474},"name":"FacturacionService","parent":"dir-f105c45039","summary":"4 funciones"},"72827ce2f59f":{"kind":"clase","layout":{"edges":[],"h":84,"legend":["funcion"],"nodes":[["adfa046a752a","funcion",24,24,120,36,"aplicar()","","#\/flujo\/adfa046a752a"]],"w":168},"name":"CalculadoraImpuestos","parent":"dir-f105c45039","summary":"1 función"},"7dc5beae0277":{"kind":"clase","layout":{"edges":[],"h":176,"legend":["funcion","entrada"],"nodes":[["7b0a3239ea42","funcion",35,24,126,36,"__construct()","","#\/flujo\/7b0a3239ea42"],["a0bda82707c5","entrada",196,24,148,52,"index()","punto de entrada","#\/flujo\/a0bda82707c5"],["838c57edc01e","entrada",368,24,148,52,"store()","punto de entrada","#\/flujo\/838c57edc01e"],["15a76b602ceb","entrada",24,100,148,52,"show()","punto de entrada","#\/flujo\/15a76b602ceb"]],"w":540},"name":"FacturaController","parent":"dir-d76f090199","summary":"4 funciones"},"dir-19a3b7ac38":{"kind":"modulo","layout":{"edges":[],"h":100,"legend":["clase"],"nodes":[["f396a4178283","clase",24,24,120,52,"Factura","2 métodos","#\/mapa\/f396a4178283"]],"w":168},"name":"Models","parent":"dir-7d1043473d","summary":"1 clase"},"dir-7d1043473d":{"kind":"modulo","layout":{"edges":[["dir-d76f090199","dir-f105c45039",[178,50,298,50],"probable","3 llamadas",201,42.5,74,15],["dir-d072e297b4","dir-19a3b7ac38",[664,50,784,78.5],"exacta","2 llamadas",687,56.8,74,15],["dir-f105c45039","dir-19a3b7ac38",[418,50,538,107,664,107,784,78.5],"exacta","1 llamada",444.3,71,67.4,15],["dir-f105c45039","dir-d072e297b4",[418,50,538,50],"probable","3 llamadas",441,42.5,74,15]],"h":128.5,"legend":["modulo","exacta","probable"],"nodes":[["dir-d76f090199","modulo",24,24,154,52,"Http\/Controllers\/","4 funciones","#\/mapa\/dir-d76f090199"],["dir-19a3b7ac38","modulo",784,52.5,120,52,"Models\/","2 funciones","#\/mapa\/dir-19a3b7ac38"],["dir-d072e297b4","modulo",538,24,126,52,"Repositories\/","7 funciones","#\/mapa\/dir-d072e297b4"],["dir-f105c45039","modulo",298,24,120,52,"Services\/","5 funciones","#\/mapa\/dir-f105c45039"]],"w":928},"name":"app","parent":"root","summary":"4 carpetas"},"dir-9e2c05b0ce":{"kind":"modulo","layout":{"edges":[],"h":100,"legend":["clase"],"nodes":[["file-6b9a783d9b","clase",24,24,120,52,"web.php","0 funciones","#\/mapa\/file-6b9a783d9b"]],"w":168},"name":"routes","parent":"root","summary":"1 archivo"},"dir-d072e297b4":{"kind":"modulo","layout":{"edges":[],"h":100,"legend":["clase","interfaz"],"nodes":[["114791991065","interfaz",42,24,154,52,"FacturaRepository","3 métodos","#\/mapa\/114791991065"],["ef98362bb63c","clase",238,24,190,52,"MySqlFacturaRepository","4 métodos","#\/mapa\/ef98362bb63c"]],"w":452},"name":"Repositories","parent":"dir-7d1043473d","summary":"1 clase · 1 interfaz"},"dir-d76f090199":{"kind":"modulo","layout":{"edges":[],"h":100,"legend":["clase","entrada"],"nodes":[["100dd2721c81","clase",41,24,120,52,"Controller","0 métodos","#\/mapa\/100dd2721c81"],["7dc5beae0277","entrada",202,24,154,52,"FacturaController","4 métodos","#\/mapa\/7dc5beae0277"]],"w":380},"name":"Http\/Controllers","parent":"dir-7d1043473d","summary":"2 clases"},"dir-f105c45039":{"kind":"modulo","layout":{"edges":[["6ccc833d3bb2","72827ce2f59f",[186,50,306,50],"probable","1 llamada",212.3,42.5,67.4,15]],"h":100,"legend":["clase","probable"],"nodes":[["72827ce2f59f","clase",306,24,176,52,"CalculadoraImpuestos","1 método","#\/mapa\/72827ce2f59f"],["6ccc833d3bb2","clase",24,24,162,52,"FacturacionService","4 métodos","#\/mapa\/6ccc833d3bb2"]],"w":506},"name":"Services","parent":"dir-7d1043473d","summary":"2 clases"},"ef98362bb63c":{"kind":"clase","layout":{"edges":[],"h":144,"legend":["funcion"],"nodes":[["083154cf2e5e","funcion",24,24,126,36,"__construct()","","#\/flujo\/083154cf2e5e"],["ecca55e78e78","funcion",177,24,120,36,"guardar()","","#\/flujo\/ecca55e78e78"],["28f5492317ac","funcion",327,24,120,36,"porCliente()","","#\/flujo\/28f5492317ac"],["44b7da3e7ac4","funcion",27,84,120,36,"buscar()","","#\/flujo\/44b7da3e7ac4"]],"w":474},"name":"MySqlFacturaRepository","parent":"dir-d072e297b4","summary":"4 funciones"},"f396a4178283":{"kind":"clase","layout":{"edges":[["715a258d2af0","659f500cf1b3",[144,42,264,42],"exacta","1 llamada",170.3,34.5,67.4,15]],"h":84,"legend":["funcion","exacta"],"nodes":[["659f500cf1b3","funcion",264,24,126,36,"__construct()","","#\/flujo\/659f500cf1b3"],["715a258d2af0","funcion",24,24,120,36,"desdeFila()","","#\/flujo\/715a258d2af0"]],"w":414},"name":"Factura","parent":"dir-19a3b7ac38","summary":"2 funciones"},"file-6b9a783d9b":{"kind":"archivo","layout":{"edges":[],"h":24,"legend":[],"nodes":[],"w":48},"name":"web.php","parent":"dir-9e2c05b0ce","summary":""},"root":{"kind":"proyecto","layout":{"edges":[["dir-9e2c05b0ce","dir-7d1043473d",[144,50,264,50],"exacta","3 rutas",176.9,42.5,54.2,15]],"h":100,"legend":["modulo","exacta"],"nodes":[["dir-7d1043473d","modulo",264,24,120,52,"app\/","18 funciones","#\/mapa\/dir-7d1043473d"],["dir-9e2c05b0ce","modulo",24,24,120,52,"routes\/","0 funciones","#\/mapa\/dir-9e2c05b0ce"]],"w":408},"name":"laravel-mini","parent":null,"summary":"2 carpetas"}},"owner":{"01894a436c9e":"6ccc833d3bb2","083154cf2e5e":"ef98362bb63c","0c14058dbe3a":"6ccc833d3bb2","100dd2721c81":"dir-d76f090199","114791991065":"dir-d072e297b4","15a76b602ceb":"7dc5beae0277","1d89c4bdefad":"114791991065","28f5492317ac":"ef98362bb63c","44b7da3e7ac4":"ef98362bb63c","55254a578864":"6ccc833d3bb2","659f500cf1b3":"f396a4178283","6ccc833d3bb2":"dir-f105c45039","715a258d2af0":"f396a4178283","72827ce2f59f":"dir-f105c45039","7b0a3239ea42":"7dc5beae0277","7dc5beae0277":"dir-d76f090199","838c57edc01e":"7dc5beae0277","88d55ca351eb":"114791991065","a0bda82707c5":"7dc5beae0277","adfa046a752a":"72827ce2f59f","c89e7e4402db":"114791991065","dir-19a3b7ac38":"dir-7d1043473d","dir-7d1043473d":"root","dir-9e2c05b0ce":"root","dir-d072e297b4":"dir-7d1043473d","dir-d76f090199":"dir-7d1043473d","dir-f105c45039":"dir-7d1043473d","e4fc11afc2d3":"6ccc833d3bb2","ecca55e78e78":"ef98362bb63c","ef98362bb63c":"dir-d072e297b4","f396a4178283":"dir-19a3b7ac38","file-6b9a783d9b":"dir-9e2c05b0ce"},"root":"root"},"meta":{"generator":"Desglosa","name":"laravel-mini","start":"#\/mapa","version":"0.1.0"},"routes":{"15a76b602ceb":"GET \/facturas\/{id}","838c57edc01e":"POST \/facturas","a0bda82707c5":"GET \/facturas"},"sequence":{"01894a436c9e":{"layout":{"confs":["exacta","probable"],"fragments":[[318.8,108.8,295.2,117.2,"loop [$fila = $stmt-\u003efetch()]","loop",null]],"h":312,"lifelines":[[152.8,58,288],[364.8,58,288],[568,58,288]],"messages":[[152.8,364.8,84,"1: porCliente()","llamada","28f5492317ac","probable",false],[364.8,568,142,"1.1: desdeFila()","llamada","715a258d2af0","exacta",false],[568,568,178,"1.1.1: new Factura()","llamada","659f500cf1b3","exacta",false],[568,364.8,214,"retorna","retorno",null,"exacta",false],[364.8,152.8,258,"retorna","retorno",null,"exacta",false]],"participants":[[74,20,157.6,38,"FacturacionService","clase"],[271.6,20,186.39999999999998,38,"MySqlFacturaRepository","clase"],[498,20,140,38,"Factura","clase"]],"w":712},"layout_all":{"confs":["exacta","probable","externa"],"fragments":[[318.8,180.8,475.2,153.2,"loop [$fila = $stmt-\u003efetch()]","loop",null]],"h":420,"lifelines":[[152.8,58,396],[364.8,58,396],[568,58,396],[748,58,396]],"messages":[[152.8,364.8,84,"1: porCliente()","llamada","28f5492317ac","probable",false],[364.8,748,120,"1.1: prepare()","llamada",null,"externa",true],[364.8,748,156,"1.2: execute()","llamada",null,"externa",true],[364.8,748,214,"1.3: fetch()","llamada",null,"externa",true],[364.8,568,250,"1.4: desdeFila()","llamada","715a258d2af0","exacta",false],[568,568,286,"1.4.1: new Factura()","llamada","659f500cf1b3","exacta",false],[568,364.8,322,"retorna","retorno",null,"exacta",false],[364.8,152.8,366,"retorna","retorno",null,"exacta",false]],"participants":[[74,20,157.6,38,"FacturacionService","clase"],[271.6,20,186.39999999999998,38,"MySqlFacturaRepository","clase"],[498,20,140,38,"Factura","clase"],[678,20,140,38,"Externo","externo"]],"w":892}},"0c14058dbe3a":{"layout":{"confs":["exacta","probable"],"fragments":[],"h":282,"lifelines":[[152.8,58,258],[364.8,58,258],[568,58,258]],"messages":[[152.8,364.8,84,"1: buscar()","llamada","44b7da3e7ac4","probable",false],[364.8,568,120,"1.1: desdeFila()","llamada","715a258d2af0","exacta",false],[568,568,156,"1.1.1: new Factura()","llamada","659f500cf1b3","exacta",false],[568,364.8,192,"retorna","retorno",null,"exacta",false],[364.8,152.8,228,"retorna","retorno",null,"exacta",false]],"participants":[[74,20,157.6,38,"FacturacionService","clase"],[271.6,20,186.39999999999998,38,"MySqlFacturaRepository","clase"],[498,20,140,38,"Factura","clase"]],"w":712},"layout_all":{"confs":["exacta","probable","externa"],"fragments":[],"h":390,"lifelines":[[152.8,58,366],[364.8,58,366],[568,58,366],[748,58,366]],"messages":[[152.8,364.8,84,"1: buscar()","llamada","44b7da3e7ac4","probable",false],[364.8,748,120,"1.1: prepare()","llamada",null,"externa",true],[364.8,748,156,"1.2: execute()","llamada",null,"externa",true],[364.8,748,192,"1.3: fetch()","llamada",null,"externa",true],[364.8,568,228,"1.4: desdeFila()","llamada","715a258d2af0","exacta",false],[568,568,264,"1.4.1: new Factura()","llamada","659f500cf1b3","exacta",false],[568,364.8,300,"retorna","retorno",null,"exacta",false],[364.8,152.8,336,"retorna","retorno",null,"exacta",false]],"participants":[[74,20,157.6,38,"FacturacionService","clase"],[271.6,20,186.39999999999998,38,"MySqlFacturaRepository","clase"],[498,20,140,38,"Factura","clase"],[678,20,140,38,"Externo","externo"]],"w":892}},"15a76b602ceb":{"layout":{"confs":["exacta","probable"],"fragments":[],"h":426,"lifelines":[[144,58,402],[329.2,58,402],[523.2,58,402],[735.2,58,402],[938.4,58,402]],"messages":[[144,329.2,84,"1: GET \/facturas\/{id} → show()","llamada","15a76b602ceb","exacta",false],[329.2,523.2,120,"1.1: buscar()","llamada","0c14058dbe3a","probable",false],[523.2,735.2,156,"1.1.1: buscar()","llamada","44b7da3e7ac4","probable",false],[735.2,938.4,192,"1.1.1.1: desdeFila()","llamada","715a258d2af0","exacta",false],[938.4,938.4,228,"1.1.1.1.1: new Factura()","llamada","659f500cf1b3","exacta",false],[938.4,735.2,264,"retorna","retorno",null,"exacta",false],[735.2,523.2,300,"retorna","retorno",null,"exacta",false],[523.2,329.2,336,"retorna","retorno",null,"exacta",false],[329.2,144,372,"retorna","retorno",null,"exacta",false]],"participants":[[74,20,140,38,"Usuario","actor"],[254,20,150.39999999999998,38,"FacturaController","entrada"],[444.4,20,157.6,38,"FacturacionService","clase"],[642,20,186.39999999999998,38,"MySqlFacturaRepository","clase"],[868.4,20,140,38,"Factura","clase"]],"w":1082.4},"layout_all":{"confs":["exacta","probable","externa"],"fragments":[[283.2,468.8,881.2,45.2,"opt [$factura === null]","if",null]],"h":672,"lifelines":[[144,58,648],[329.2,58,648],[523.2,58,648],[735.2,58,648],[938.4,58,648],[1118.4,58,648]],"messages":[[144,329.2,84,"1: GET \/facturas\/{id} → show()","llamada","15a76b602ceb","exacta",false],[329.2,523.2,120,"1.1: buscar()","llamada","0c14058dbe3a","probable",false],[523.2,735.2,156,"1.1.1: buscar()","llamada","44b7da3e7ac4","probable",false],[735.2,1118.4,192,"1.1.1.1: prepare()","llamada",null,"externa",true],[735.2,1118.4,228,"1.1.1.2: execute()","llamada",null,"externa",true],[735.2,1118.4,264,"1.1.1.3: fetch()","llamada",null,"externa",true],[735.2,938.4,300,"1.1.1.4: desdeFila()","llamada","715a258d2af0","exacta",false],[938.4,938.4,336,"1.1.1.4.1: new Factura()","llamada","659f500cf1b3","exacta",false],[938.4,735.2,372,"retorna","retorno",null,"exacta",false],[735.2,523.2,408,"retorna","retorno",null,"exacta",false],[523.2,329.2,444,"retorna","retorno",null,"exacta",false],[329.2,1118.4,502,"1.2: abort()","llamada",null,"externa",true],[329.2,1118.4,546,"1.3: response()","llamada",null,"externa",true],[329.2,1118.4,582,"1.4: json()","llamada",null,"externa",true],[329.2,144,618,"retorna","retorno",null,"exacta",false]],"participants":[[74,20,140,38,"Usuario","actor"],[254,20,150.39999999999998,38,"FacturaController","entrada"],[444.4,20,157.6,38,"FacturacionService","clase"],[642,20,186.39999999999998,38,"MySqlFacturaRepository","clase"],[868.4,20,140,38,"Factura","clase"],[1048.4,20,140,38,"Externo","externo"]],"w":1262.4}},"28f5492317ac":{"layout":{"confs":["exacta"],"fragments":[[121.2,72.8,295.2,117.2,"loop [$fila = $stmt-\u003efetch()]","loop",null]],"h":240,"lifelines":[[167.2,58,216],[370.4,58,216]],"messages":[[167.2,370.4,106,"1: desdeFila()","llamada","715a258d2af0","exacta",false],[370.4,370.4,142,"1.1: new Factura()","llamada","659f500cf1b3","exacta",false],[370.4,167.2,178,"retorna","retorno",null,"exacta",false]],"participants":[[74,20,186.39999999999998,38,"MySqlFacturaRepository","clase"],[300.4,20,140,38,"Factura","clase"]],"w":514.4},"layout_all":{"confs":["exacta","externa"],"fragments":[[121.2,144.8,475.2,153.2,"loop [$fila = $stmt-\u003efetch()]","loop",null]],"h":348,"lifelines":[[167.2,58,324],[370.4,58,324],[550.4,58,324]],"messages":[[167.2,550.4,84,"1: prepare()","llamada",null,"externa",true],[167.2,550.4,120,"2: execute()","llamada",null,"externa",true],[167.2,550.4,178,"3: fetch()","llamada",null,"externa",true],[167.2,370.4,214,"4: desdeFila()","llamada","715a258d2af0","exacta",false],[370.4,370.4,250,"4.1: new Factura()","llamada","659f500cf1b3","exacta",false],[370.4,167.2,286,"retorna","retorno",null,"exacta",false]],"participants":[[74,20,186.39999999999998,38,"MySqlFacturaRepository","clase"],[300.4,20,140,38,"Factura","clase"],[480.4,20,140,38,"Externo","externo"]],"w":694.4}},"44b7da3e7ac4":{"layout":{"confs":["exacta"],"fragments":[],"h":210,"lifelines":[[167.2,58,186],[370.4,58,186]],"messages":[[167.2,370.4,84,"1: desdeFila()","llamada","715a258d2af0","exacta",false],[370.4,370.4,120,"1.1: new Factura()","llamada","659f500cf1b3","exacta",false],[370.4,167.2,156,"retorna","retorno",null,"exacta",false]],"participants":[[74,20,186.39999999999998,38,"MySqlFacturaRepository","clase"],[300.4,20,140,38,"Factura","clase"]],"w":514.4},"layout_all":{"confs":["exacta","externa"],"fragments":[],"h":318,"lifelines":[[167.2,58,294],[370.4,58,294],[550.4,58,294]],"messages":[[167.2,550.4,84,"1: prepare()","llamada",null,"externa",true],[167.2,550.4,120,"2: execute()","llamada",null,"externa",true],[167.2,550.4,156,"3: fetch()","llamada",null,"externa",true],[167.2,370.4,192,"4: desdeFila()","llamada","715a258d2af0","exacta",false],[370.4,370.4,228,"4.1: new Factura()","llamada","659f500cf1b3","exacta",false],[370.4,167.2,264,"retorna","retorno",null,"exacta",false]],"participants":[[74,20,186.39999999999998,38,"MySqlFacturaRepository","clase"],[300.4,20,140,38,"Factura","clase"],[480.4,20,140,38,"Externo","externo"]],"w":694.4}},"715a258d2af0":{"layout":{"confs":["exacta"],"fragments":[],"h":138,"lifelines":[[144,58,114]],"messages":[[144,144,84,"1: new Factura()","llamada","659f500cf1b3","exacta",false]],"participants":[[74,20,140,38,"Factura","clase"]],"w":288}},"838c57edc01e":{"layout":{"confs":["exacta","probable"],"fragments":[[283.2,108.8,890,225.2,"try","try",null]],"h":420,"lifelines":[[144,58,396],[329.2,58,396],[523.2,58,396],[728,58,396],[924,58,396],[1127.2,58,396]],"messages":[[144,329.2,84,"1: POST \/facturas → store()","llamada","838c57edc01e","exacta",false],[329.2,523.2,142,"1.1: emitir()","llamada","e4fc11afc2d3","probable",false],[523.2,728,178,"1.1.1: aplicar()","llamada","adfa046a752a","probable",false],[728,523.2,214,"retorna","retorno",null,"exacta",false],[523.2,924,250,"1.1.2: new Factura()","llamada","659f500cf1b3","exacta",false],[523.2,1127.2,286,"1.1.3: guardar()","llamada","ecca55e78e78","probable",false],[523.2,329.2,322,"retorna","retorno",null,"exacta",false],[329.2,144,366,"retorna","retorno",null,"exacta",false]],"participants":[[74,20,140,38,"Usuario","actor"],[254,20,150.39999999999998,38,"FacturaController","entrada"],[444.4,20,157.6,38,"FacturacionService","clase"],[642,20,172,38,"CalculadoraImpuestos","clase"],[854,20,140,38,"Factura","clase"],[1034,20,186.39999999999998,38,"MySqlFacturaRepository","clase"]],"w":1294.4},"layout_all":{"confs":["exacta","probable","externa"],"fragments":[[283.2,144.8,1093.2,807.2,"try","try",null],[485.2,242.8,883.2,38.2,"opt [count($items) === 0]","if",null],[690,344.8,678.4,38.2,"alt [otro]","caso",null],[1089.2,590.8,279.2,248.2,"try","try",null],[1097.2,724.8,306.6,67.2,"loop [foreach ($factura-\u003eitems as $item)]","loop",null],[1089.2,866.8,279.2,38.2,"catch [PDOException]","catch",null],[283.2,972.8,1093.2,117.2,"catch [DomainException]","catch",null]],"h":1248,"lifelines":[[144,58,1224],[329.2,58,1224],[523.2,58,1224],[728,58,1224],[924,58,1224],[1127.2,58,1224],[1330.4,58,1224]],"messages":[[144,329.2,84,"1: POST \/facturas → store()","llamada","838c57edc01e","exacta",false],[329.2,1330.4,120,"1.1: validate()","llamada",null,"externa",true],[329.2,523.2,178,"1.2: emitir()","llamada","e4fc11afc2d3","probable",false],[523.2,1330.4,214,"1.2.1: count()","llamada",null,"externa",true],[523.2,1330.4,272,"1.2.2: new DomainException()","crear",null,"externa",true],[523.2,728,316,"1.2.3: aplicar()","llamada","adfa046a752a","probable",false],[728,1330.4,374,"1.2.3.1: new DomainException()","crear",null,"externa",true],[728,1330.4,418,"1.2.3.2: round()","llamada",null,"externa",true],[728,523.2,454,"retorna","retorno",null,"exacta",false],[523.2,924,490,"1.2.4: new Factura()","llamada","659f500cf1b3","exacta",false],[523.2,1127.2,526,"1.2.5: guardar()","llamada","ecca55e78e78","probable",false],[1127.2,1330.4,562,"1.2.5.1: beginTransaction()","llamada",null,"externa",true],[1127.2,1330.4,620,"1.2.5.2: prepare()","llamada",null,"externa",true],[1127.2,1330.4,656,"1.2.5.3: execute()","llamada",null,"externa",true],[1127.2,1330.4,692,"1.2.5.4: lastInsertId()","llamada",null,"externa",true],[1127.2,1330.4,750,"1.2.5.5: prepare()","llamada",null,"externa",true],[1127.2,1330.4,786,"1.2.5.6: execute()","llamada",null,"externa",true],[1127.2,1330.4,830,"1.2.5.7: commit()","llamada",null,"externa",true],[1127.2,1330.4,896,"1.2.5.8: rollBack()","llamada",null,"externa",true],[523.2,329.2,940,"retorna","retorno",null,"exacta",false],[329.2,1330.4,1006,"1.3: response()","llamada",null,"externa",true],[329.2,1330.4,1042,"1.4: json()","llamada",null,"externa",true],[329.2,1330.4,1078,"1.5: getMessage()","llamada",null,"externa",true],[329.2,1330.4,1122,"1.6: response()","llamada",null,"externa",true],[329.2,1330.4,1158,"1.7: json()","llamada",null,"externa",true],[329.2,144,1194,"retorna","retorno",null,"exacta",false]],"participants":[[74,20,140,38,"Usuario","actor"],[254,20,150.39999999999998,38,"FacturaController","entrada"],[444.4,20,157.6,38,"FacturacionService","clase"],[642,20,172,38,"CalculadoraImpuestos","clase"],[854,20,140,38,"Factura","clase"],[1034,20,186.39999999999998,38,"MySqlFacturaRepository","clase"],[1260.4,20,140,38,"Externo","externo"]],"w":1474.4}},"a0bda82707c5":{"layout":{"confs":["exacta","probable"],"fragments":[[689.2,180.8,295.2,117.2,"loop [$fila = $stmt-\u003efetch()]","loop",null]],"h":456,"lifelines":[[144,58,432],[329.2,58,432],[523.2,58,432],[735.2,58,432],[938.4,58,432]],"messages":[[144,329.2,84,"1: GET \/facturas → index()","llamada","a0bda82707c5","exacta",false],[329.2,523.2,120,"1.1: listar()","llamada","01894a436c9e","probable",false],[523.2,735.2,156,"1.1.1: porCliente()","llamada","28f5492317ac","probable",false],[735.2,938.4,214,"1.1.1.1: desdeFila()","llamada","715a258d2af0","exacta",false],[938.4,938.4,250,"1.1.1.1.1: new Factura()","llamada","659f500cf1b3","exacta",false],[938.4,735.2,286,"retorna","retorno",null,"exacta",false],[735.2,523.2,330,"retorna","retorno",null,"exacta",false],[523.2,329.2,366,"retorna","retorno",null,"exacta",false],[329.2,144,402,"retorna","retorno",null,"exacta",false]],"participants":[[74,20,140,38,"Usuario","actor"],[254,20,150.39999999999998,38,"FacturaController","entrada"],[444.4,20,157.6,38,"FacturacionService","clase"],[642,20,186.39999999999998,38,"MySqlFacturaRepository","clase"],[868.4,20,140,38,"Factura","clase"]],"w":1082.4},"layout_all":{"confs":["exacta","probable","externa"],"fragments":[[283.2,144.8,881.2,81.2,"opt [$cliente === null]","if",null],[689.2,462.8,475.2,153.2,"loop [$fila = $stmt-\u003efetch()]","loop",null]],"h":774,"lifelines":[[144,58,750],[329.2,58,750],[523.2,58,750],[735.2,58,750],[938.4,58,750],[1118.4,58,750]],"messages":[[144,329.2,84,"1: GET \/facturas → index()","llamada","a0bda82707c5","exacta",false],[329.2,1118.4,120,"1.1: input()","llamada",null,"externa",true],[329.2,1118.4,178,"1.2: response()","llamada",null,"externa",true],[329.2,1118.4,214,"1.3: json()","llamada",null,"externa",true],[329.2,1118.4,258,"1.4: response()","llamada",null,"externa",true],[329.2,1118.4,294,"1.5: json()","llamada",null,"externa",true],[329.2,523.2,330,"1.6: listar()","llamada","01894a436c9e","probable",false],[523.2,735.2,366,"1.6.1: porCliente()","llamada","28f5492317ac","probable",false],[735.2,1118.4,402,"1.6.1.1: prepare()","llamada",null,"externa",true],[735.2,1118.4,438,"1.6.1.2: execute()","llamada",null,"externa",true],[735.2,1118.4,496,"1.6.1.3: fetch()","llamada",null,"externa",true],[735.2,938.4,532,"1.6.1.4: desdeFila()","llamada","715a258d2af0","exacta",false],[938.4,938.4,568,"1.6.1.4.1: new Factura()","llamada","659f500cf1b3","exacta",false],[938.4,735.2,604,"retorna","retorno",null,"exacta",false],[735.2,523.2,648,"retorna","retorno",null,"exacta",false],[523.2,329.2,684,"retorna","retorno",null,"exacta",false],[329.2,144,720,"retorna","retorno",null,"exacta",false]],"participants":[[74,20,140,38,"Usuario","actor"],[254,20,150.39999999999998,38,"FacturaController","entrada"],[444.4,20,157.6,38,"FacturacionService","clase"],[642,20,186.39999999999998,38,"MySqlFacturaRepository","clase"],[868.4,20,140,38,"Factura","clase"],[1048.4,20,140,38,"Externo","externo"]],"w":1262.4}},"e4fc11afc2d3":{"layout":{"confs":["exacta","probable"],"fragments":[],"h":246,"lifelines":[[152.8,58,222],[357.6,58,222],[553.6,58,222],[756.8,58,222]],"messages":[[152.8,357.6,84,"1: aplicar()","llamada","adfa046a752a","probable",false],[357.6,152.8,120,"retorna","retorno",null,"exacta",false],[152.8,553.6,156,"2: new Factura()","llamada","659f500cf1b3","exacta",false],[152.8,756.8,192,"3: guardar()","llamada","ecca55e78e78","probable",false]],"participants":[[74,20,157.6,38,"FacturacionService","clase"],[271.6,20,172,38,"CalculadoraImpuestos","clase"],[483.6,20,140,38,"Factura","clase"],[663.6,20,186.39999999999998,38,"MySqlFacturaRepository","clase"]],"w":924},"layout_all":{"confs":["exacta","probable","externa"],"fragments":[[106.8,108.8,899.2,45.2,"opt [count($items) === 0]","if",null],[311.6,210.8,694.4,45.2,"alt [otro]","caso",null],[710.8,456.8,295.2,255.2,"try","try",null],[718.8,590.8,306.6,74.2,"loop [foreach ($factura-\u003eitems as $item)]","loop",null],[710.8,732.8,295.2,45.2,"catch [PDOException]","catch",null]],"h":828,"lifelines":[[152.8,58,804],[357.6,58,804],[553.6,58,804],[756.8,58,804],[960,58,804]],"messages":[[152.8,960,84,"1: count()","llamada",null,"externa",true],[152.8,960,142,"2: new DomainException()","crear",null,"externa",true],[152.8,357.6,186,"3: aplicar()","llamada","adfa046a752a","probable",false],[357.6,960,244,"3.1: new DomainException()","crear",null,"externa",true],[357.6,960,288,"3.2: round()","llamada",null,"externa",true],[357.6,152.8,324,"retorna","retorno",null,"exacta",false],[152.8,553.6,360,"4: new Factura()","llamada","659f500cf1b3","exacta",false],[152.8,756.8,396,"5: guardar()","llamada","ecca55e78e78","probable",false],[756.8,960,432,"5.1: beginTransaction()","llamada",null,"externa",true],[756.8,960,490,"5.2: prepare()","llamada",null,"externa",true],[756.8,960,526,"5.3: execute()","llamada",null,"externa",true],[756.8,960,562,"5.4: lastInsertId()","llamada",null,"externa",true],[756.8,960,620,"5.5: prepare()","llamada",null,"externa",true],[756.8,960,656,"5.6: execute()","llamada",null,"externa",true],[756.8,960,700,"5.7: commit()","llamada",null,"externa",true],[756.8,960,766,"5.8: rollBack()","llamada",null,"externa",true]],"participants":[[74,20,157.6,38,"FacturacionService","clase"],[271.6,20,172,38,"CalculadoraImpuestos","clase"],[483.6,20,140,38,"Factura","clase"],[663.6,20,186.39999999999998,38,"MySqlFacturaRepository","clase"],[890,20,140,38,"Externo","externo"]],"w":1104}}},"sources":{"app\/Http\/Controllers\/Controller.php":"\u003c?php\n\nnamespace App\\Http\\Controllers;\n\nabstract class Controller\n{\n}\n","app\/Http\/Controllers\/FacturaController.php":"\u003c?php\n\nnamespace App\\Http\\Controllers;\n\nuse App\\Services\\FacturacionService;\nuse Illuminate\\Http\\Request;\n\nclass FacturaController extends Controller\n{\n    public function __construct(private FacturacionService $servicio)\n    {\n    }\n\n    \/** Lista las facturas de un cliente. *\/\n    public function index(Request $request)\n    {\n        $cliente = $request-\u003einput('cliente');\n        if ($cliente === null) {\n            return response()-\u003ejson(['error' =\u003e 'Falta el cliente'], 422);\n        }\n        return response()-\u003ejson($this-\u003eservicio-\u003elistar($cliente));\n    }\n\n    \/** Registra una factura nueva. *\/\n    public function store(Request $request)\n    {\n        $datos = $request-\u003evalidate([\n            'cliente' =\u003e 'required|string',\n            'items' =\u003e 'required|array',\n            'tipo_pago' =\u003e 'required|in:efectivo,tarjeta',\n        ]);\n        try {\n            $factura = $this-\u003eservicio-\u003eemitir($datos['cliente'], $datos['items'], $datos['tipo_pago']);\n        } catch (\\DomainException $e) {\n            return response()-\u003ejson(['error' =\u003e $e-\u003egetMessage()], 400);\n        }\n        return response()-\u003ejson($factura, 201);\n    }\n\n    \/** Muestra una factura por su número. *\/\n    public function show(int $id)\n    {\n        $factura = $this-\u003eservicio-\u003ebuscar($id);\n        if ($factura === null) {\n            abort(404);\n        }\n        return response()-\u003ejson($factura);\n    }\n}\n","app\/Models\/Factura.php":"\u003c?php\n\nnamespace App\\Models;\n\nclass Factura\n{\n    public function __construct(\n        public int $clienteId,\n        public array $items,\n        public float $total,\n    ) {\n    }\n\n    \/** Crea una factura a partir de una fila de la base de datos. *\/\n    public static function desdeFila(array $fila): Factura\n    {\n        return new Factura((int) $fila['cliente_id'], [], (float) $fila['total']);\n    }\n}\n","app\/Repositories\/FacturaRepository.php":"\u003c?php\n\nnamespace App\\Repositories;\n\nuse App\\Models\\Factura;\n\ninterface FacturaRepository\n{\n    public function guardar(Factura $factura): void;\n\n    public function porCliente(string $cliente): array;\n\n    public function buscar(int $id): ?Factura;\n}\n","app\/Repositories\/MySqlFacturaRepository.php":"\u003c?php\n\nnamespace App\\Repositories;\n\nuse App\\Models\\Factura;\nuse PDO;\nuse PDOException;\n\nclass MySqlFacturaRepository implements FacturaRepository\n{\n    public function __construct(private PDO $db)\n    {\n    }\n\n    \/** Guarda la factura y sus ítems en una transacción. *\/\n    public function guardar(Factura $factura): void\n    {\n        $this-\u003edb-\u003ebeginTransaction();\n        try {\n            $stmt = $this-\u003edb-\u003eprepare('INSERT INTO facturas (cliente_id, total) VALUES (?, ?)');\n            $stmt-\u003eexecute([$factura-\u003eclienteId, $factura-\u003etotal]);\n            $id = (int) $this-\u003edb-\u003elastInsertId();\n            foreach ($factura-\u003eitems as $item) {\n                $linea = $this-\u003edb-\u003eprepare(\n                    'INSERT INTO factura_items (factura_id, producto_id, cantidad, precio) VALUES (?, ?, ?, ?)'\n                );\n                $linea-\u003eexecute([$id, $item['producto_id'], $item['cantidad'], $item['precio']]);\n            }\n            $this-\u003edb-\u003ecommit();\n        } catch (PDOException $e) {\n            $this-\u003edb-\u003erollBack();\n            throw $e;\n        }\n    }\n\n    \/** Facturas de un cliente, de la más nueva a la más antigua. *\/\n    public function porCliente(string $cliente): array\n    {\n        $stmt = $this-\u003edb-\u003eprepare(\n            'SELECT f.* FROM facturas f JOIN clientes c ON c.id = f.cliente_id WHERE c.nombre = ? ORDER BY f.id DESC'\n        );\n        $stmt-\u003eexecute([$cliente]);\n        $facturas = [];\n        while ($fila = $stmt-\u003efetch()) {\n            $facturas[] = Factura::desdeFila($fila);\n        }\n        return $facturas;\n    }\n\n    \/** Busca una factura por su número. *\/\n    public function buscar(int $id): ?Factura\n    {\n        $stmt = $this-\u003edb-\u003eprepare('SELECT * FROM facturas WHERE id = ?');\n        $stmt-\u003eexecute([$id]);\n        $fila = $stmt-\u003efetch();\n        if ($fila === false) {\n            return null;\n        }\n        return Factura::desdeFila($fila);\n    }\n}\n","app\/Services\/CalculadoraImpuestos.php":"\u003c?php\n\nnamespace App\\Services;\n\nclass CalculadoraImpuestos\n{\n    private const IGV = 0.18;\n\n    \/** Aplica el descuento por tipo de pago y el IGV. *\/\n    public function aplicar(float $subtotal, string $tipoPago): float\n    {\n        switch ($tipoPago) {\n            case 'efectivo':\n                $descuento = 0.05;\n                break;\n            case 'tarjeta':\n                $descuento = 0.0;\n                break;\n            default:\n                throw new \\DomainException(\"Tipo de pago no válido: {$tipoPago}\");\n        }\n        $base = $subtotal * (1 - $descuento);\n        return round($base * (1 + self::IGV), 2);\n    }\n}\n","app\/Services\/FacturacionService.php":"\u003c?php\n\nnamespace App\\Services;\n\nuse App\\Models\\Factura;\nuse App\\Repositories\\FacturaRepository;\n\nclass FacturacionService\n{\n    public function __construct(\n        private FacturaRepository $repositorio,\n        private CalculadoraImpuestos $impuestos,\n    ) {\n    }\n\n    \/** Calcula el total con impuestos, valida y guarda la factura. *\/\n    public function emitir(string $cliente, array $items, string $tipoPago): Factura\n    {\n        if (count($items) === 0) {\n            throw new \\DomainException('La factura no tiene ítems');\n        }\n        $subtotal = 0;\n        foreach ($items as $item) {\n            if ($item['cantidad'] \u003c= 0) {\n                continue;\n            }\n            $subtotal += $item['precio'] * $item['cantidad'];\n        }\n        $total = $this-\u003eimpuestos-\u003eaplicar($subtotal, $tipoPago);\n        $factura = new Factura($cliente, $items, $total);\n        $this-\u003erepositorio-\u003eguardar($factura);\n        return $factura;\n    }\n\n    \/** Facturas de un cliente. *\/\n    public function listar(string $cliente): array\n    {\n        return $this-\u003erepositorio-\u003eporCliente($cliente);\n    }\n\n    \/** Busca una factura por su número. *\/\n    public function buscar(int $id): ?Factura\n    {\n        return $this-\u003erepositorio-\u003ebuscar($id);\n    }\n}\n"},"symbols":{"01894a436c9e":{"doc":"Facturas de un cliente.","file":"app\/Services\/FacturacionService.php","is_entry":false,"kind":"method","lang":"php","line_end":39,"line_start":36,"metrics":{"calls_in":1,"calls_out":1,"cc":1},"name":"listar","parent_id":"6ccc833d3bb2","qualname":"FacturacionService.listar","signature":"public function listar(string $cliente): array"},"083154cf2e5e":{"doc":null,"file":"app\/Repositories\/MySqlFacturaRepository.php","is_entry":false,"kind":"method","lang":"php","line_end":13,"line_start":11,"metrics":{"calls_in":0,"calls_out":0,"cc":1},"name":"__construct","parent_id":"ef98362bb63c","qualname":"MySqlFacturaRepository.__construct","signature":"public function __construct(private PDO $db)"},"0c14058dbe3a":{"doc":"Busca una factura por su número.","file":"app\/Services\/FacturacionService.php","is_entry":false,"kind":"method","lang":"php","line_end":45,"line_start":42,"metrics":{"calls_in":1,"calls_out":1,"cc":1},"name":"buscar","parent_id":"6ccc833d3bb2","qualname":"FacturacionService.buscar","signature":"public function buscar(int $id): ?Factura"},"100dd2721c81":{"doc":null,"file":"app\/Http\/Controllers\/Controller.php","is_entry":false,"kind":"class","lang":"php","line_end":7,"line_start":5,"metrics":{"calls_in":0,"calls_out":0,"cc":null},"name":"Controller","parent_id":"e7d5f8e100c9","qualname":"Controller","signature":"abstract class Controller"},"114791991065":{"doc":null,"file":"app\/Repositories\/FacturaRepository.php","is_entry":false,"kind":"interface","lang":"php","line_end":14,"line_start":7,"metrics":{"calls_in":0,"calls_out":0,"cc":null},"name":"FacturaRepository","parent_id":"39408b15f520","qualname":"FacturaRepository","signature":"interface FacturaRepository"},"15a76b602ceb":{"doc":"Muestra una factura por su número.","file":"app\/Http\/Controllers\/FacturaController.php","is_entry":true,"kind":"method","lang":"php","line_end":48,"line_start":41,"metrics":{"calls_in":0,"calls_out":1,"cc":2},"name":"show","parent_id":"7dc5beae0277","qualname":"FacturaController.show","signature":"public function show(int $id)"},"1d89c4bdefad":{"doc":null,"file":"app\/Repositories\/FacturaRepository.php","is_entry":false,"kind":"method","lang":"php","line_end":13,"line_start":13,"metrics":{"calls_in":0,"calls_out":0,"cc":null},"name":"buscar","parent_id":"114791991065","qualname":"FacturaRepository.buscar","signature":"public function buscar(int $id): ?Factura;"},"269d6b089dec":{"doc":null,"file":"routes\/web.php","is_entry":false,"kind":"module","lang":"php","line_end":8,"line_start":1,"metrics":{"calls_in":0,"calls_out":0,"cc":null},"name":"web.php","parent_id":null,"qualname":"routes\/web.php","signature":"routes\/web.php"},"28f5492317ac":{"doc":"Facturas de un cliente, de la más nueva a la más antigua.","file":"app\/Repositories\/MySqlFacturaRepository.php","is_entry":false,"kind":"method","lang":"php","line_end":48,"line_start":37,"metrics":{"calls_in":1,"calls_out":1,"cc":2},"name":"porCliente","parent_id":"ef98362bb63c","qualname":"MySqlFacturaRepository.porCliente","signature":"public function porCliente(string $cliente): array"},"39408b15f520":{"doc":null,"file":"app\/Repositories\/FacturaRepository.php","is_entry":false,"kind":"module","lang":"php","line_end":14,"line_start":1,"metrics":{"calls_in":0,"calls_out":0,"cc":null},"name":"FacturaRepository.php","parent_id":null,"qualname":"app\/Repositories\/FacturaRepository.php","signature":"app\/Repositories\/FacturaRepository.php"},"41efb5cf9b8d":{"doc":null,"file":"app\/Models\/Factura.php","is_entry":false,"kind":"module","lang":"php","line_end":19,"line_start":1,"metrics":{"calls_in":0,"calls_out":0,"cc":null},"name":"Factura.php","parent_id":null,"qualname":"app\/Models\/Factura.php","signature":"app\/Models\/Factura.php"},"44b7da3e7ac4":{"doc":"Busca una factura por su número.","file":"app\/Repositories\/MySqlFacturaRepository.php","is_entry":false,"kind":"method","lang":"php","line_end":60,"line_start":51,"metrics":{"calls_in":1,"calls_out":1,"cc":2},"name":"buscar","parent_id":"ef98362bb63c","qualname":"MySqlFacturaRepository.buscar","signature":"public function buscar(int $id): ?Factura"},"450504734700":{"doc":null,"file":"app\/Repositories\/MySqlFacturaRepository.php","is_entry":false,"kind":"module","lang":"php","line_end":61,"line_start":1,"metrics":{"calls_in":0,"calls_out":0,"cc":null},"name":"MySqlFacturaRepository.php","parent_id":null,"qualname":"app\/Repositories\/MySqlFacturaRepository.php","signature":"app\/Repositories\/MySqlFacturaRepository.php"},"55254a578864":{"doc":null,"file":"app\/Services\/FacturacionService.php","is_entry":false,"kind":"method","lang":"php","line_end":14,"line_start":10,"metrics":{"calls_in":0,"calls_out":0,"cc":1},"name":"__construct","parent_id":"6ccc833d3bb2","qualname":"FacturacionService.__construct","signature":"public function __construct( private FacturaRepository $repositorio, private CalculadoraImpuestos $impuestos, )"},"59099c868fa1":{"doc":null,"file":"app\/Http\/Controllers\/FacturaController.php","is_entry":false,"kind":"module","lang":"php","line_end":49,"line_start":1,"metrics":{"calls_in":0,"calls_out":0,"cc":null},"name":"FacturaController.php","parent_id":null,"qualname":"app\/Http\/Controllers\/FacturaController.php","signature":"app\/Http\/Controllers\/FacturaController.php"},"659f500cf1b3":{"doc":null,"file":"app\/Models\/Factura.php","is_entry":false,"kind":"method","lang":"php","line_end":12,"line_start":7,"metrics":{"calls_in":2,"calls_out":0,"cc":1},"name":"__construct","parent_id":"f396a4178283","qualname":"Factura.__construct","signature":"public function __construct( public int $clienteId, public array $items, public float $total, )"},"6ccc833d3bb2":{"doc":null,"file":"app\/Services\/FacturacionService.php","is_entry":false,"kind":"class","lang":"php","line_end":46,"line_start":8,"metrics":{"calls_in":0,"calls_out":0,"cc":null},"name":"FacturacionService","parent_id":"98f4c22c1919","qualname":"FacturacionService","signature":"class FacturacionService"},"715a258d2af0":{"doc":"Crea una factura a partir de una fila de la base de datos.","file":"app\/Models\/Factura.php","is_entry":false,"kind":"method","lang":"php","line_end":18,"line_start":15,"metrics":{"calls_in":2,"calls_out":1,"cc":1},"name":"desdeFila","parent_id":"f396a4178283","qualname":"Factura.desdeFila","signature":"public static function desdeFila(array $fila): Factura"},"71932145609e":{"doc":null,"file":"app\/Services\/CalculadoraImpuestos.php","is_entry":false,"kind":"module","lang":"php","line_end":25,"line_start":1,"metrics":{"calls_in":0,"calls_out":0,"cc":null},"name":"CalculadoraImpuestos.php","parent_id":null,"qualname":"app\/Services\/CalculadoraImpuestos.php","signature":"app\/Services\/CalculadoraImpuestos.php"},"72827ce2f59f":{"doc":null,"file":"app\/Services\/CalculadoraImpuestos.php","is_entry":false,"kind":"class","lang":"php","line_end":25,"line_start":5,"metrics":{"calls_in":0,"calls_out":0,"cc":null},"name":"CalculadoraImpuestos","parent_id":"71932145609e","qualname":"CalculadoraImpuestos","signature":"class CalculadoraImpuestos"},"7b0a3239ea42":{"doc":null,"file":"app\/Http\/Controllers\/FacturaController.php","is_entry":false,"kind":"method","lang":"php","line_end":12,"line_start":10,"metrics":{"calls_in":0,"calls_out":0,"cc":1},"name":"__construct","parent_id":"7dc5beae0277","qualname":"FacturaController.__construct","signature":"public function __construct(private FacturacionService $servicio)"},"7dc5beae0277":{"doc":null,"file":"app\/Http\/Controllers\/FacturaController.php","is_entry":true,"kind":"class","lang":"php","line_end":49,"line_start":8,"metrics":{"calls_in":0,"calls_out":0,"cc":null},"name":"FacturaController","parent_id":"59099c868fa1","qualname":"FacturaController","signature":"class FacturaController extends Controller"},"838c57edc01e":{"doc":"Registra una factura nueva.","file":"app\/Http\/Controllers\/FacturaController.php","is_entry":true,"kind":"method","lang":"php","line_end":38,"line_start":25,"metrics":{"calls_in":0,"calls_out":1,"cc":1},"name":"store","parent_id":"7dc5beae0277","qualname":"FacturaController.store","signature":"public function store(Request $request)"},"88d55ca351eb":{"doc":null,"file":"app\/Repositories\/FacturaRepository.php","is_entry":false,"kind":"method","lang":"php","line_end":9,"line_start":9,"metrics":{"calls_in":0,"calls_out":0,"cc":null},"name":"guardar","parent_id":"114791991065","qualname":"FacturaRepository.guardar","signature":"public function guardar(Factura $factura): void;"},"98f4c22c1919":{"doc":null,"file":"app\/Services\/FacturacionService.php","is_entry":false,"kind":"module","lang":"php","line_end":46,"line_start":1,"metrics":{"calls_in":0,"calls_out":0,"cc":null},"name":"FacturacionService.php","parent_id":null,"qualname":"app\/Services\/FacturacionService.php","signature":"app\/Services\/FacturacionService.php"},"a0bda82707c5":{"doc":"Lista las facturas de un cliente.","file":"app\/Http\/Controllers\/FacturaController.php","is_entry":true,"kind":"method","lang":"php","line_end":22,"line_start":15,"metrics":{"calls_in":0,"calls_out":1,"cc":2},"name":"index","parent_id":"7dc5beae0277","qualname":"FacturaController.index","signature":"public function index(Request $request)"},"adfa046a752a":{"doc":"Aplica el descuento por tipo de pago y el IGV.","file":"app\/Services\/CalculadoraImpuestos.php","is_entry":false,"kind":"method","lang":"php","line_end":24,"line_start":10,"metrics":{"calls_in":1,"calls_out":0,"cc":3},"name":"aplicar","parent_id":"72827ce2f59f","qualname":"CalculadoraImpuestos.aplicar","signature":"public function aplicar(float $subtotal, string $tipoPago): float"},"c89e7e4402db":{"doc":null,"file":"app\/Repositories\/FacturaRepository.php","is_entry":false,"kind":"method","lang":"php","line_end":11,"line_start":11,"metrics":{"calls_in":0,"calls_out":0,"cc":null},"name":"porCliente","parent_id":"114791991065","qualname":"FacturaRepository.porCliente","signature":"public function porCliente(string $cliente): array;"},"e4fc11afc2d3":{"doc":"Calcula el total con impuestos, valida y guarda la factura.","file":"app\/Services\/FacturacionService.php","is_entry":false,"kind":"method","lang":"php","line_end":33,"line_start":17,"metrics":{"calls_in":1,"calls_out":3,"cc":4},"name":"emitir","parent_id":"6ccc833d3bb2","qualname":"FacturacionService.emitir","signature":"public function emitir(string $cliente, array $items, string $tipoPago): Factura"},"e7d5f8e100c9":{"doc":null,"file":"app\/Http\/Controllers\/Controller.php","is_entry":false,"kind":"module","lang":"php","line_end":7,"line_start":1,"metrics":{"calls_in":0,"calls_out":0,"cc":null},"name":"Controller.php","parent_id":null,"qualname":"app\/Http\/Controllers\/Controller.php","signature":"app\/Http\/Controllers\/Controller.php"},"ecca55e78e78":{"doc":"Guarda la factura y sus ítems en una transacción.","file":"app\/Repositories\/MySqlFacturaRepository.php","is_entry":false,"kind":"method","lang":"php","line_end":34,"line_start":16,"metrics":{"calls_in":1,"calls_out":0,"cc":2},"name":"guardar","parent_id":"ef98362bb63c","qualname":"MySqlFacturaRepository.guardar","signature":"public function guardar(Factura $factura): void"},"ef98362bb63c":{"doc":null,"file":"app\/Repositories\/MySqlFacturaRepository.php","is_entry":false,"kind":"class","lang":"php","line_end":61,"line_start":9,"metrics":{"calls_in":0,"calls_out":0,"cc":null},"name":"MySqlFacturaRepository","parent_id":"450504734700","qualname":"MySqlFacturaRepository","signature":"class MySqlFacturaRepository implements FacturaRepository"},"f396a4178283":{"doc":null,"file":"app\/Models\/Factura.php","is_entry":false,"kind":"class","lang":"php","line_end":19,"line_start":5,"metrics":{"calls_in":0,"calls_out":0,"cc":null},"name":"Factura","parent_id":"41efb5cf9b8d","qualname":"Factura","signature":"class Factura"}},"tables_of":{"28f5492317ac":[["clientes","lee"],["facturas","lee"]],"44b7da3e7ac4":[["facturas","lee"]],"ecca55e78e78":[["factura_items","escribe"],["facturas","escribe"]]}}</script>
+<script>
+/* Desglosa — visor interactivo. Sin dependencias externas.
+ * Seguridad: todo texto que viene del código analizado se pinta con textContent o
+ * atributos de createElementNS; nunca se interpreta como HTML.
+ */
+(() => {
+  "use strict";
+
+  const SVG_NS = "http://www.w3.org/2000/svg";
+  const DATA = JSON.parse(document.getElementById("desglosa-data").textContent);
+  const SYMBOLS = DATA.symbols || {};
+  const FLOWS = DATA.flows || {};
+  const MAP = DATA.map || null;
+  const LINE_H = 16;
+  const $ = (id) => document.getElementById(id);
+
+  const NODE_NAMES = {
+    terminal: "Inicio / Fin",
+    proceso: "Proceso",
+    subproceso: "Subproceso (clic para abrir)",
+    decision: "Decisión",
+    es: "Entrada / salida (archivo)",
+    teclado: "Lectura de teclado",
+    pantalla: "Salida en pantalla",
+    documento: "Escritura de archivo",
+    externo: "Llamada externa",
+    conector: "Conector",
+    excepcion: "Excepción",
+    modulo: "Módulo / carpeta",
+    clase: "Clase o archivo",
+    interfaz: "Interfaz",
+    funcion: "Función / método",
+    entrada: "Punto de entrada",
+    otros: "Agrupados",
+    tabla: "Tabla",
+  };
+  const CONF_NAMES = {
+    exacta: "Relación exacta",
+    probable: "Relación probable",
+    ambigua: "Relación ambigua",
+    externa: "Externa",
+  };
+
+  const state = {
+    mode: "facil",
+    theme: "oscuro",
+    view: null,
+    id: null,
+    focus: null,
+    trail: [],
+    pendingTrail: null,
+    transform: { k: 1, x: 0, y: 0 },
+    size: { w: 0, h: 0 },
+    keepTransform: false,
+    dragged: false,
+    selectedNode: null,
+    showExternal: false,
+  };
+
+  // ------------------------------------------------------------------ utilidades DOM
+
+  function h(tag, attrs, ...children) {
+    const el = document.createElement(tag);
+    setAttrs(el, attrs);
+    appendAll(el, children);
+    return el;
+  }
+
+  function s(tag, attrs, ...children) {
+    const el = document.createElementNS(SVG_NS, tag);
+    setAttrs(el, attrs);
+    appendAll(el, children);
+    return el;
+  }
+
+  function setAttrs(el, attrs) {
+    if (!attrs) return;
+    for (const [k, v] of Object.entries(attrs)) {
+      if (v === null || v === undefined || v === false) continue;
+      if (k.startsWith("on") && typeof v === "function") el.addEventListener(k.slice(2), v);
+      else el.setAttribute(k, v === true ? "" : String(v));
+    }
+  }
+
+  function appendAll(el, children) {
+    for (const c of children.flat()) {
+      if (c === null || c === undefined || c === false) continue;
+      el.appendChild(typeof c === "string" || typeof c === "number" ? document.createTextNode(String(c)) : c);
+    }
+  }
+
+  function clear(el) {
+    while (el.firstChild) el.removeChild(el.firstChild);
+  }
+
+  // ------------------------------------------------------------------ rutas (#/vista/id?param)
+
+  function parseHash() {
+    let raw = location.hash.replace(/^#/, "");
+    try {
+      raw = decodeURIComponent(raw);
+    } catch (_e) {
+      /* hash mal formado: se usa tal cual */
+    }
+    const [path, query] = raw.split("?");
+    const parts = path.split("/").filter(Boolean);
+    return { view: parts[0] || null, id: parts.slice(1).join("/") || null, params: new URLSearchParams(query || "") };
+  }
+
+  function buildHash(view, id, focus) {
+    let out = "#/" + view + (id ? "/" + id : "");
+    const p = new URLSearchParams();
+    if (focus) p.set("focus", focus);
+    if (state.mode !== "facil") p.set("modo", state.mode);
+    if (state.theme !== "oscuro") p.set("tema", state.theme);
+    const q = p.toString();
+    return q ? out + "?" + q : out;
+  }
+
+  function go(view, id, opts) {
+    const target = buildHash(view, id, opts && opts.focus);
+    if (opts && opts.trail) state.pendingTrail = opts.trail;
+    if (location.hash === target) render();
+    else location.hash = target;
+  }
+
+  function syncHash() {
+    history.replaceState(null, "", buildHash(state.view, state.id, state.focus));
+  }
+
+  function startRoute() {
+    const start = (DATA.meta && DATA.meta.start) || "#/mapa";
+    const tmp = start.replace(/^#\//, "").split("/");
+    return { view: tmp[0], id: tmp.slice(1).join("/") || null };
+  }
+
+  // ------------------------------------------------------------------ render principal
+
+  function render() {
+    const r = parseHash();
+    state.mode = r.params.get("modo") === "tecnico" ? "tecnico" : "facil";
+    state.theme = r.params.get("tema") === "claro" ? "claro" : "oscuro";
+    state.focus = r.params.get("focus");
+    document.documentElement.dataset.tema = state.theme;
+    let view = r.view;
+    let id = r.id;
+    if (!view) {
+      const st = startRoute();
+      view = st.view;
+      id = st.id;
+    }
+    const sameView = view === state.view && id === state.id;
+    state.keepTransform = sameView;
+    state.view = view;
+    state.id = id;
+    if (["flujo", "secuencia", "codigo"].includes(view) && id) updateTrail(id);
+    if (!sameView) state.selectedNode = null;
+
+    renderToolbar();
+    if (view === "mapa") renderMap(id);
+    else if (view === "flujo") renderFlow(id);
+    else if (view === "secuencia") renderSequence(id);
+    else if (view === "codigo") renderCodeView(id);
+    else if (view === "er") renderER();
+    else renderMap(null);
+    renderCrumbs();
+  }
+
+  function updateTrail(id) {
+    if (state.pendingTrail) {
+      state.trail = state.pendingTrail;
+      state.pendingTrail = null;
+      return;
+    }
+    const i = state.trail.indexOf(id);
+    if (i >= 0) state.trail = state.trail.slice(0, i + 1);
+    else state.trail = [id];
+  }
+
+  // ------------------------------------------------------------------ barra: herramientas
+
+  let toolbarBuilt = false;
+  const tools = {};
+
+  function renderToolbar() {
+    const bar = $("herramientas");
+    if (!toolbarBuilt) {
+      toolbarBuilt = true;
+      const search = buildSearch();
+      tools.mode = h("button", { class: "boton", type: "button", title: "Modo fácil / técnico (m)", onclick: toggleMode });
+      tools.theme = h("button", { class: "boton", type: "button", title: "Tema claro / oscuro (t)", onclick: toggleTheme });
+      const zoomOut = h("button", { class: "boton", type: "button", title: "Alejar (-)", "aria-label": "Alejar", onclick: () => zoomBy(1 / 1.25) }, "−");
+      const zoomIn = h("button", { class: "boton", type: "button", title: "Acercar (+)", "aria-label": "Acercar", onclick: () => zoomBy(1.25) }, "+");
+      const fitBtn = h("button", { class: "boton", type: "button", title: "Encuadrar (f)", onclick: () => { fit(); apply(); } }, "Encuadrar");
+      tools.exportSvg = h("button", { class: "boton", type: "button", title: "Exportar la vista como SVG", onclick: exportSVG }, "SVG");
+      tools.exportPng = h("button", { class: "boton", type: "button", title: "Exportar la vista como PNG", onclick: exportPNG }, "PNG");
+      const helpBtn = h("button", { class: "boton", type: "button", title: "Ayuda y atajos de teclado (?)", "aria-label": "Ayuda", onclick: showHelp }, "?");
+      appendAll(bar, [search, tools.mode, tools.theme, zoomOut, zoomIn, fitBtn, tools.exportSvg, tools.exportPng, helpBtn]);
+    }
+    tools.mode.textContent = state.mode === "facil" ? "Modo: fácil" : "Modo: técnico";
+    tools.mode.setAttribute("aria-pressed", state.mode === "tecnico" ? "true" : "false");
+    tools.theme.textContent = state.theme === "oscuro" ? "Tema: oscuro" : "Tema: claro";
+  }
+
+  // ------------------------------------------------------------------ ayuda
+
+  const HELP = [
+    ["Clic", "Entrar a un elemento del mapa o abrir el flujo de un subproceso"],
+    ["Alt+clic o E", "Enfocar: resalta de qué depende un elemento y qué depende de él"],
+    ["Esc", "Quitar el enfoque o subir un nivel"],
+    ["/", "Buscar una función, clase o archivo"],
+    ["+  −  0", "Acercar, alejar y tamaño real"],
+    ["F", "Encuadrar el diagrama en la pantalla"],
+    ["Arrastrar / rueda", "Mover y hacer zoom"],
+    ["M", "Modo fácil (español) o técnico (código)"],
+    ["T", "Tema claro u oscuro"],
+    ["?", "Mostrar esta ayuda"],
+  ];
+  let helpDialog = null;
+
+  function showHelp() {
+    if (!helpDialog) {
+      const rows = HELP.map(([k, v]) => h("tr", null, h("th", { scope: "row" }, h("kbd", null, k)), h("td", null, v)));
+      const close = h("button", { class: "boton", type: "button", onclick: () => helpDialog.close() }, "Cerrar");
+      helpDialog = h("dialog", { class: "ayuda", "aria-labelledby": "ayuda-titulo" },
+        h("h2", { id: "ayuda-titulo" }, "Cómo usar Desglosa"),
+        h("p", null, "Mapa → clic para bajar de nivel → flujo de cada función. Las migas de arriba sirven para volver."),
+        h("table", null, h("tbody", null, ...rows)),
+        h("p", { class: "nota" }, "Las líneas punteadas o grises son relaciones menos seguras (probable, ambigua o externa)."),
+        close);
+      document.body.appendChild(helpDialog);
+    }
+    if (!helpDialog.open) helpDialog.showModal();
+  }
+
+  function toggleFocus(nid) {
+    state.focus = state.focus === nid ? null : nid;
+    syncHash();
+    rerender();
+  }
+
+  function toggleMode() {
+    state.mode = state.mode === "facil" ? "tecnico" : "facil";
+    syncHash();
+    rerender();
+  }
+
+  function toggleTheme() {
+    state.theme = state.theme === "oscuro" ? "claro" : "oscuro";
+    document.documentElement.dataset.tema = state.theme;
+    syncHash();
+    renderToolbar();
+  }
+
+  function rerender() {
+    state.keepTransform = true;
+    const keep = state.selectedNode;
+    renderToolbar();
+    if (state.view === "flujo") renderFlow(state.id);
+    else if (state.view === "mapa" || !state.view) renderMap(state.id);
+    else if (state.view === "secuencia") renderSequence(state.id);
+    state.selectedNode = keep;
+  }
+
+  // ------------------------------------------------------------------ buscador
+
+  let searchIndex = null;
+
+  function buildIndex() {
+    const out = [];
+    for (const [id, sym] of Object.entries(SYMBOLS)) {
+      if (sym.kind === "module") continue;
+      out.push({ id, label: sym.qualname, name: sym.name.toLowerCase(), q: sym.qualname.toLowerCase(), kind: sym.kind, file: sym.file });
+    }
+    for (const t of (DATA.er && DATA.er.tables) || []) {
+      out.push({ id: t.id, label: t.name, name: t.name.toLowerCase(), q: t.name.toLowerCase(), kind: "tabla", file: t.file });
+    }
+    out.sort((a, b) => a.label.localeCompare(b.label));
+    return out;
+  }
+
+  function buildSearch() {
+    const box = h("div", { class: "buscador" });
+    const input = h("input", { type: "search", id: "buscar", placeholder: "Buscar (/)", "aria-label": "Buscar funciones, clases y tablas", autocomplete: "off" });
+    const list = h("ul", { class: "resultados", role: "listbox", hidden: true });
+    let results = [];
+    let active = 0;
+    const close = () => { list.hidden = true; };
+    const choose = (item) => {
+      close();
+      input.value = "";
+      input.blur();
+      openItem(item);
+    };
+    const paint = () => {
+      clear(list);
+      results.forEach((r, i) => {
+        list.appendChild(h("li", { role: "option", "aria-selected": i === active ? "true" : "false", onmousedown: (e) => { e.preventDefault(); choose(r); } },
+          r.label, h("small", null, kindLabel(r.kind) + " · " + (r.file || ""))));
+      });
+      list.hidden = results.length === 0;
+    };
+    input.addEventListener("input", () => {
+      if (!searchIndex) searchIndex = buildIndex();
+      const q = input.value.trim().toLowerCase();
+      active = 0;
+      if (!q) { results = []; paint(); return; }
+      const starts = searchIndex.filter((r) => r.name.startsWith(q));
+      const contains = searchIndex.filter((r) => !r.name.startsWith(q) && r.q.includes(q));
+      results = starts.concat(contains).slice(0, 12);
+      paint();
+    });
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowDown") { active = Math.min(active + 1, results.length - 1); paint(); e.preventDefault(); }
+      else if (e.key === "ArrowUp") { active = Math.max(active - 1, 0); paint(); e.preventDefault(); }
+      else if (e.key === "Enter" && results[active]) { choose(results[active]); e.preventDefault(); }
+      else if (e.key === "Escape") { close(); input.blur(); e.stopPropagation(); }
+    });
+    input.addEventListener("blur", () => setTimeout(close, 120));
+    appendAll(box, [input, list]);
+    return box;
+  }
+
+  function kindLabel(kind) {
+    return { function: "función", method: "método", class: "clase", interface: "interfaz", module: "archivo", tabla: "tabla" }[kind] || kind;
+  }
+
+  function openItem(item) {
+    if (item.kind === "tabla") { go("er", null, { focus: item.id }); return; }
+    const sym = SYMBOLS[item.id];
+    if (!sym) return;
+    if (sym.kind === "function" || sym.kind === "method") { go("flujo", item.id, { trail: [item.id] }); return; }
+    const owner = MAP && MAP.owner ? MAP.owner[item.id] : null;
+    const target = MAP && MAP.groups[item.id] ? item.id : owner;
+    go("mapa", target || null, { focus: item.id });
+  }
+
+  // ------------------------------------------------------------------ migas de pan
+
+  function groupChain(gid) {
+    const chain = [];
+    let cur = gid;
+    const seen = new Set();
+    while (MAP && cur && MAP.groups[cur] && !seen.has(cur)) {
+      seen.add(cur);
+      chain.unshift(cur);
+      cur = MAP.groups[cur].parent;
+    }
+    return chain;
+  }
+
+  function renderCrumbs() {
+    const nav = $("migas");
+    clear(nav);
+    const items = [];
+    const rootName = (DATA.meta && DATA.meta.name) || "Proyecto";
+    const rootGid = MAP ? MAP.root : null;
+    items.push({ label: rootName, hash: buildHash("mapa", null) });
+    if (state.view === "mapa" && state.id) {
+      for (const g of groupChain(state.id)) {
+        if (g === rootGid) continue;
+        items.push({ label: MAP.groups[g].name, hash: buildHash("mapa", g) });
+      }
+    } else if (["flujo", "secuencia", "codigo"].includes(state.view) && state.trail.length) {
+      const base = state.trail[0];
+      const owner = MAP && MAP.owner ? MAP.owner[base] : null;
+      for (const g of groupChain(owner)) {
+        if (g === rootGid) continue;
+        items.push({ label: MAP.groups[g].name, hash: buildHash("mapa", g) });
+      }
+      state.trail.forEach((sid, i) => {
+        const sym = SYMBOLS[sid];
+        if (!sym) return;
+        items.push({ label: sym.name + "()", hash: buildHash(state.view, sid), trail: state.trail.slice(0, i + 1) });
+      });
+    } else if (state.view === "er") {
+      items.push({ label: "Diagrama entidad-relación", hash: buildHash("er", null) });
+    }
+    items.forEach((it, i) => {
+      if (i > 0) nav.appendChild(h("span", { class: "sep", "aria-hidden": "true" }, "›"));
+      if (i === items.length - 1) nav.appendChild(h("span", { class: "actual", "aria-current": "page" }, it.label));
+      else {
+        const a = h("a", { href: it.hash }, it.label);
+        if (it.trail) a.addEventListener("click", () => { state.pendingTrail = it.trail; });
+        nav.appendChild(a);
+      }
+    });
+  }
+
+  function goUp() {
+    if (["flujo", "secuencia", "codigo"].includes(state.view)) {
+      if (state.trail.length > 1) {
+        const prev = state.trail.slice(0, -1);
+        go(state.view, prev[prev.length - 1], { trail: prev });
+        return;
+      }
+      const owner = MAP && MAP.owner ? MAP.owner[state.id] : null;
+      go("mapa", owner && owner !== (MAP && MAP.root) ? owner : null);
+      return;
+    }
+    if (state.view === "mapa" && state.id && MAP && MAP.groups[state.id]) {
+      const parent = MAP.groups[state.id].parent;
+      go("mapa", parent && parent !== MAP.root ? parent : null);
+      return;
+    }
+    if (state.view === "er") go("mapa", null);
+  }
+
+  // ------------------------------------------------------------------ pestañas e info
+
+  function renderTabs(sid) {
+    const tabs = $("pestanas");
+    clear(tabs);
+    if (!sid) {
+      if (DATA.er && DATA.er.tables && DATA.er.tables.length) {
+        tabs.appendChild(tabButton("Mapa", state.view === "mapa", () => go("mapa", null)));
+        tabs.appendChild(tabButton("Entidad-relación", state.view === "er", () => go("er", null)));
+      }
+      return;
+    }
+    tabs.appendChild(tabButton("Flujo", state.view === "flujo", () => go("flujo", sid, { trail: state.trail })));
+    tabs.appendChild(tabButton("Secuencia", state.view === "secuencia", () => go("secuencia", sid, { trail: state.trail })));
+    tabs.appendChild(tabButton("Código", state.view === "codigo", () => go("codigo", sid, { trail: state.trail })));
+  }
+
+  function tabButton(label, selected, onclick) {
+    return h("button", { role: "tab", type: "button", "aria-selected": selected ? "true" : "false", onclick }, label);
+  }
+
+  function renderInfo(parts) {
+    const info = $("info");
+    clear(info);
+    appendAll(info, parts);
+  }
+
+  function showEmpty(message) {
+    const lienzo = $("lienzo");
+    clear(lienzo);
+    lienzo.appendChild(h("div", { class: "vacio" }, message));
+  }
+
+  // ------------------------------------------------------------------ lienzo: zoom y arrastre
+
+  let currentGroup = null;
+
+  function mount(svg, group, w, hgt, legendKinds) {
+    const lienzo = $("lienzo");
+    clear(lienzo);
+    svg.appendChild(group);
+    lienzo.appendChild(svg);
+    if (legendKinds && legendKinds.length) lienzo.appendChild(buildLegend(legendKinds));
+    currentGroup = group;
+    state.size = { w, h: hgt };
+    if (!state.keepTransform) fit();
+    apply();
+  }
+
+  function fit() {
+    const r = $("lienzo").getBoundingClientRect();
+    const w = Math.max(state.size.w, 1);
+    const hh = Math.max(state.size.h, 1);
+    const k = Math.min((r.width - 40) / w, (r.height - 60) / hh, 1.25);
+    const kk = Math.max(Math.min(k, 4), 0.08);
+    state.transform = { k: kk, x: Math.max(10, (r.width - w * kk) / 2), y: Math.max(10, Math.min((r.height - hh * kk) / 2, 40)) };
+  }
+
+  function apply() {
+    if (!currentGroup) return;
+    const t = state.transform;
+    currentGroup.setAttribute("transform", "translate(" + t.x.toFixed(1) + "," + t.y.toFixed(1) + ") scale(" + t.k.toFixed(4) + ")");
+  }
+
+  function zoomBy(f, cx, cy) {
+    const r = $("lienzo").getBoundingClientRect();
+    const px = cx === undefined ? r.width / 2 : cx;
+    const py = cy === undefined ? r.height / 2 : cy;
+    const t = state.transform;
+    const k = Math.max(0.08, Math.min(4, t.k * f));
+    const ratio = k / t.k;
+    state.transform = { k, x: px - (px - t.x) * ratio, y: py - (py - t.y) * ratio };
+    apply();
+  }
+
+  function installCanvasEvents() {
+    const lienzo = $("lienzo");
+    lienzo.addEventListener("wheel", (e) => {
+      e.preventDefault();
+      const r = lienzo.getBoundingClientRect();
+      zoomBy(Math.exp(-e.deltaY * 0.0015), e.clientX - r.left, e.clientY - r.top);
+    }, { passive: false });
+    let start = null;
+    lienzo.addEventListener("pointerdown", (e) => {
+      if (e.button !== 0) return;
+      start = { x: e.clientX, y: e.clientY, tx: state.transform.x, ty: state.transform.y };
+      state.dragged = false;
+    });
+    window.addEventListener("pointermove", (e) => {
+      if (!start) return;
+      const dx = e.clientX - start.x;
+      const dy = e.clientY - start.y;
+      if (!state.dragged && Math.abs(dx) + Math.abs(dy) > 4) {
+        state.dragged = true;
+        lienzo.classList.add("arrastrando");
+      }
+      if (state.dragged) {
+        state.transform.x = start.tx + dx;
+        state.transform.y = start.ty + dy;
+        apply();
+      }
+    });
+    window.addEventListener("pointerup", () => {
+      start = null;
+      lienzo.classList.remove("arrastrando");
+      setTimeout(() => { state.dragged = false; }, 0);
+    });
+    lienzo.addEventListener("dblclick", (e) => {
+      if (e.target.closest && e.target.closest(".nodo")) return;
+      goUp();
+    });
+  }
+
+  // ------------------------------------------------------------------ SVG comunes
+
+  function markers() {
+    return s("defs", null,
+      marker("punta", "punta"),
+      marker("punta-exc", "punta-exc"),
+      marker("punta-foco", "punta-foco"));
+  }
+
+  function marker(id, cls) {
+    return s("marker", { id, viewBox: "0 0 10 10", refX: "9", refY: "5", markerWidth: "8", markerHeight: "8", orient: "auto-start-reverse", markerUnits: "userSpaceOnUse" },
+      s("path", { d: "M0,0 L10,5 L0,10 z", class: cls }));
+  }
+
+  function pathFrom(points) {
+    let d = "";
+    for (let i = 0; i < points.length; i += 2) d += (i === 0 ? "M" : "L") + points[i] + "," + points[i + 1];
+    return d;
+  }
+
+  function drawLabel(text, x, y, w, hh, extraClass) {
+    return s("g", { class: "etiqueta" + (extraClass ? " " + extraClass : "") },
+      s("rect", { x, y, width: w, height: hh, rx: 3 }),
+      s("text", { x: x + 4, y: y + hh / 2 + 0.5 }, text));
+  }
+
+  function textBlock(lines, cx, cy) {
+    const t = s("text", { x: cx, y: cy, "text-anchor": "middle" });
+    const n = lines.length;
+    lines.forEach((ln, i) => {
+      t.appendChild(s("tspan", { x: cx, dy: i === 0 ? (-(n - 1) / 2) * LINE_H : LINE_H }, ln));
+    });
+    return t;
+  }
+
+  function flowShape(kind, x, y, w, hh) {
+    const r = x + w;
+    const b = y + hh;
+    switch (kind) {
+      case "terminal":
+        return [s("rect", { class: "forma", x, y, width: w, height: hh, rx: hh / 2 })];
+      case "decision":
+        return [s("polygon", { class: "forma", points: [x + w / 2, y, r, y + hh / 2, x + w / 2, b, x, y + hh / 2].join(" ") })];
+      case "subproceso":
+        return [
+          s("rect", { class: "forma", x, y, width: w, height: hh }),
+          s("line", { class: "linea-interna", x1: x + 8, y1: y, x2: x + 8, y2: b }),
+          s("line", { class: "linea-interna", x1: r - 8, y1: y, x2: r - 8, y2: b }),
+        ];
+      case "es":
+        return [s("polygon", { class: "forma", points: [x + 12, y, r, y, r - 12, b, x, b].join(" ") })];
+      case "pantalla":
+        return [s("path", { class: "forma", d: "M" + (x + 16) + "," + y + " L" + (r - 18) + "," + y + " C" + (r + 4) + "," + y + " " + (r + 4) + "," + b + " " + (r - 18) + "," + b + " L" + (x + 16) + "," + b + " L" + x + "," + (y + hh / 2) + " Z" })];
+      case "teclado":
+        return [s("polygon", { class: "forma", points: [x, y + 10, r, y, r, b, x, b].join(" ") })];
+      case "documento": {
+        const wy = b - 8;
+        return [s("path", { class: "forma", d: "M" + x + "," + y + " L" + r + "," + y + " L" + r + "," + wy + " Q" + (x + w * 0.75) + "," + (wy - 10) + " " + (x + w / 2) + "," + wy + " T" + x + "," + wy + " Z" })];
+      }
+      default:
+        return [s("rect", { class: "forma", x, y, width: w, height: hh, rx: kind === "externo" ? 4 : 2 })];
+    }
+  }
+
+  function textOffset(kind) {
+    if (kind === "teclado") return 5;
+    if (kind === "documento") return -4;
+    return 0;
+  }
+
+  // ------------------------------------------------------------------ leyenda
+
+  function buildLegend(kinds) {
+    const box = h("div", { class: "leyenda", role: "list", "aria-label": "Leyenda" });
+    for (const k of kinds) {
+      const icon = s("svg", { viewBox: "0 0 26 16", "aria-hidden": "true" });
+      if (CONF_NAMES[k]) {
+        icon.appendChild(s("line", { x1: 1, y1: 8, x2: 25, y2: 8, class: "arista c-" + k }));
+      } else if (k === "excepcion") {
+        icon.appendChild(s("line", { x1: 1, y1: 8, x2: 25, y2: 8, class: "arista k-excepcion" }));
+      } else if (k === "conector") {
+        icon.appendChild(s("g", { class: "nodo k-conector" }, s("circle", { class: "forma", cx: 13, cy: 8, r: 6 })));
+      } else {
+        const g = s("g", { class: "nodo k-" + k });
+        appendAll(g, flowShape(k === "funcion" || k === "entrada" ? "terminal" : k, 2, 2, 22, 12));
+        icon.appendChild(g);
+      }
+      box.appendChild(h("div", { class: "item", role: "listitem", "data-tipo": k }, icon, NODE_NAMES[k] || CONF_NAMES[k] || k));
+    }
+    return box;
+  }
+
+  // ------------------------------------------------------------------ vista: flujo
+
+  function renderFlow(sid) {
+    const sym = SYMBOLS[sid];
+    renderTabs(sid);
+    if (!sym) {
+      renderInfo([]);
+      showEmpty("No se encontró la función.");
+      hidePanel();
+      return;
+    }
+    const flow = FLOWS[sid];
+    const infoParts = [h("code", null, sym.signature), "  ·  " + sym.file + ":" + sym.line_start];
+    if (sym.doc) infoParts.push(h("div", { class: "doc" }, sym.doc));
+    if (flow && flow.truncated) infoParts.push(h("div", null, "Función muy grande: algunos bloques se muestran colapsados (clic para ver el código)."));
+    renderInfo(infoParts);
+    renderPanel(sid);
+    if (!flow) {
+      const impl = (DATA.impl && DATA.impl[sid]) || [];
+      if (impl.length) {
+        const lienzo = $("lienzo");
+        clear(lienzo);
+        const box = h("div", { class: "vacio" }, "Método sin cuerpo (abstracto o de interfaz). Posibles implementaciones:");
+        const ul = h("ul");
+        for (const id of impl) {
+          const t = SYMBOLS[id];
+          if (t) ul.appendChild(h("li", null, h("a", { href: buildHash("flujo", id) }, t.qualname)));
+        }
+        box.appendChild(ul);
+        lienzo.appendChild(box);
+      } else {
+        showEmpty("Esta función no tiene cuerpo para dibujar (declaración, abstracta o externa).");
+      }
+      return;
+    }
+    const lay = flow.layout;
+    const svg = s("svg", { role: "img", "aria-label": "Diagrama de flujo de " + sym.qualname });
+    svg.appendChild(markers());
+    const g = s("g", { class: "vista" });
+    for (const [pts, kind, arrow] of lay.lines) {
+      g.appendChild(s("path", { class: "arista k-" + kind, d: pathFrom(pts), "marker-end": arrow ? (kind === "excepcion" ? "url(#punta-exc)" : "url(#punta)") : null }));
+    }
+    for (const [text, x, y, w, hh] of lay.labels) g.appendChild(drawLabel(text, x, y, w, hh));
+    for (const [nid, x, y, w, hh, easy, tech] of lay.nodes) {
+      g.appendChild(drawFlowNode(sid, nid, flow.nodes[nid], x, y, w, hh, state.mode === "facil" ? easy : tech));
+    }
+    for (const [label, cx, cy, r] of lay.connectors) {
+      const cg = s("g", { class: "nodo k-conector" }, s("circle", { class: "forma", cx, cy, r }));
+      cg.appendChild(s("text", { x: cx, y: cy + 0.5, "text-anchor": "middle" }, label));
+      cg.appendChild(s("title", null, "Conector " + label + ": la línea continúa en el otro conector " + label));
+      g.appendChild(cg);
+    }
+    mount(svg, g, lay.w, lay.h, lay.legend || []);
+    if (state.selectedNode) selectNode(sid, state.selectedNode, false);
+  }
+
+  function drawFlowNode(sid, nid, info, x, y, w, hh, lines) {
+    const clickable = !!info.target && !!SYMBOLS[info.target];
+    const g = s("g", { class: "nodo k-" + info.kind + (clickable ? " clicable" : ""), "data-id": nid });
+    appendAll(g, flowShape(info.kind, x, y, w, hh));
+    g.appendChild(textBlock(lines, x + w / 2, y + hh / 2 + textOffset(info.kind)));
+    const sym = SYMBOLS[sid];
+    let tip = info.tech + "\n" + sym.file + ":" + info.a + (info.b !== info.a ? "-" + info.b : "");
+    if (clickable) tip += "\nClic: abrir el flujo de " + SYMBOLS[info.target].qualname;
+    g.appendChild(s("title", null, tip));
+    if (clickable) {
+      g.setAttribute("tabindex", "0");
+      g.setAttribute("role", "button");
+      g.setAttribute("aria-label", "Abrir flujo de " + SYMBOLS[info.target].qualname);
+      g.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openSub(info.target); } });
+    }
+    g.addEventListener("click", (e) => {
+      if (state.dragged) return;
+      e.stopPropagation();
+      if (clickable) openSub(info.target);
+      else selectNode(sid, nid, true);
+    });
+    return g;
+  }
+
+  function openSub(target) {
+    const trail = state.trail.length ? state.trail.slice() : [state.id];
+    const i = trail.indexOf(target);
+    const next = i >= 0 ? trail.slice(0, i + 1) : trail.concat([target]);
+    go("flujo", target, { trail: next });
+  }
+
+  function selectNode(sid, nid, scroll) {
+    state.selectedNode = nid;
+    const flow = FLOWS[sid];
+    if (!flow || !flow.nodes[nid]) return;
+    document.querySelectorAll(".nodo.seleccionado").forEach((n) => n.classList.remove("seleccionado"));
+    const el = document.querySelector('.nodo[data-id="' + nid + '"]');
+    if (el) el.classList.add("seleccionado");
+    const info = flow.nodes[nid];
+    highlightLines(info.a, info.b, scroll);
+  }
+
+  // ------------------------------------------------------------------ panel lateral
+
+  function hidePanel() {
+    $("panel").hidden = true;
+  }
+
+  function linkList(title, entries) {
+    if (!entries || !entries.length) return null;
+    const ul = h("ul");
+    for (const [id, conf] of entries) {
+      const sym = SYMBOLS[id];
+      if (!sym) continue;
+      ul.appendChild(h("li", null, h("a", { href: buildHash("flujo", id), title: CONF_NAMES[conf] || "" }, sym.qualname), conf && conf !== "exacta" ? " (" + conf + ")" : ""));
+    }
+    return h("div", { class: "seccion" }, h("h3", null, title), ul);
+  }
+
+  let panelFile = null;
+
+  function renderPanel(sid) {
+    const panel = $("panel");
+    const sym = SYMBOLS[sid];
+    clear(panel);
+    panel.hidden = false;
+    const m = sym.metrics || {};
+    const meta = h("div", { class: "meta" }, h("code", null, sym.file + ":" + sym.line_start + "-" + sym.line_end), " · " + sym.lang);
+    const metrics = h("div", { class: "meta" },
+      "Complejidad: " + (m.cc !== undefined ? m.cc : "–") + " · Líneas: " + (sym.line_end - sym.line_start + 1) +
+      " · Llamadas entrantes: " + (m.calls_in || 0) + " · salientes: " + (m.calls_out || 0));
+    appendAll(panel, [h("h2", null, sym.qualname), meta, metrics]);
+    const route = DATA.routes && DATA.routes[sid];
+    if (route) panel.appendChild(h("div", { class: "meta" }, "Ruta: ", h("code", null, route)));
+    const tables = DATA.tables_of && DATA.tables_of[sid];
+    if (tables && tables.length) {
+      const ul = h("ul");
+      for (const [table, mode] of tables) {
+        ul.appendChild(h("li", null, (mode === "lee" ? "Lee " : "Escribe ") , h("a", { href: buildHash("er", null, null) }, table)));
+      }
+      panel.appendChild(h("div", { class: "seccion" }, h("h3", null, "Tablas (probable)"), ul));
+    }
+    const incoming = linkList("Llamado por", DATA.calls_in && DATA.calls_in[sid]);
+    const outgoing = linkList("Llama a", DATA.calls_out && DATA.calls_out[sid]);
+    const impl = DATA.impl && DATA.impl[sid] ? linkList("Posibles implementaciones", DATA.impl[sid].map((i) => [i, "probable"])) : null;
+    appendAll(panel, [incoming, outgoing, impl]);
+    const source = DATA.sources ? DATA.sources[sym.file] : null;
+    const pre = h("div", { class: "codigo", id: "codigo", role: "region", "aria-label": "Código fuente" });
+    if (source === null || source === undefined) {
+      pre.appendChild(h("div", { class: "vacio" }, "El código fuente no se incluyó (opción --no-source)."));
+    } else {
+      const lines = source.split("\n");
+      lines.forEach((ln, i) => {
+        pre.appendChild(h("div", { class: "ln", "data-n": i + 1 }, h("span", { class: "num" }, String(i + 1)), ln));
+      });
+    }
+    panel.appendChild(pre);
+    panelFile = sym.file;
+    highlightLines(sym.line_start, sym.line_end, true);
+  }
+
+  function highlightLines(a, b, scroll) {
+    const pre = $("codigo");
+    if (!pre) return;
+    pre.querySelectorAll(".ln.marcada").forEach((n) => n.classList.remove("marcada"));
+    let first = null;
+    for (let n = a; n <= b; n++) {
+      const el = pre.querySelector('.ln[data-n="' + n + '"]');
+      if (el) {
+        el.classList.add("marcada");
+        if (!first) first = el;
+      }
+    }
+    if (first && scroll) pre.scrollTop = Math.max(0, first.offsetTop - pre.clientHeight / 3);
+  }
+
+  // ------------------------------------------------------------------ vista: código
+
+  function renderCodeView(sid) {
+    renderTabs(sid);
+    const sym = SYMBOLS[sid];
+    if (!sym) { showEmpty("No se encontró la función."); return; }
+    renderInfo([h("code", null, sym.signature), "  ·  " + sym.file + ":" + sym.line_start]);
+    renderPanel(sid);
+    const lienzo = $("lienzo");
+    clear(lienzo);
+    const source = DATA.sources ? DATA.sources[sym.file] : null;
+    if (source === null || source === undefined) { showEmpty("El código fuente no se incluyó (opción --no-source)."); return; }
+    const pre = h("div", { class: "codigo", style: "position:absolute;inset:0;" });
+    source.split("\n").slice(sym.line_start - 1, sym.line_end).forEach((ln, i) => {
+      pre.appendChild(h("div", { class: "ln" }, h("span", { class: "num" }, String(sym.line_start + i)), ln));
+    });
+    lienzo.appendChild(pre);
+  }
+
+  // ------------------------------------------------------------------ vista: mapa
+
+  function renderMap(gid) {
+    renderTabs(null);
+    if (!MAP) {
+      renderInfo([]);
+      hidePanel();
+      const first = Object.keys(FLOWS)[0];
+      if (first) { go("flujo", first); return; }
+      showEmpty("No hay nada que mostrar.");
+      return;
+    }
+    const id = gid && MAP.groups[gid] ? gid : MAP.root;
+    const group = MAP.groups[id];
+    const lay = group.layout;
+    const focus = lay && state.focus && lay.nodes.some((n) => n[0] === state.focus) ? state.focus : null;
+    const infoParts = [h("strong", null, group.name), group.summary ? "  ·  " + group.summary : ""];
+    if (focus) {
+      const node = lay.nodes.find((n) => n[0] === focus);
+      const off = h("button", { class: "boton", type: "button", onclick: () => toggleFocus(focus) }, "Quitar enfoque");
+      infoParts.push(h("div", { class: "aviso-foco" }, "Enfocado: ", h("strong", null, node[6]), " — se resalta lo que usa y lo que lo usa. ", off));
+    } else if (lay && lay.edges.length) {
+      infoParts.push(h("div", { class: "pista" }, "Clic para entrar · Alt+clic (o tecla E) para enfocar · ? ayuda"));
+    }
+    renderInfo(infoParts);
+    hidePanel();
+    if (!lay || !lay.nodes.length) { showEmpty("Este nivel no tiene elementos."); return; }
+    const svg = s("svg", { role: "img", "aria-label": "Mapa: " + group.name });
+    svg.appendChild(markers());
+    const g = s("g", { class: "vista" });
+    const lit = focus ? neighborhood(lay.edges, focus) : null;
+    for (const [src, dst, pts, conf, label, lx, ly, lw, lh] of lay.edges) {
+      const dim = lit && !(lit.has(src) && lit.has(dst)) ? " atenuado" : "";
+      const lightEdge = lit && !dim ? " resaltada" : "";
+      g.appendChild(s("path", { class: "arista c-" + conf + dim + lightEdge, d: pathFrom(pts), "marker-end": lightEdge ? "url(#punta-foco)" : "url(#punta)" }));
+      if (label) g.appendChild(drawLabel(label, lx, ly, lw, lh, dim.trim()));
+    }
+    for (const [nid, kind, x, y, w, hh, label, sub, link] of lay.nodes) {
+      const dim = lit && !lit.has(nid) ? " atenuado" : "";
+      const ng = s("g", { class: "nodo k-" + kind + (link ? " clicable" : "") + dim + (nid === focus ? " seleccionado" : ""), "data-id": nid });
+      const rx = kind === "funcion" || kind === "entrada" ? hh / 2 : kind === "modulo" ? 10 : 4;
+      ng.appendChild(s("rect", { class: "forma", x, y, width: w, height: hh, rx }));
+      if (kind === "interfaz") ng.appendChild(s("line", { class: "linea-interna", x1: x, y1: y + 6, x2: x + w, y2: y + 6 }));
+      const lines = sub ? [label, sub] : [label];
+      ng.appendChild(textBlock(lines, x + w / 2, y + hh / 2));
+      ng.appendChild(s("title", null, label + (sub ? "\n" + sub : "") + (link ? "\nClic: entrar · Alt+clic o E: enfocar" : "\nClic o E: enfocar")));
+      ng.setAttribute("tabindex", "0");
+      ng.setAttribute("role", "button");
+      ng.setAttribute("aria-label", label + (link ? "" : " (enfocar)"));
+      ng.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && link) { e.preventDefault(); location.hash = withParams(link); }
+        else if (e.key === "e" || e.key === "E" || (e.key === "Enter" && !link)) {
+          e.preventDefault();
+          e.stopPropagation();
+          toggleFocus(nid);
+          const again = document.querySelector('.nodo[data-id="' + CSS.escape(nid) + '"]');
+          if (again) again.focus();
+        }
+      });
+      ng.addEventListener("click", (e) => {
+        if (state.dragged) return;
+        e.stopPropagation();
+        if (e.altKey || e.shiftKey || !link) { toggleFocus(nid); return; }
+        location.hash = withParams(link);
+      });
+      g.appendChild(ng);
+    }
+    mount(svg, g, lay.w, lay.h, lay.legend || []);
+  }
+
+  function withParams(link) {
+    const tmp = link.replace(/^#\//, "").split("/");
+    const id = tmp.slice(1).join("/") || null;
+    // Entrar a una función desde el mapa empieza un recorrido nuevo de migas.
+    if (tmp[0] === "flujo" && id) state.pendingTrail = [id];
+    return buildHash(tmp[0], id);
+  }
+
+  function neighborhood(edges, start) {
+    const down = new Map();
+    const up = new Map();
+    for (const [a, b] of edges) {
+      if (!down.has(a)) down.set(a, []);
+      if (!up.has(b)) up.set(b, []);
+      down.get(a).push(b);
+      up.get(b).push(a);
+    }
+    const lit = new Set([start]);
+    for (const graph of [down, up]) {
+      const stack = [start];
+      const seen = new Set([start]);
+      while (stack.length) {
+        const cur = stack.pop();
+        for (const nxt of graph.get(cur) || []) {
+          if (!seen.has(nxt)) { seen.add(nxt); lit.add(nxt); stack.push(nxt); }
+        }
+      }
+    }
+    return lit;
+  }
+
+  // ------------------------------------------------------------------ vista: secuencia
+
+  function renderSequence(sid) {
+    renderTabs(sid);
+    const sym = SYMBOLS[sid];
+    if (!sym) { showEmpty("No se encontró la función."); return; }
+    renderInfo([h("code", null, sym.signature), "  ·  " + sym.file + ":" + sym.line_start]);
+    renderPanel(sid);
+    const seq = DATA.sequence && DATA.sequence[sid];
+    if (!seq) { showEmpty("No hay diagrama de secuencia para esta función (no llama a otras funciones del proyecto)."); return; }
+    if (seq.layout_all) {
+      const btn = h("button", { class: "boton", type: "button", "aria-pressed": state.showExternal ? "true" : "false", onclick: () => { state.showExternal = !state.showExternal; state.keepTransform = false; renderSequence(sid); } },
+        state.showExternal ? "Ocultar llamadas externas" : "Mostrar llamadas externas");
+      $("info").appendChild(h("div", { style: "margin-top:4px" }, btn));
+    }
+    const lay = state.showExternal && seq.layout_all ? seq.layout_all : seq.layout;
+    const svg = s("svg", { role: "img", "aria-label": "Diagrama de secuencia de " + sym.qualname });
+    svg.appendChild(markers());
+    const g = s("g", { class: "vista" });
+    for (const [x, y, w, hh, label, kind, divider] of lay.fragments) {
+      g.appendChild(s("rect", { x, y, width: w, height: hh, class: "fragmento k-frag-" + kind, rx: 3 }));
+      if (divider !== null && divider !== undefined) {
+        g.appendChild(s("line", { class: "fragmento-divisor", x1: x, y1: divider, x2: x + w, y2: divider }));
+        g.appendChild(drawLabel("[else]", x + 4, divider + 2, 52, 15));
+      }
+      g.appendChild(drawLabel(label, x, y, label.length * 6.6 + 10, 16));
+    }
+    for (const [x, y1, y2] of lay.lifelines) {
+      g.appendChild(s("line", { class: "linea-vida", x1: x, y1, x2: x, y2 }));
+    }
+    for (const [x, y, w, hh, label, kind] of lay.participants) {
+      const pg = s("g", { class: "nodo k-" + (kind === "actor" ? "entrada" : kind === "modulo" ? "clase" : kind) });
+      pg.appendChild(s("rect", { class: "forma", x, y, width: w, height: hh, rx: kind === "actor" || kind === "entrada" ? hh / 2 : 4 }));
+      pg.appendChild(textBlock([label], x + w / 2, y + hh / 2));
+      g.appendChild(pg);
+    }
+    for (const [x1, x2, y, label, kind, target, conf] of lay.messages) {
+      const self = x1 === x2;
+      const d = self ? "M" + x1 + "," + y + " h34 v14 h-30" : "M" + x1 + "," + y + " L" + x2 + "," + y;
+      const cls = kind === "retorno" ? "arista k-retorno" : "arista c-" + (conf || "exacta");
+      g.appendChild(s("path", { class: cls, d, "marker-end": "url(#punta)" }));
+      const tx = self ? x1 + 40 : Math.min(x1, x2) + 6;
+      const t = s("text", { x: tx, y: y - 6, class: "msg" + (kind === "retorno" ? " retorno" : "") }, label);
+      if (target && SYMBOLS[target] && FLOWS[target]) {
+        t.classList.add("enlace");
+        t.addEventListener("click", () => openSub(target));
+        t.appendChild(s("title", null, "Abrir el flujo de " + SYMBOLS[target].qualname));
+      }
+      g.appendChild(t);
+    }
+    mount(svg, g, lay.w, lay.h, lay.confs || []);
+  }
+
+  // ------------------------------------------------------------------ vista: entidad-relación
+
+  function renderER() {
+    renderTabs(null);
+    hidePanel();
+    const er = DATA.er;
+    if (!er || !er.tables || !er.tables.length) {
+      renderInfo([]);
+      showEmpty("No se encontraron tablas SQL en el proyecto.");
+      return;
+    }
+    renderInfo([h("strong", null, "Diagrama entidad-relación"), "  ·  " + er.tables.length + " tablas, " + er.fks.length + " relaciones"]);
+    const lay = er.layout;
+    const svg = s("svg", { role: "img", "aria-label": "Diagrama entidad-relación" });
+    svg.appendChild(markers());
+    const g = s("g", { class: "vista" });
+    for (const [pts, label, lx, ly, lw, lh] of lay.edges) {
+      g.appendChild(s("path", { class: "arista c-exacta", d: pathFrom(pts), "marker-end": "url(#punta)" }));
+      if (label) g.appendChild(drawLabel(label, lx, ly, lw, lh));
+    }
+    for (const [tid, x, y, w, hh, name, cols] of lay.tables) {
+      const tg = s("g", { class: "nodo k-tabla" + (state.focus === tid ? " seleccionado" : ""), "data-id": tid });
+      tg.appendChild(s("rect", { class: "forma", x, y, width: w, height: hh, rx: 4 }));
+      tg.appendChild(s("text", { x: x + 8, y: y + 13, "font-weight": "700" }, name));
+      tg.appendChild(s("line", { class: "linea-interna", x1: x, y1: y + 24, x2: x + w, y2: y + 24 }));
+      cols.forEach((c, i) => {
+        tg.appendChild(s("text", { x: x + 8, y: y + 24 + LINE_H * (i + 0.5) + 4 }, c));
+      });
+      tg.classList.add("clicable");
+      tg.setAttribute("tabindex", "0");
+      tg.setAttribute("role", "button");
+      tg.setAttribute("aria-label", "Tabla " + name);
+      const open = () => { state.focus = tid; syncHash(); renderER(); };
+      tg.addEventListener("click", (e) => { if (!state.dragged) { e.stopPropagation(); open(); } });
+      tg.addEventListener("keydown", (e) => { if (e.key === "Enter") open(); });
+      g.appendChild(tg);
+    }
+    // El panel se abre antes de encuadrar, así el ajuste usa el ancho final del lienzo.
+    const table = er.tables.find((t) => t.id === state.focus);
+    if (table) renderTablePanel(table, er);
+    mount(svg, g, lay.w, lay.h, ["tabla"]);
+  }
+
+  function renderTablePanel(table, er) {
+    const panel = $("panel");
+    clear(panel);
+    panel.hidden = false;
+    appendAll(panel, [
+      h("h2", null, table.name),
+      h("div", { class: "meta" }, h("code", null, table.file + ":" + table.line)),
+    ]);
+    const rels = er.fks.filter((f) => f.table === table.name || f.ref_table === table.name);
+    if (rels.length) {
+      const ul = h("ul");
+      for (const f of rels) {
+        ul.appendChild(h("li", null, f.table + "(" + f.columns.join(", ") + ") → " + f.ref_table + "(" + f.ref_columns.join(", ") + ")"));
+      }
+      panel.appendChild(h("div", { class: "seccion" }, h("h3", null, "Relaciones"), ul));
+    }
+    for (const [mode, title] of [["lee", "Leída por (probable)"], ["escribe", "Escrita por (probable)"]]) {
+      const ids = (table.access && table.access[mode]) || [];
+      if (!ids.length) continue;
+      const ul = h("ul");
+      for (const id of ids) {
+        const sym = SYMBOLS[id];
+        if (sym) ul.appendChild(h("li", null, h("a", { href: buildHash("flujo", id) }, sym.qualname)));
+      }
+      panel.appendChild(h("div", { class: "seccion" }, h("h3", null, title), ul));
+    }
+  }
+
+  // ------------------------------------------------------------------ exportar
+
+  function currentSVGString() {
+    const svg = $("lienzo").querySelector("svg");
+    if (!svg) return null;
+    const clone = svg.cloneNode(true);
+    const g = clone.querySelector("g.vista");
+    if (g) g.removeAttribute("transform");
+    clone.querySelectorAll(".atenuado").forEach((n) => n.classList.remove("atenuado"));
+    clone.querySelectorAll(".seleccionado").forEach((n) => n.classList.remove("seleccionado"));
+    clone.querySelectorAll(".resaltada").forEach((n) => n.classList.remove("resaltada"));
+    const w = state.size.w;
+    const hh = state.size.h;
+    clone.setAttribute("xmlns", SVG_NS);
+    clone.setAttribute("width", w);
+    clone.setAttribute("height", hh);
+    clone.setAttribute("viewBox", "0 0 " + w + " " + hh);
+    clone.removeAttribute("style");
+    // Estilos en línea: copiar los computados de cada elemento del original.
+    const src = svg.querySelectorAll("*");
+    const dst = clone.querySelectorAll("*");
+    const props = ["fill", "fill-opacity", "stroke", "stroke-width", "stroke-dasharray", "opacity", "font-family", "font-size", "font-weight", "dominant-baseline"];
+    for (let i = 0; i < src.length && i < dst.length; i++) {
+      const cs = getComputedStyle(src[i]);
+      const parts = [];
+      for (const p of props) parts.push(p + ":" + cs.getPropertyValue(p));
+      dst[i].setAttribute("style", parts.join(";"));
+    }
+    const bg = getComputedStyle(document.body).backgroundColor;
+    const rect = document.createElementNS(SVG_NS, "rect");
+    setAttrs(rect, { x: 0, y: 0, width: w, height: hh, fill: bg });
+    clone.insertBefore(rect, clone.firstChild);
+    return new XMLSerializer().serializeToString(clone);
+  }
+
+  function download(name, blob) {
+    const url = URL.createObjectURL(blob);
+    const a = h("a", { href: url, download: name });
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  function exportName(ext) {
+    const base = state.id && SYMBOLS[state.id] ? SYMBOLS[state.id].qualname : (state.view || "mapa");
+    return "desglosa-" + String(base).replace(/[^\w.-]+/g, "_") + "." + ext;
+  }
+
+  function exportSVG() {
+    const text = currentSVGString();
+    if (text) download(exportName("svg"), new Blob([text], { type: "image/svg+xml" }));
+  }
+
+  function exportPNG() {
+    const text = currentSVGString();
+    if (!text) return;
+    const img = new Image();
+    const url = URL.createObjectURL(new Blob([text], { type: "image/svg+xml" }));
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.ceil(state.size.w * 2);
+      canvas.height = Math.ceil(state.size.h * 2);
+      const ctx = canvas.getContext("2d");
+      ctx.scale(2, 2);
+      ctx.drawImage(img, 0, 0);
+      URL.revokeObjectURL(url);
+      canvas.toBlob((blob) => { if (blob) download(exportName("png"), blob); }, "image/png");
+    };
+    img.src = url;
+  }
+
+  // ------------------------------------------------------------------ teclado
+
+  function installKeys() {
+    document.addEventListener("keydown", (e) => {
+      const tag = (e.target && e.target.tagName) || "";
+      if (tag === "INPUT" || tag === "TEXTAREA") return;
+      if (helpDialog && helpDialog.open) return; // el diálogo maneja Esc solo
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (e.key === "/") { e.preventDefault(); const b = $("buscar"); if (b) b.focus(); }
+      else if (e.key === "?") showHelp();
+      else if (e.key === "Escape" && state.focus && (state.view === "mapa" || !state.view)) toggleFocus(state.focus);
+      else if (e.key === "Escape") goUp();
+      else if (e.key === "t") toggleTheme();
+      else if (e.key === "m") toggleMode();
+      else if (e.key === "+" || e.key === "=") zoomBy(1.25);
+      else if (e.key === "-") zoomBy(1 / 1.25);
+      else if (e.key === "0") { state.transform = { k: 1, x: 20, y: 20 }; apply(); }
+      else if (e.key === "f") { fit(); apply(); }
+    });
+  }
+
+  // ------------------------------------------------------------------ inicio
+
+  installCanvasEvents();
+  installKeys();
+  window.addEventListener("hashchange", render);
+  window.addEventListener("resize", () => { if (!state.keepTransform) { fit(); apply(); } });
+  render();
+})();
+
+</script>
+</body>
+</html>

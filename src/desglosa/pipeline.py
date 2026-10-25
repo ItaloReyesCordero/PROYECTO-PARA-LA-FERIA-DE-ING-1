@@ -18,8 +18,10 @@ from desglosa.routes import Route, find_routes, is_route_file
 from desglosa.scan import ScanOptions, ScanResult, decode_bytes, grammar_for, scan
 from desglosa.sqlmodel import merge, parse_sql, table_access
 
-# Con pocos archivos, arrancar procesos (spawn en Windows) cuesta más de lo que ahorra.
+# Arrancar procesos (spawn en Windows) cuesta ~0,4 s cada uno. Medido: con 1 000 archivos
+# pequeños (0,8 MB) un proceso es más rápido que ocho; con 15 MB, ocho procesos ganan.
 PARALLEL_MIN_FILES = 40
+PARALLEL_MIN_BYTES = 2 * 1024 * 1024
 
 
 @dataclass(frozen=True)
@@ -72,24 +74,30 @@ def _safe_extract(root: str, path: str, lang: str) -> FileResult:
         )
 
 
-def _jobs_for(n_files: int, jobs: int | None) -> int:
+def _jobs_for(n_files: int, jobs: int | None, total_bytes: int | None = None) -> int:
     if jobs is not None:
         return max(1, jobs)
     if n_files < PARALLEL_MIN_FILES:
         return 1
+    if total_bytes is not None and total_bytes < PARALLEL_MIN_BYTES:
+        return 1
     return max(1, min(os.cpu_count() or 1, 8))
 
 
-def extract_all(result: ScanResult, jobs: int | None = None) -> list[FileResult]:
+def extract_all(
+    result: ScanResult, jobs: int | None = None, pool: ProcessPoolExecutor | None = None
+) -> list[FileResult]:
     root = str(result.root)
     entries = result.entries
     n_jobs = _jobs_for(len(entries), jobs)
     if n_jobs <= 1 or len(entries) < 2:
         out = [_safe_extract(root, e.path, e.lang) for e in entries]
     else:
-        with ProcessPoolExecutor(max_workers=n_jobs) as pool:
+        own = pool is None
+        executor = pool or ProcessPoolExecutor(max_workers=n_jobs)
+        try:
             out = list(
-                pool.map(
+                executor.map(
                     _safe_extract,
                     [root] * len(entries),
                     [e.path for e in entries],
@@ -97,6 +105,9 @@ def extract_all(result: ScanResult, jobs: int | None = None) -> list[FileResult]
                     chunksize=max(1, len(entries) // (n_jobs * 4)),
                 )
             )
+        finally:
+            if own:
+                executor.shutdown()
     return sorted(out, key=lambda r: r.file.path)
 
 
@@ -105,7 +116,26 @@ def analyze(target: Path | str, options: AnalyzeOptions | None = None) -> Analys
     start = time.perf_counter()
     scanned = scan(Path(target), options.scan)
     grammars.ensure_offline_available(required_grammars(scanned))
-    results = extract_all(scanned, options.jobs)
+    n_jobs = _jobs_for(
+        len(scanned.entries), options.jobs, sum(e.size for e in scanned.entries)
+    )
+    # Un solo grupo de procesos para extraer y para los flujos (arrancarlo cuesta).
+    pool = ProcessPoolExecutor(max_workers=n_jobs) if n_jobs > 1 else None
+    try:
+        return _analyze(scanned, options, start, n_jobs, pool)
+    finally:
+        if pool is not None:
+            pool.shutdown()
+
+
+def _analyze(
+    scanned: ScanResult,
+    options: AnalyzeOptions,
+    start: float,
+    n_jobs: int,
+    pool: ProcessPoolExecutor | None,
+) -> Analysis:
+    results = extract_all(scanned, n_jobs, pool)
     symbols, calls = resolve(results)
     imports = sorted(
         (imp for r in results for imp in r.imports),
@@ -119,7 +149,7 @@ def analyze(target: Path | str, options: AnalyzeOptions | None = None) -> Analys
         tasks = make_tasks(
             str(scanned.root), symbols, calls, options.max_flow_nodes, options.flow_max_height
         )
-        for out in run_tasks(tasks, _jobs_for(len(tasks), options.jobs)):
+        for out in run_tasks(tasks, n_jobs, pool):
             flows[out.graph.symbol_id] = out
             warnings.extend(out.warnings)
     # SQL: tablas y FK de los .sql; enlace función → tabla desde las cadenas del código.

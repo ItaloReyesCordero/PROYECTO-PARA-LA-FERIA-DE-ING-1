@@ -100,6 +100,16 @@ class Resolver:
             raw_bases.update(r.class_bases)
             qualifiers.update(r.qualifiers)
             self.imports_by_file[r.file.path].extend(r.imports)
+        # Índices de nombres de archivo: se calculan una vez, antes de cualquier `_narrow`
+        # (antes se recorría `files` completo en cada import: archivos × imports).
+        self._stems = {posixpath.splitext(f)[0] for f in self.files}
+        self._stem_suffixes: set[str] = set()
+        for stem in self._stems:
+            parts = stem.split("/")
+            self._stem_suffixes.update("/".join(parts[i:]) for i in range(len(parts)))
+        self._base_stems = {posixpath.splitext(posixpath.basename(f))[0] for f in self.files}
+        self._basenames = {posixpath.basename(f) for f in self.files}
+        self._import_keys_cache: dict[str, tuple[set[str], set[str]]] = {}
 
         self.classes_by_name: dict[str, list[Symbol]] = defaultdict(list)
         for s in symbols:
@@ -194,17 +204,29 @@ class Resolver:
         near = [c for c in cands if posixpath.dirname(c.file) == folder]
         return near or list(cands)
 
-    def _is_imported_in(self, sym: Symbol, file: str) -> bool:
-        target_stem = posixpath.splitext(posixpath.basename(sym.file))[0]
+    def _import_keys(self, file: str) -> tuple[set[str], set[str]]:
+        """Nombres importados en `file` y nombres base de los módulos que importa."""
+        cached = self._import_keys_cache.get(file)
+        if cached is not None:
+            return cached
+        names: set[str] = set()
+        stems: set[str] = set()
         for imp in self.imports_by_file.get(file, []):
-            if imp.name == sym.name or (imp.alias and imp.alias == sym.name):
-                return True
+            if imp.name:
+                names.add(imp.name)
+            if imp.alias:
+                names.add(imp.alias)
             mod = imp.module_text.replace("\\", "/").rstrip("/")
             last = mod.rsplit("/", 1)[-1].rsplit(".", 1)
-            stem = posixpath.splitext(posixpath.basename(mod))[0]
-            if target_stem in (stem, last[-1], last[0]):
-                return True
-        return False
+            stems.update((posixpath.splitext(posixpath.basename(mod))[0], last[-1], last[0]))
+        self._import_keys_cache[file] = (names, stems)
+        return names, stems
+
+    def _is_imported_in(self, sym: Symbol, file: str) -> bool:
+        names, stems = self._import_keys(file)
+        if sym.name in names:
+            return True
+        return posixpath.splitext(posixpath.basename(sym.file))[0] in stems
 
     def enclosing_class(self, sym: Symbol | None) -> Symbol | None:
         cur = self.by_id.get(sym.parent_id) if sym is not None and sym.parent_id else None
@@ -284,18 +306,18 @@ class Resolver:
             if not mod.startswith("."):
                 return False
             base = posixpath.normpath(posixpath.join(posixpath.dirname(file), mod))
-            return any(base + ext in self.files for ext in _JS_EXTS) or any(
-                posixpath.splitext(f)[0] == posixpath.splitext(base)[0] for f in self.files
+            return (
+                any(base + ext in self.files for ext in _JS_EXTS)
+                or posixpath.splitext(base)[0] in self._stems
             )
         if lang == "python":
             dotted = mod.lstrip(".")
             if not dotted:
                 return True
             rel = dotted.replace(".", "/")
-            for f in self.files:
-                stem = posixpath.splitext(f)[0]
-                if stem == rel or stem.endswith("/" + rel) or stem.endswith(rel + "/__init__"):
-                    return True
+            # `rel` coincide con una carpeta/archivo completo del final de la ruta.
+            if rel in self._stem_suffixes or rel + "/__init__" in self._stem_suffixes:
+                return True
             if imp.name:
                 return self._is_project_module_name(rel + "/" + imp.name)
             return False
@@ -304,16 +326,15 @@ class Resolver:
             if last in self.classes_by_name:
                 return True
             stem = posixpath.splitext(posixpath.basename(mod.strip("'\"")))[0]
-            return any(posixpath.splitext(posixpath.basename(f))[0] == stem for f in self.files)
+            return stem in self._base_stems
         if lang in ("c", "cpp"):
             if mod.startswith("<"):
                 return False
-            name = posixpath.basename(mod)
-            return any(posixpath.basename(f) == name for f in self.files)
+            return posixpath.basename(mod) in self._basenames
         return False
 
     def _is_project_module_name(self, rel: str) -> bool:
-        return any(posixpath.splitext(f)[0].endswith(rel) for f in self.files)
+        return rel in self._stem_suffixes
 
     def _included_stems(self, file: str) -> set[str]:
         stems = set()

@@ -125,6 +125,26 @@ button, input, select { font: inherit; color: inherit; }
 }
 .info { padding: 6px 14px; color: var(--texto-suave); font-size: 13px; }
 .info .doc { color: var(--texto); white-space: pre-wrap; }
+.info .pista { font-size: 12px; opacity: .85; margin-top: 2px; }
+.info .aviso-foco { margin-top: 4px; color: var(--texto); }
+.info .aviso-foco strong { color: var(--foco); }
+
+/* ---------------------------------------------------------------- ayuda */
+.ayuda {
+  max-width: min(560px, 92vw); padding: 16px 20px; border-radius: 10px;
+  background: var(--superficie); color: var(--texto); border: 1px solid var(--borde);
+}
+.ayuda::backdrop { background: color-mix(in srgb, var(--fondo) 70%, transparent); }
+.ayuda h2 { font-size: 16px; margin: 0 0 8px; }
+.ayuda p { margin: 6px 0 10px; color: var(--texto-suave); }
+.ayuda table { border-collapse: collapse; width: 100%; margin-bottom: 8px; }
+.ayuda th { text-align: left; white-space: nowrap; padding: 4px 12px 4px 0; font-weight: 400; }
+.ayuda td { padding: 4px 0; }
+.ayuda kbd {
+  font: 12px var(--mono); padding: 1px 6px; border: 1px solid var(--borde); border-radius: 4px;
+  background: var(--superficie-2);
+}
+.ayuda .nota { font-size: 12px; }
 .lienzo {
   flex: 1; position: relative; overflow: hidden; cursor: grab;
   background-color: var(--fondo);
@@ -177,6 +197,8 @@ button, input, select { font: inherit; color: inherit; }
 .nodo.clicable { cursor: pointer; }
 .nodo.clicable:hover .forma, .nodo.clicable:focus .forma { stroke-width: 3; }
 .nodo.seleccionado .forma { stroke-width: 3; stroke: var(--foco); }
+.nodo:focus { outline: none; }
+.nodo:focus-visible .forma { stroke-width: 3; stroke: var(--foco); }
 .nodo.atenuado { opacity: .25; }
 .k-terminal { --c: var(--c-terminal); }
 .k-proceso { --c: var(--c-proceso); }
@@ -221,7 +243,7 @@ button, input, select { font: inherit; color: inherit; }
 .etiqueta text { fill: var(--texto-suave); font: 11px var(--mono); dominant-baseline: middle; }
 
 @media print {
-  .barra, .panel, .pestanas, .leyenda, .herramientas { display: none !important; }
+  .barra, .panel, .pestanas, .leyenda, .herramientas, .ayuda, .info .pista { display: none !important; }
   body { overflow: visible; height: auto; background: #fff; }
   .lienzo { background: #fff; overflow: visible; }
 }

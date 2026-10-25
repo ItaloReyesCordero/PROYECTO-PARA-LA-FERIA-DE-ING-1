@@ -12,7 +12,7 @@ from desglosa.layout.sequence import layout_sequence
 from desglosa.pipeline import Analysis
 from desglosa.render.html import flow_payload
 from desglosa.scan import decode_bytes
-from desglosa.sequence import build_sequence, without_externals
+from desglosa.sequence import SequenceIndex, build_sequence, without_externals
 
 FUNC_KINDS = ("function", "method")
 
@@ -229,13 +229,14 @@ def sequence_payload(
             callers.add(c.caller_id)
     flows = {k: v.graph for k, v in analysis.flows.items()}
     new_calls = analysis.new_calls
+    index = SequenceIndex.of(project)
     out: dict[str, dict] = {}
     for sid in sorted(callers):
         sym = by_id.get(sid)
         if sym is None or sym.kind not in FUNC_KINDS or sid not in symbols:
             continue
         diagram = build_sequence(
-            project, flows, sid, depth=depth, routes=routes, new_calls=new_calls
+            project, flows, sid, depth=depth, routes=routes, new_calls=new_calls, index=index
         )
         entry = {"layout": _sequence_layout(layout_sequence(without_externals(diagram)))}
         if any(m.external for m in diagram.messages):

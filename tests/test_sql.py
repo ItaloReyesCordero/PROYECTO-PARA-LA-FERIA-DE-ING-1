@@ -105,3 +105,36 @@ def test_laravel_schema_in_several_dialects(dialect):
     model = parse_sql("schema.sql", text, dialect)
     assert len(model.tables) == 4
     assert len(model.fks) == 3
+
+
+def test_er_edges_start_and_end_on_column_rows():
+    from desglosa.layout.er import HEADER, PAD, layout_er
+    from desglosa.layout.text import LINE_H
+
+    text = (ROOT / "examples" / "laravel-mini" / "database" / "schema.sql").read_text("utf-8")
+    model = parse_sql("schema.sql", text, "mysql")
+    lay = layout_er(model.tables, model.fks)
+    boxes = {t[5]: t for t in lay["tables"]}
+    tables = {t.name: t for t in model.tables}
+
+    def row_center(table: str, column: str) -> float:
+        i = [c.name for c in tables[table].columns].index(column)
+        return boxes[table][2] + HEADER + i * LINE_H + LINE_H / 2 + 2
+
+    def touches(table: str, x: float) -> bool:
+        box = boxes[table]
+        return x in (box[1], box[1] + box[3])
+
+    assert PAD > 0
+    assert len(lay["edges"]) == len(model.fks)
+    for fk in model.fks:
+        [pts] = [
+            e[0]
+            for e in lay["edges"]
+            if touches(fk.table, e[0][0]) and touches(fk.ref_table, e[0][-2])
+        ]
+        assert pts[1] == round(row_center(fk.table, fk.columns[0]), 1)
+        assert pts[-1] == round(row_center(fk.ref_table, fk.ref_columns[0]), 1)
+        xs, ys = pts[0::2], pts[1::2]
+        for i in range(len(xs) - 1):  # tramos solo horizontales o verticales
+            assert xs[i] == xs[i + 1] or ys[i] == ys[i + 1]

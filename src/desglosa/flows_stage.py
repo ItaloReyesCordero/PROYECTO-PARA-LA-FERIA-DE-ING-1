@@ -137,14 +137,21 @@ def make_tasks(
     return tasks
 
 
-def run_tasks(tasks: list[FlowTask], jobs: int) -> list[FlowOutput]:
+def run_tasks(
+    tasks: list[FlowTask], jobs: int, pool: ProcessPoolExecutor | None = None
+) -> list[FlowOutput]:
     if jobs <= 1 or len(tasks) < 2:
         groups = [build_file_flows(t) for t in tasks]
     else:
-        with ProcessPoolExecutor(max_workers=jobs) as pool:
+        own = pool is None
+        executor = pool or ProcessPoolExecutor(max_workers=jobs)
+        try:
             groups = list(
-                pool.map(build_file_flows, tasks, chunksize=max(1, len(tasks) // (jobs * 4)))
+                executor.map(build_file_flows, tasks, chunksize=max(1, len(tasks) // (jobs * 4)))
             )
+        finally:
+            if own:
+                executor.shutdown()
     return [o for g in groups for o in g]
 
 

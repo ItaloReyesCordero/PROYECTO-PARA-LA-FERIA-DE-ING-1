@@ -54,3 +54,23 @@ def test_broken_fixture_does_not_crash():
     doc = next(s.doc for s in project.symbols if s.name == "anio_actual")
     assert doc == "Función con acentos: año, camión"
     assert any("malo.py" in w for w in project.warnings)
+
+
+@needs_grammars
+def test_duplicated_class_names_across_folders(tmp_path):
+    """Las mismas clases en dos carpetas: el resolvedor no debe romperse ni adivinar."""
+    import shutil
+
+    for copy in ("a", "b"):
+        for lang in ("python", "java", "php", "ruby", "kotlin"):
+            shutil.copytree(FIXTURES / lang, tmp_path / copy / lang)
+    result = analyze(tmp_path)
+    single = analyze(tmp_path / "a")
+    assert len(result.project.files) == 2 * len(single.project.files)
+    assert len(result.project.symbols) == 2 * len(single.project.symbols)
+    by_id = {s.id: s for s in result.project.symbols}
+    for c in result.project.calls:
+        if c.resolved_id and c.confidence == "exacta":
+            # Una llamada exacta nunca cruza a la otra copia del proyecto.
+            caller, target = by_id[c.caller_id], by_id[c.resolved_id]
+            assert caller.file.split("/")[0] == target.file.split("/")[0]

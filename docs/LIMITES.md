@@ -29,6 +29,8 @@ que conviene conocer (y explicar en la feria) en vez de esconder.
 - Sale de las llamadas **en el orden en que aparecen en el código**, no del orden real de
   ejecución (que depende de los datos).
 - Se corta en `--depth` niveles (4 por defecto) y en 200 mensajes.
+- Si una llamada tiene más de 4 destinos posibles (nombres repetidos en muchas carpetas),
+  se dibuja un solo mensaje "nombre() — N posibles" hacia "Varios posibles".
 - En una llamada por interfaz se dibuja el mensaje a cada implementación conocida, pero
   no se expande lo que hace cada una.
 
@@ -44,6 +46,17 @@ que conviene conocer (y explicar en la feria) en vez de esconder.
 ## Rutas
 - Solo rutas de Laravel en `routes/*.php`. Las rutas con closure
   (`Route::get('/x', function () {…})`) no apuntan a ningún método y se ignoran.
+
+## Impresión y exportación
+- Al imprimir se oculta la interfaz y queda el diagrama tal como se ve en pantalla; un
+  flujo largo no se reparte en varias páginas con conectores de página (el símbolo
+  `conector_pagina` existe, pero el visor no lo usa todavía).
+- No hay exportación a Mermaid (RF-18, prioridad opcional).
+
+## Tamaño del HTML
+- El HTML lleva todos los diagramas ya calculados: pesa unas diez veces el tamaño del
+  código analizado. Con más de 20 MB el navegador tarda en abrirlo; conviene analizar una
+  parte del proyecto (`--lang`, `--ignore` o una subcarpeta).
 
 ## Errores de sintaxis
 - Los archivos con errores se analizan igual y se cuenta cuántos errores tienen.

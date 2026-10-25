@@ -193,11 +193,49 @@
       const fitBtn = h("button", { class: "boton", type: "button", title: "Encuadrar (f)", onclick: () => { fit(); apply(); } }, "Encuadrar");
       tools.exportSvg = h("button", { class: "boton", type: "button", title: "Exportar la vista como SVG", onclick: exportSVG }, "SVG");
       tools.exportPng = h("button", { class: "boton", type: "button", title: "Exportar la vista como PNG", onclick: exportPNG }, "PNG");
-      appendAll(bar, [search, tools.mode, tools.theme, zoomOut, zoomIn, fitBtn, tools.exportSvg, tools.exportPng]);
+      const helpBtn = h("button", { class: "boton", type: "button", title: "Ayuda y atajos de teclado (?)", "aria-label": "Ayuda", onclick: showHelp }, "?");
+      appendAll(bar, [search, tools.mode, tools.theme, zoomOut, zoomIn, fitBtn, tools.exportSvg, tools.exportPng, helpBtn]);
     }
     tools.mode.textContent = state.mode === "facil" ? "Modo: fácil" : "Modo: técnico";
     tools.mode.setAttribute("aria-pressed", state.mode === "tecnico" ? "true" : "false");
     tools.theme.textContent = state.theme === "oscuro" ? "Tema: oscuro" : "Tema: claro";
+  }
+
+  // ------------------------------------------------------------------ ayuda
+
+  const HELP = [
+    ["Clic", "Entrar a un elemento del mapa o abrir el flujo de un subproceso"],
+    ["Alt+clic o E", "Enfocar: resalta de qué depende un elemento y qué depende de él"],
+    ["Esc", "Quitar el enfoque o subir un nivel"],
+    ["/", "Buscar una función, clase o archivo"],
+    ["+  −  0", "Acercar, alejar y tamaño real"],
+    ["F", "Encuadrar el diagrama en la pantalla"],
+    ["Arrastrar / rueda", "Mover y hacer zoom"],
+    ["M", "Modo fácil (español) o técnico (código)"],
+    ["T", "Tema claro u oscuro"],
+    ["?", "Mostrar esta ayuda"],
+  ];
+  let helpDialog = null;
+
+  function showHelp() {
+    if (!helpDialog) {
+      const rows = HELP.map(([k, v]) => h("tr", null, h("th", { scope: "row" }, h("kbd", null, k)), h("td", null, v)));
+      const close = h("button", { class: "boton", type: "button", onclick: () => helpDialog.close() }, "Cerrar");
+      helpDialog = h("dialog", { class: "ayuda", "aria-labelledby": "ayuda-titulo" },
+        h("h2", { id: "ayuda-titulo" }, "Cómo usar Desglosa"),
+        h("p", null, "Mapa → clic para bajar de nivel → flujo de cada función. Las migas de arriba sirven para volver."),
+        h("table", null, h("tbody", null, ...rows)),
+        h("p", { class: "nota" }, "Las líneas punteadas o grises son relaciones menos seguras (probable, ambigua o externa)."),
+        close);
+      document.body.appendChild(helpDialog);
+    }
+    if (!helpDialog.open) helpDialog.showModal();
+  }
+
+  function toggleFocus(nid) {
+    state.focus = state.focus === nid ? null : nid;
+    syncHash();
+    rerender();
   }
 
   function toggleMode() {
@@ -777,14 +815,22 @@
     }
     const id = gid && MAP.groups[gid] ? gid : MAP.root;
     const group = MAP.groups[id];
-    renderInfo([h("strong", null, group.name), group.summary ? "  ·  " + group.summary : ""]);
-    hidePanel();
     const lay = group.layout;
+    const focus = lay && state.focus && lay.nodes.some((n) => n[0] === state.focus) ? state.focus : null;
+    const infoParts = [h("strong", null, group.name), group.summary ? "  ·  " + group.summary : ""];
+    if (focus) {
+      const node = lay.nodes.find((n) => n[0] === focus);
+      const off = h("button", { class: "boton", type: "button", onclick: () => toggleFocus(focus) }, "Quitar enfoque");
+      infoParts.push(h("div", { class: "aviso-foco" }, "Enfocado: ", h("strong", null, node[6]), " — se resalta lo que usa y lo que lo usa. ", off));
+    } else if (lay && lay.edges.length) {
+      infoParts.push(h("div", { class: "pista" }, "Clic para entrar · Alt+clic (o tecla E) para enfocar · ? ayuda"));
+    }
+    renderInfo(infoParts);
+    hidePanel();
     if (!lay || !lay.nodes.length) { showEmpty("Este nivel no tiene elementos."); return; }
     const svg = s("svg", { role: "img", "aria-label": "Mapa: " + group.name });
     svg.appendChild(markers());
     const g = s("g", { class: "vista" });
-    const focus = state.focus && lay.nodes.some((n) => n[0] === state.focus) ? state.focus : null;
     const lit = focus ? neighborhood(lay.edges, focus) : null;
     for (const [src, dst, pts, conf, label, lx, ly, lw, lh] of lay.edges) {
       const dim = lit && !(lit.has(src) && lit.has(dst)) ? " atenuado" : "";
@@ -800,22 +846,24 @@
       if (kind === "interfaz") ng.appendChild(s("line", { class: "linea-interna", x1: x, y1: y + 6, x2: x + w, y2: y + 6 }));
       const lines = sub ? [label, sub] : [label];
       ng.appendChild(textBlock(lines, x + w / 2, y + hh / 2));
-      ng.appendChild(s("title", null, label + (sub ? "\n" + sub : "") + (link ? "\nClic: entrar · Alt+clic: enfocar" : "")));
-      if (link) {
-        ng.setAttribute("tabindex", "0");
-        ng.setAttribute("role", "button");
-        ng.setAttribute("aria-label", label);
-        ng.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); location.hash = withParams(link); } });
-      }
+      ng.appendChild(s("title", null, label + (sub ? "\n" + sub : "") + (link ? "\nClic: entrar · Alt+clic o E: enfocar" : "\nClic o E: enfocar")));
+      ng.setAttribute("tabindex", "0");
+      ng.setAttribute("role", "button");
+      ng.setAttribute("aria-label", label + (link ? "" : " (enfocar)"));
+      ng.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && link) { e.preventDefault(); location.hash = withParams(link); }
+        else if (e.key === "e" || e.key === "E" || (e.key === "Enter" && !link)) {
+          e.preventDefault();
+          e.stopPropagation();
+          toggleFocus(nid);
+          const again = document.querySelector('.nodo[data-id="' + CSS.escape(nid) + '"]');
+          if (again) again.focus();
+        }
+      });
       ng.addEventListener("click", (e) => {
         if (state.dragged) return;
         e.stopPropagation();
-        if (e.altKey || e.shiftKey || !link) {
-          state.focus = state.focus === nid ? null : nid;
-          syncHash();
-          rerender();
-          return;
-        }
+        if (e.altKey || e.shiftKey || !link) { toggleFocus(nid); return; }
         location.hash = withParams(link);
       });
       g.appendChild(ng);
@@ -1056,8 +1104,11 @@
     document.addEventListener("keydown", (e) => {
       const tag = (e.target && e.target.tagName) || "";
       if (tag === "INPUT" || tag === "TEXTAREA") return;
+      if (helpDialog && helpDialog.open) return; // el diálogo maneja Esc solo
       if (e.ctrlKey || e.metaKey || e.altKey) return;
       if (e.key === "/") { e.preventDefault(); const b = $("buscar"); if (b) b.focus(); }
+      else if (e.key === "?") showHelp();
+      else if (e.key === "Escape" && state.focus && (state.view === "mapa" || !state.view)) toggleFocus(state.focus);
       else if (e.key === "Escape") goUp();
       else if (e.key === "t") toggleTheme();
       else if (e.key === "m") toggleMode();

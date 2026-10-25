@@ -105,3 +105,15 @@ def test_map_is_deterministic():
     a = build_map(analyze(LARAVEL).project)
     b = build_map(analyze(LARAVEL).project)
     assert a == b
+
+
+def test_routes_become_map_edges(laravel):
+    a, plain = laravel
+    routes = [(r.file, r.symbol_id) for r in a.routes if r.symbol_id]
+    m = build_map(a.project, routes)
+    root = m["groups"][m["root"]]["layout"]
+    by_id = {n[0]: n[6] for n in root["nodes"]}
+    labels = {(by_id[e[0]], by_id[e[1]]): e[4] for e in root["edges"]}
+    assert labels.get(("routes/", "app/")) == "3 rutas"
+    # Sin pasar las rutas, el archivo de rutas queda suelto (no hace llamadas resueltas).
+    assert plain["groups"][plain["root"]]["layout"]["edges"] == []

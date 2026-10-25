@@ -201,3 +201,22 @@ def test_laravel_routes_mark_entry_points():
         ("GET", "/facturas/{id}"): "FacturaController.show",
     }
     assert all(by_id[r.symbol_id].is_entry for r in a.routes)
+
+
+def test_many_candidates_are_summarized():
+    from desglosa.ir import Call, Project, Symbol
+    from desglosa.sequence import MAX_ALTERNATIVES
+
+    def fn(sid, name, file):
+        return Symbol(sid, "function", name, name, file, 1, 3, None, None, "python", name)
+
+    n = MAX_ALTERNATIVES + 2
+    targets = [fn(f"t{i}", "emitir", f"m{i}/a.py") for i in range(n)]
+    caller = fn("c", "main", "main.py")
+    call = Call("k", "c", "emitir", None, 2, 5, candidates=tuple(t.id for t in targets),
+                confidence="ambigua")
+    project = Project("p", symbols=(caller, *targets), calls=(call,))
+    d = build_sequence(project, {}, "c")
+    assert [m.label for m in d.messages] == [f"emitir() — {n} posibles"]
+    assert d.participants[-1].label == "Varios posibles"
+    assert not d.fragments
