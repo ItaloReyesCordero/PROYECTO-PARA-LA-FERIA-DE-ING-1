@@ -160,3 +160,27 @@ def test_many_children_are_bucketed_not_chained():
     assert max(depth_otros) <= 3
     labels = [g["name"] for g in groups.values() if g["kind"] == "otros"]
     assert any(name.startswith("Otros: d0") for name in labels)
+
+
+def test_grouped_edge_uses_majority_and_keeps_breakdown():
+    from desglosa.ir import Call, Project, SourceFile, Symbol
+
+    def fn(sid, file):
+        return Symbol(sid, "function", sid, sid, file, 1, 3, None, None, "python", "")
+
+    a, b1, b2 = fn("a", "uno/x.py"), fn("b1", "dos/y.py"), fn("b2", "dos/z.py")
+    files = tuple(SourceFile(s.file, "python", "x", 3, True, 0) for s in (a, b1, b2))
+
+    def edge(confs):
+        calls = tuple(
+            Call(f"k{i}", "a", "b", None, i + 1, 1,
+                 resolved_id=None if c == "ambigua" else "b1",
+                 candidates=("b1", "b2") if c == "ambigua" else (), confidence=c)
+            for i, c in enumerate(confs)
+        )
+        m = build_map(Project("p", files=files, symbols=(a, b1, b2), calls=calls))
+        [e] = m["groups"][m["root"]]["layout"]["edges"]
+        return e[3], e[9]
+
+    assert edge(["exacta"] * 3 + ["ambigua"]) == ("exacta", {"exacta": 3, "ambigua": 1})
+    assert edge(["exacta", "exacta", "ambigua", "ambigua"])[0] == "ambigua"  # empate: prudencia

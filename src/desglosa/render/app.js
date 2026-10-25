@@ -616,6 +616,29 @@
     return d;
   }
 
+  const MIX_NAMES = {
+    exacta: ["exacta", "exactas"],
+    probable: ["probable", "probables"],
+    ambigua: ["ambigua", "ambiguas"],
+    externa: ["externa", "externas"],
+    rutas: ["ruta", "rutas"],
+  };
+
+  /** Texto del tooltip de una flecha del mapa: de dónde a dónde y su desglose. */
+  function edgeTip(src, dst, mix) {
+    const name = (id) => {
+      const n = MAP && MAP.groups[id];
+      if (n) return n.name;
+      return SYMBOLS[id] ? SYMBOLS[id].qualname : id;
+    };
+    const parts = [];
+    for (const k of ["exacta", "probable", "ambigua", "externa", "rutas"]) {
+      const n = mix && mix[k];
+      if (n) parts.push(n + " " + MIX_NAMES[k][n === 1 ? 0 : 1]);
+    }
+    return name(src) + " → " + name(dst) + (parts.length ? "\n" + parts.join(" · ") : "");
+  }
+
   function drawLabel(text, x, y, w, hh, extraClass) {
     return s("g", { class: "etiqueta" + (extraClass ? " " + extraClass : "") },
       s("rect", { x, y, width: w, height: hh, rx: 3 }),
@@ -914,11 +937,18 @@
     svg.appendChild(markers());
     const g = s("g", { class: "vista" });
     const lit = focus ? neighborhood(lay.edges, focus) : null;
-    for (const [src, dst, pts, conf, label, lx, ly, lw, lh] of lay.edges) {
+    for (const [src, dst, pts, conf, label, lx, ly, lw, lh, mix] of lay.edges) {
       const dim = lit && !(lit.has(src) && lit.has(dst)) ? " atenuado" : "";
       const lightEdge = lit && !dim ? " resaltada" : "";
+      const tip = edgeTip(src, dst, mix);
       g.appendChild(s("path", { class: "arista c-" + conf + dim + lightEdge, d: pathFrom(pts), "marker-end": lightEdge ? "url(#punta-foco)" : "url(#punta)" }));
-      if (label) g.appendChild(drawLabel(label, lx, ly, lw, lh, dim.trim()));
+      // Trazo invisible y ancho encima: así es fácil pasar el mouse y ver el desglose.
+      g.appendChild(s("path", { class: "arista-hit", d: pathFrom(pts) }, s("title", null, tip)));
+      if (label) {
+        const lg = drawLabel(label, lx, ly, lw, lh, dim.trim());
+        lg.appendChild(s("title", null, tip));
+        g.appendChild(lg);
+      }
     }
     for (const [nid, kind, x, y, w, hh, label, sub, link] of lay.nodes) {
       const dim = lit && !lit.has(nid) ? " atenuado" : "";

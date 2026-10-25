@@ -4,9 +4,10 @@
 - Un archivo que solo contiene una clase se muestra directamente como esa clase.
 - Las llamadas resueltas se agregan por nivel: en cada grupo se dibuja una arista entre
   los dos hijos que contienen a quien llama y a quien es llamado, con el número de
-  llamadas y la peor confianza. Las llamadas externas no se dibujan.
-- Si un grupo tiene más de 15 hijos se muestran los 14 con más conexiones y un nodo
-  "Otros (N)" que se puede abrir.
+  llamadas, la confianza de la mayoría y el desglose. Las externas no se dibujan.
+- Si un grupo tiene más de 15 hijos se muestran los más conectados y el resto va a
+  grupos "Otros" que se pueden abrir (alfabéticos si son muchos).
+- En un nivel muy denso se dibuja el esqueleto de relaciones más fuertes.
 """
 
 from __future__ import annotations
@@ -16,7 +17,7 @@ import posixpath
 from collections import defaultdict
 from dataclasses import dataclass, field
 
-from desglosa.ir import CONFIDENCE_RANK, Project, Symbol, call_targets
+from desglosa.ir import CONFIDENCE_RANK, CONFIDENCES, Project, Symbol, call_targets
 from desglosa.layout.layered import LEdge, LNode, layout_layered
 from desglosa.layout.text import CHAR_W
 
@@ -190,20 +191,23 @@ class MapBuilder:
     def aggregate(
         self, routes: list[tuple[str, str]] | None = None
     ) -> dict[str, dict[tuple[str, str], list]]:
-        """Grupo → (hijo origen, hijo destino) → [llamadas, peor confianza, rutas].
+        """Grupo → (hijo origen, hijo destino) → [llamadas, {confianza: n}, rutas].
 
         `routes` son pares (archivo de rutas, método destino): se dibujan como "N rutas".
+        La flecha se dibuja con la confianza de la mayoría (ver `_majority`).
         """
         edges: dict[str, dict[tuple[str, str], list]] = defaultdict(dict)
-        links: list[tuple[str | None, str, str, int]] = []  # (origen, destino, confianza, ruta)
+        # Cada enlace: (origen, destinos posibles, confianza, ¿es ruta?).
+        links: list[tuple[str | None, tuple[str, ...], str, int]] = []
         for c in self.project.calls:
             if c.confidence == "externa":
                 continue
             # Una llamada con muchos destinos posibles no dice a cuál va: no se dibuja.
             targets = call_targets(c)
-            links.extend((self._element(c.caller_id), t, c.confidence, 0) for t in targets)
+            if targets:
+                links.append((self._element(c.caller_id), targets, c.confidence, 0))
         for path, target in routes or []:
-            links.append((self.file_element.get(path), target, "exacta", 1))
+            links.append((self.file_element.get(path), (target,), "exacta", 1))
         paths: dict[str, list[str]] = {}  # el camino de cada elemento se repite mucho
 
         def path_of(el: str) -> list[str]:
@@ -212,26 +216,32 @@ class MapBuilder:
                 p = paths[el] = self._path(el)
             return p
 
-        for a, t, conf, is_route in links:
-            b = self._element(t)
-            if a is None or b is None or a == b:
+        for a, targets, conf, is_route in links:
+            if a is None:
                 continue
-            pa, pb = path_of(a), path_of(b)
-            i = 0
-            while i < min(len(pa), len(pb)) and pa[i] == pb[i]:
-                i += 1
-            if i == 0 or i >= len(pa) or i >= len(pb):
-                continue
-            group = pa[i - 1]
-            key = (pa[i], pb[i])
-            cur = edges[group].get(key)
-            if cur is None:
-                edges[group][key] = [1 - is_route, conf, is_route]
-            else:
-                cur[0] += 1 - is_route
-                cur[2] += is_route
-                if CONFIDENCE_RANK[conf] > CONFIDENCE_RANK[cur[1]]:
-                    cur[1] = conf
+            # Una llamada cuenta UNA vez por flecha, aunque varias candidatas caigan en el
+            # mismo destino (p. ej. dos clases de la misma carpeta).
+            hits: set[tuple[str, tuple[str, str]]] = set()
+            for t in targets:
+                b = self._element(t)
+                if b is None or a == b:
+                    continue
+                pa, pb = path_of(a), path_of(b)
+                i = 0
+                while i < min(len(pa), len(pb)) and pa[i] == pb[i]:
+                    i += 1
+                if i == 0 or i >= len(pa) or i >= len(pb):
+                    continue
+                hits.add((pa[i - 1], (pa[i], pb[i])))
+            for group, key in sorted(hits):
+                cur = edges[group].get(key)
+                if cur is None:
+                    cur = edges[group][key] = [0, {}, 0]
+                if is_route:
+                    cur[2] += 1
+                else:
+                    cur[0] += 1
+                    cur[1][conf] = cur[1].get(conf, 0) + 1
         return edges
 
     # ------------------------------------------------------------------ "Otros (N)"
@@ -295,10 +305,10 @@ class MapBuilder:
                     self.groups[c].parent = oid
         g.children = [c for c in g.children if c in keep] + new_ids
         # Repartir las aristas: entre elementos de un mismo grupo quedan dentro de él;
-        # el resto sube al padre, sumando conteos y guardando la peor confianza.
+        # el resto sube al padre, sumando las llamadas de cada confianza.
         parent_edges: dict[tuple[str, str], list] = {}
         inner: dict[str, dict[tuple[str, str], list]] = {oid: {} for oid in new_ids}
-        for (a, b), (count, conf, n_routes) in edges.get(gid, {}).items():
+        for (a, b), (count, confs, n_routes) in edges.get(gid, {}).items():
             ca, cb = container.get(a, a), container.get(b, b)
             if ca == cb and ca in inner:
                 target, key = inner[ca], (a, b)
@@ -306,12 +316,12 @@ class MapBuilder:
                 target, key = parent_edges, (ca, cb)
             cur = target.get(key)
             if cur is None:
-                target[key] = [count, conf, n_routes]
+                target[key] = [count, dict(confs), n_routes]
             else:
                 cur[0] += count
                 cur[2] += n_routes
-                if CONFIDENCE_RANK[conf] > CONFIDENCE_RANK[cur[1]]:
-                    cur[1] = conf
+                for conf, n in confs.items():
+                    cur[1][conf] = cur[1].get(conf, 0) + n
         edges[gid] = parent_edges
         for oid in new_ids:
             edges[oid] = inner[oid]
@@ -379,7 +389,6 @@ class MapBuilder:
             if (a, b) in kept
         ]
         lay = layout_layered(lnodes, ledges)
-        conf = {k: v[1] for k, v in edges.get(gid, {}).items()}
         nodes_out = []
         for c in g.children:
             p = lay.nodes[c]
@@ -391,8 +400,14 @@ class MapBuilder:
             for x, y in e.points:
                 flat.extend((x, y))
             box = e.label_box or (0, 0, 0, 0)
+            count, mix, n_routes = group_edges[(e.src, e.dst)]
+            # Último campo: el desglose por confianza, para el tooltip de la flecha.
+            breakdown = {c: mix[c] for c in CONFIDENCES if mix.get(c)}
+            if n_routes:
+                breakdown["rutas"] = n_routes
             edges_out.append(
-                [e.src, e.dst, flat, conf[(e.src, e.dst)], e.label, box[0], box[1], box[2], box[3]]
+                [e.src, e.dst, flat, _majority(mix), e.label, box[0], box[1], box[2], box[3],
+                 breakdown]
             )
         kinds = {n[1] for n in nodes_out}
         confs = {e[3] for e in edges_out}
@@ -428,6 +443,18 @@ class MapBuilder:
             if kinds.get(k)
         ]
         return " · ".join(parts)
+
+
+def _majority(mix: dict[str, int]) -> str:
+    """Confianza con que se dibuja una flecha agrupada: la de la mayoría de sus llamadas.
+
+    Decisión de Italo (2026-10-25), cambiando la SPEC §6.4 ("peor confianza"): en
+    proyectos grandes una sola llamada dudosa entre cientos dejaba la flecha punteada.
+    En empate gana la menos segura. Sin llamadas (solo rutas) es "exacta".
+    """
+    if not mix:
+        return "exacta"
+    return max(mix.items(), key=lambda kv: (kv[1], CONFIDENCE_RANK[kv[0]]))[0]
 
 
 # Más relaciones que esto por elemento vuelve el nivel ilegible (en Django, 17 carpetas

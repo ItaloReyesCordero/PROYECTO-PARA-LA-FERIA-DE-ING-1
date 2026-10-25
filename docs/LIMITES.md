@@ -25,8 +25,9 @@ que conviene conocer (y explicar en la feria) en vez de esconder.
 ## Mapa
 - En un nivel muy conectado (más de 1,5 relaciones por elemento) se dibuja solo el
   esqueleto de relaciones más fuertes, y el visor dice cuántas se ocultaron.
-- Una flecha del mapa agrupa muchas llamadas y lleva la **peor** confianza de todas
-  (SPEC §6.4): basta una llamada ambigua para que la flecha se vea punteada.
+- Una flecha del mapa agrupa muchas llamadas y se dibuja con la confianza **de la
+  mayoría** (en empate, la menos segura). Una flecha sólida puede incluir algunas
+  llamadas dudosas: el desglose exacto se ve al pasar el mouse por la flecha.
 
 ## Diagramas de flujo
 - **Macros y `#ifdef`** de C/C++/Rust no se expanden: se dibuja el código tal como está.

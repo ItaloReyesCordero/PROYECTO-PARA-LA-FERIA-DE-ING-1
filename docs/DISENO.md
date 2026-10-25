@@ -83,6 +83,10 @@ si el diagrama es muy alto se parte en columnas unidas por conectores numerados.
 | excepción | rojo, guiones 5-4 | camino de un `throw`/`catch` |
 | retorno (secuencia) | guiones 5-4 | respuesta de una llamada |
 
+En el mapa, una flecha agrupa muchas llamadas y toma el estilo de **la mayoría** (en
+empate, la menos segura). Encima va un trazo invisible de 12 px para que sea fácil pasar
+el mouse y leer el desglose ("221 exactas · 82 probables · 364 ambiguas").
+
 ## Tipografía y medidas
 
 - Interfaz: fuente del sistema (`system-ui`, Segoe UI en Windows), 14 px.

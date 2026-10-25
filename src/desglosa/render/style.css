@@ -229,6 +229,7 @@ button, input, select { font: inherit; color: inherit; }
 .arista.c-externa { stroke: var(--c-externo); stroke-width: 1; stroke-dasharray: 1 3; }
 .arista.atenuado, .etiqueta.atenuado { opacity: .15; }
 .arista.resaltada { stroke: var(--foco); stroke-width: 2.4; }
+.arista-hit { fill: none; stroke: transparent; stroke-width: 12; pointer-events: stroke; }
 .punta { fill: var(--linea); }
 .punta-exc { fill: var(--c-excepcion); }
 .punta-foco { fill: var(--foco); }

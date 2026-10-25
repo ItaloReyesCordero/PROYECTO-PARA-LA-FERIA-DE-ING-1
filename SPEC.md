@@ -212,8 +212,8 @@ Para cada `Call` busca candidatos y asigna:
 ### 6.4 `macro.py` — niveles del mapa
 - Niveles: **Proyecto → Módulo (carpeta / namespace / paquete) → Archivo o Clase → Función/Método**.
 - Colapsar cadenas de carpetas con un solo hijo (`src/app/Http` → un nodo).
-- Aristas agregadas por nivel con conteo (`12 llamadas`) y la peor confianza presente.
-- Si un nivel tiene más de **15** hijos: mostrar los 14 con más conexiones + un nodo "Otros (N)" que se puede abrir.
+- Aristas agregadas por nivel con conteo (`12 llamadas`) y la confianza **de la mayoría** de sus llamadas (en empate, la menos segura); al pasar el mouse se ve el desglose (exactas, probables, ambiguas). *Cambio decidido por Italo el 2026-10-25: con "la peor confianza", en proyectos grandes casi todas las flechas salían punteadas.* Una llamada con más de 4 destinos posibles no se cuenta.
+- Si un nivel tiene más de **15** hijos: mostrar los 14 con más conexiones + un nodo "Otros (N)" que se puede abrir. Si lo que sobra no cabe en un solo grupo, se reparte en grupos alfabéticos parejos ("Otros: a… – c… (27)"). En un nivel muy denso (más de 1,5 relaciones por elemento) se dibuja el esqueleto de relaciones más fuertes y se avisa cuántas se ocultan.
 - **Puntos de entrada** (`is_entry`): `main`, bloque `if __name__ == "__main__"`, `public static void main`, `func main`, `fn main`, clases `*Controller` y funciones referenciadas en `routes/*.php` (Laravel: `Route::get('/x', [XController::class, 'metodo'])`).
 - Métricas por función: complejidad ciclomática (decisiones + 1), nº de llamadas entrantes/salientes, líneas.
 
