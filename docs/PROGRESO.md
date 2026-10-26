@@ -448,3 +448,81 @@ uv run desglosa buscar examples/laravel-mini "calcular impuestos"
 uv run desglosa skill install --dir $env:TEMP\skills-prueba
 uv run desglosa analyze examples/laravel-mini -o demo.html   # pestaña Galaxia
 ```
+
+
+## Bloque 3 — Explicar y presentar (lo de Archify, sin IA) ✅
+
+**Qué se hizo**
+- **Mapa de arquitectura** (pestaña Arquitectura y sección del reporte): columnas Rutas →
+  Entrada → Lógica → Datos → Base de datos → Servicios externos. La capa sale de
+  convenciones de nombre y carpeta (`…Controller`, `services/`, `RepositorioCliente`…) y
+  cada componente dice por qué está ahí. Los servicios externos salen de los imports
+  (tabla de 12 servicios). Las pruebas no son una capa.
+- **Trazar una ruta**: «¿cómo llega `store()` a la base de datos?». Camino de llamadas
+  más corto hasta otra función, una tabla o cualquier tabla, paso a paso, con la línea de
+  cada llamada marcada en el código.
+- **Recorrido animado del flujo** (prueba de escritorio): eliges «sí»/«no» en cada rombo
+  o lo dejas en automático. En el `main` del GPS recorre la historia completa en 27 pasos.
+- **Modo presentación**: portada, mapa, arquitectura, galaxia, flujo recorrido solo,
+  secuencia, ruta a la base de datos y ER, con un texto sencillo en cada paso.
+  `#/mapa?presentar=auto` avanza sola y se repite (~80 s con `laravel-mini`).
+- **Mermaid de ida y vuelta**: `desglosa mermaid` y botón del visor (el visor y la CLI dan
+  el mismo texto); `desglosa dibujar` dibuja un diagrama escrito a mano con el estilo de
+  Desglosa (ejemplo: cajero automático).
+- **Estilos** moderno, clásico, pizarra y alto contraste; **minimapa**; SVG/PNG del
+  diagrama completo con título; **PDF** en páginas sin cortar cajas.
+- Pendiente del Bloque 2: los **títulos de los README** como nota de cada carpeta.
+
+**Qué falló / encontré (y se corrigió)**
+- Al releer la propuesta vi que el Bloque 2 había dejado sin hacer los títulos de README
+  en el mapa: se hicieron aquí.
+- Arquitectura de Laravel: 3 668 px de alto e ilegible. Columnas compactas y centradas,
+  puntos de paso de las flechas más juntos y esqueleto de relaciones → 1 372 px.
+- Las clases de prueba (`DatabaseEloquentModelTest`) salían como capa Datos por estar en
+  `tests/Database/`. Ahora las pruebas se separan.
+- En Express las dos capas no tenían ninguna flecha entre sí: ya no se muestra una
+  pestaña de cajas sueltas.
+- El filtro de imports locales tomaba `com.mysql` por algo del proyecto en Java (la
+  carpeta `com/`): ahora compara rutas de al menos dos partes.
+- El recorrido automático con la regla «primero sí, luego no» se iba por el `return` de
+  error y terminaba en 4 pasos; ahora sigue el camino principal.
+- El escape de Mermaid reemplazaba carácter por carácter y rompía sus propios códigos
+  (`->` salía `#gt#59;`): ahora es de una sola pasada. Y `}` dentro de `@{ … }` cortaba
+  la lectura.
+- **Error previo descubierto**: `explain` (y luego `mermaid`) dibujaban el archivo pedido
+  sin los símbolos de los demás, así que una llamada a otro archivo no salía como
+  subproceso y la complejidad podía variar. Lo detectó la comparación visor/CLI.
+- Dos veces un script de parche con `\` dentro de un heredoc no se aplicó; se rehízo con
+  el editor (nunca quedó a medias: el script se detiene antes de escribir).
+- **Rendimiento**: la primera medición dio Laravel 169 s y 73 MB, y Django 100 MB. El
+  tamaño venía del texto Mermaid guardado para cada una de las 23 000 secuencias (20 MB):
+  ahora el visor lo arma desde el dibujo. El tiempo era ruido (los tests corrían a la
+  vez). Comparando en la misma máquina con el código del final del Bloque 2, Laravel
+  tarda lo mismo (86 s antes, 82 s ahora) y pesa 3,4 MB más (55 MB), por la arquitectura
+  y las aristas de los flujos. Django: 106 s y 74 MB; abre en 1,4 s.
+
+**Decisiones (revísalas)**
+1. La arquitectura es una **convención**, no una certeza: se muestra el motivo de cada
+   capa y cuántos componentes quedaron fuera. Las llamadas dentro de una misma capa no se
+   dibujan (cruzarían las cajas).
+2. Exportar a Mermaid usa las formas de **Mermaid 11.3** para pantalla, teclado y
+   documento (las correctas del diagrama de flujo clásico). Un visor de Mermaid antiguo no
+   las dibuja.
+3. `dibujar` acepta **solo diagramas de flujo** de Mermaid (no secuencia ni otros).
+4. El **PDF** lo hace el navegador (sin librerías): «Guardar como PDF» en el diálogo de
+   impresión. Entre páginas va «continúa en la página N» en vez del pentágono
+   `conector_pagina` de la SPEC.
+5. En el visor, el Mermaid de una secuencia se arma desde su dibujo (guardarlo costaba
+   20 MB en Laravel): ahí un `catch` sale como un bloque `alt` propio. La CLI
+   (`desglosa mermaid --secuencia`) usa el modelo completo y lo escribe como `else` del
+   `try`.
+6. La SPEC §11.4 decía «animación descartada por tiempo»: la cambié a «adoptada en el
+   Bloque 3», que aprobaste.
+
+**Probar**
+```powershell
+uv run desglosa analyze examples/laravel-mini -o demo.html   # pestaña Arquitectura, Presentar
+uv run desglosa mermaid examples/laravel-mini FacturacionService.emitir
+uv run desglosa dibujar examples/dibujo/cajero.mmd -o cajero.html
+```
+Y abre `examples/gps-c/desglosa.html`, entra a `main()` y pulsa **▶ Recorrer**.

@@ -354,13 +354,14 @@ La forma del nodo también cambia según el tipo (nunca solo el color). Contrast
 | RF-D04 flujo izq→der, máx. 12 nodos | **Adaptado** | Un diagrama de flujo va de arriba hacia abajo y una función puede tener 60 nodos. Mapa: máx. 15 por nivel + "Otros". Flujo: columnas con conectores. |
 | RF-D05 etiquetas y rutas que no crucen nodos | **Adoptado** | Test automático. Etiquetas: sí/no/caso en flujo; conteo en mapa. |
 | RF-D06 leyenda solo con tipos presentes | **Adoptado** | Test automático. |
-| RF-I01 focus + upstream/downstream | **Adoptado sin animación** | La animación de recorrido se descarta por tiempo. |
+| RF-I01 focus + upstream/downstream | **Adoptado; animación en el Bloque 3** | En la v0.1 la animación se descartó por tiempo. Bloque 3 (aprobado por Italo, 2026-10-25): recorrido del flujo nodo por nodo, trazar ruta paso a paso y presentación guiada. |
 | RF-I02 búsqueda + estado en URL | **Adoptado** | Con nuestras rutas de hash. |
-| RF-I03 export sin estado temporal | **Adoptado (SVG/PNG)** | WebM descartado. |
+| RF-I03 export sin estado temporal | **Adoptado (SVG/PNG; PDF y Mermaid en el Bloque 3)** | WebM descartado. |
 
 ### 11.5 Export (S)
 - Botón "Exportar": SVG de la vista actual (sin estados de focus/hover, con estilos en línea y fondo) y PNG (canvas desde el SVG, escala 2×).
 - CSS de impresión: oculta paneles, imprime el diagrama; el flujo partido en columnas usa `conector_pagina` entre páginas.
+  *Bloque 3: el botón PDF corta el diagrama en páginas A4 en los huecos entre cajas y escribe «continúa en la página N» en lugar del pentágono `conector_pagina` (ver docs/LIMITES.md). El PNG baja de 2× si superaría el límite del navegador.*
 
 ---
 
@@ -405,7 +406,7 @@ M = imprescindible · S = debería · C = opcional
 | RF-15 | S | Reporte `.md`: archivos por lenguaje, funciones más llamadas, funciones nunca llamadas, ciclos, archivos no parseados, complejidad más alta. | Test de secciones. |
 | RF-16 | S | Rutas de Laravel como puntos de entrada. | Fixture `routes/web.php`. |
 | RF-17 | C | `export-ir` JSON. | Golden. |
-| RF-18 | C | Export de un flujo/secuencia a Mermaid. | — |
+| RF-18 | C | Export de un flujo/secuencia a Mermaid. | Hecho en el Bloque 3: `desglosa mermaid` y botón del visor; golden y prueba de ida y vuelta. |
 | RNF-01 | M | Cero IA y cero red en `analyze`. | Test que reemplaza `socket.socket` por uno que lanza excepción durante `analyze`. |
 | RNF-02 | M | Determinista. | Dos ejecuciones → mismo SHA-256 del HTML. |
 | RNF-03 | M | Tolerante a errores de sintaxis y codificación. | Fixture roto no tumba el análisis. |

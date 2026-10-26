@@ -29,6 +29,7 @@ resultado sale por la salida estándar y los avisos por la de errores.
 | Qué hace `X`, quién la llama y a quién llama | `desglosa explain RUTA X --json`                           |
 | Cómo se llega de `A` a `B`                   | `desglosa path RUTA A B --json`                            |
 | Dónde se hace algo descrito con palabras     | `desglosa buscar RUTA "calcular total" --json`             |
+| Un diagrama para mostrar en tu respuesta     | `desglosa mermaid RUTA X` (o `--secuencia`)                |
 | Un HTML interactivo para el usuario          | `desglosa analyze RUTA -o desglosa.html`                   |
 | Un resumen en Markdown                       | `desglosa analyze RUTA -o desglosa.html --report reporte.md` |
 
@@ -41,6 +42,9 @@ Flujo recomendado para una pregunta abierta:
 2. `explain` de la mejor candidata.
 3. `path` si hay que conectar dos puntos.
 4. Abre solo los archivos y líneas que indica el campo `at` para confirmar detalles.
+5. Si un diagrama ayuda a explicar, pega la salida de `desglosa mermaid` en un bloque
+   ```` ```mermaid ````: es el diagrama de flujo (o de secuencia) de la función, con los
+   símbolos clásicos.
 
 ## Códigos de salida
 

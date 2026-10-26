@@ -34,6 +34,8 @@ flowchart LR
 | Rutas | `routes.py` | `routes/*.php` de Laravel → puntos de entrada. |
 | Notas | `notes.py` | comentarios `TODO`, `FIXME`… → `Note` unida a la función o clase que la contiene. |
 | Galaxia | `galaxy.py` | llamadas entre archivos → subsistemas (Louvain) y posiciones de cada archivo. |
+| Arquitectura | `architecture.py`, `services.py` | componentes → capas (por nombre y carpeta) y servicios externos (por imports) → columnas fijas con `layout_layered(fixed=…)`. |
+| Mermaid | `mermaid.py` | flujo o secuencia → texto Mermaid; texto Mermaid → dibujo (`dibujar`) con el layout por capas girado y flechas en ángulo recto. |
 | Visor | `render/` | todo lo anterior → JSON incrustado en `template.html` con `app.js` y `style.css`. |
 | Reporte | `report.py` | análisis → Markdown con métricas. |
 | Consultas | `query.py` | análisis → `explain`, `path` (BFS) y `buscar` (por palabras). |
@@ -134,8 +136,26 @@ flowchart TB
     H --> V2["#/flujo/id"]
     H --> V3["#/secuencia/id"]
     H --> V4["#/er"]
+    H --> V5["#/arquitectura, #/galaxia"]
+    H --> V6["#/ruta/desde/hasta"]
+    H --> V7["#/dibujo"]
 ```
 
-El estado de la vista vive en el hash de la URL (`#/flujo/<id>?modo=facil&tema=claro`),
-así que el botón "atrás" del navegador funciona y un enlace abre exactamente la misma
-vista, incluso con `file://`.
+El estado de la vista vive en el hash de la URL
+(`#/flujo/<id>?modo=facil&tema=claro&estilo=clasico`), así que el botón "atrás" del
+navegador funciona y un enlace abre exactamente la misma vista, incluso con `file://`.
+`?presentar=1` (o `=auto`) abre la presentación guiada.
+
+Lo que se calcula en el navegador y no en Python:
+
+- **Trazar una ruta**: búsqueda en anchura sobre `calls_out` (cada llamada lleva la línea
+  donde ocurre) y `impl` (método de interfaz → implementaciones).
+- **Recorrido del flujo**: sigue las aristas del grafo (`edges` de cada flujo), no las
+  líneas dibujadas. La regla automática cuenta los nodos alcanzables desde cada salida.
+- **Mermaid** de flujos, mapa y arquitectura: las mismas reglas que `mermaid.py` (para
+  un flujo, el visor y `desglosa mermaid` dan el mismo texto; comprobado a mano, no hay
+  test automático de JavaScript). El de una secuencia se arma desde su dibujo (bloques
+  por altura): guardarlo aparte sumaba 20 MB en Laravel.
+- **PDF**: el SVG exportado se corta en páginas A4 en los huecos entre cajas y el
+  navegador lo imprime.
+- **Minimapa**: un `<use href="#contenido">` del mismo diagrama, sin copiarlo.

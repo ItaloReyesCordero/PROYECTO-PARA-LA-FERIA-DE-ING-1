@@ -102,10 +102,62 @@ que conviene conocer (y explicar en la feria) en vez de esconder.
   (`Route::get('/x', function () {…})`) no apuntan a ningún método y se ignoran.
 
 ## Impresión y exportación
-- Al imprimir se oculta la interfaz y queda el diagrama tal como se ve en pantalla; un
-  flujo largo no se reparte en varias páginas con conectores de página (el símbolo
-  `conector_pagina` existe, pero el visor no lo usa todavía).
-- No hay exportación a Mermaid (RF-18, prioridad opcional).
+- El **PDF** lo hace el navegador («Guardar como PDF» en el diálogo de impresión): no hay
+  librería de PDF. Las páginas se cortan en un hueco entre cajas; si una caja es más alta
+  que la página, se corta igual. Entre páginas se escribe «continúa en la página N» en
+  lugar del símbolo `conector_pagina` (pentágono) de la SPEC.
+- Al imprimir se usa fondo blanco: el estilo moderno pasa al tema claro, y pizarra o alto
+  contraste pasan a clásico.
+- El **PNG** de un diagrama enorme baja su escala (de 2× hasta 0,1×) para no superar el
+  límite de los navegadores (~16 000 px por lado): en Django un nivel muy grande puede
+  quedar con letra chica.
+
+## Mermaid
+- La **exportación** usa las formas clásicas de Mermaid y, para pantalla, teclado y
+  documento, las de Mermaid 11.3 (`curv-trap`, `sl-rect`, `doc`): un visor de Mermaid más
+  antiguo no las dibuja. El diagrama lo acomoda Mermaid: no conserva las columnas ni los
+  carriles de los bucles de Desglosa.
+- En la secuencia, los números jerárquicos (1.2.1) van dentro del texto del mensaje, y
+  una llamada a una interfaz se exporta como `alt` con cada implementación. El botón del
+  visor arma el texto desde el dibujo: ahí un `catch` sale como un `alt` propio; con
+  `desglosa mermaid --secuencia` sale como `else` de su `try`.
+- **`dibujar`** entiende solo diagramas de flujo (`flowchart`/`graph`): nodos, formas,
+  flechas con texto, `&`, punteadas y gruesas. Los subgrafos se dibujan sin su recuadro y
+  `classDef`, `style`, `click` se ignoran (con aviso). Los nombres de nodo pueden tener
+  letras, números, `_` y `.`, no guiones.
+- El dibujo usa el layout por capas (no el de los flujos del código): las flechas que
+  vuelven atrás (bucles) suben por el costado y pueden salir del mismo lado por el que
+  entra otra flecha.
+
+## Mapa de arquitectura
+- Las **capas salen de convenciones de nombre y carpeta** (`…Controller`,
+  `services/`, `models/`, también en español: `ServicioPago`, `repositorios/`). Un
+  proyecto que no las sigue queda casi vacío; el visor dice cuántos componentes no se
+  muestran. Es una convención, no una certeza: cada componente dice por qué está en su capa.
+- Las **pruebas** (`…Test`, `test_…`, carpetas `tests/`, `spec/`) no son una capa y no se
+  dibujan.
+- Los **servicios externos** solo se detectan por los imports de una tabla conocida
+  (MySQL, PostgreSQL, SQLite, MongoDB, Redis, SQL/ORM, correo, HTTP, colas, nube, pagos,
+  puerto serie). Una conexión hecha sin importar nada (p. ej. una URL en un archivo de
+  configuración) no aparece. Go `net/http` cuenta como HTTP aunque sea un servidor.
+- Las llamadas dentro de una misma capa no se dibujan (el visor dice cuántas son). Con más
+  de 12 componentes en una columna, el resto va a «Otros (N)»; en diagramas muy
+  conectados se dibuja el esqueleto de relaciones más fuertes.
+
+## Trazar una ruta
+- Es el camino **más corto** por llamadas resueltas (exactas o probables, y de un método
+  de interfaz a sus implementaciones). No sigue llamadas ambiguas ni dinámicas, así que
+  «no hay camino» puede querer decir «no se ve estáticamente».
+- «Cualquier tabla» llega a la primera función que lee o escribe una tabla con SQL en
+  cadenas; las consultas de un ORM no cuentan (ver SQL y entidad-relación).
+
+## Recorrido y presentación
+- El recorrido del flujo **no ejecuta el código**: en modo automático sigue una regla
+  fija (en un bucle entra una vez y sale; en un «si», la salida con más pasos por
+  delante). No conoce los valores de las variables: es una prueba de escritorio guiada,
+  no una simulación. Se detiene a los 400 pasos.
+- La presentación elige el punto de entrada por reglas (rutas web primero, luego `main`;
+  entre ellas, la que llega a la base de datos y tiene más decisiones y llamadas).
 
 ## Tamaño del HTML
 - El HTML lleva todos los diagramas ya calculados, comprimidos: unos 52 MB para Laravel

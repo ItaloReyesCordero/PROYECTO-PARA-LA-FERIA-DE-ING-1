@@ -1985,14 +1985,64 @@
     return out.concat(mmClasses(kinds)).join("\n") + "\n";
   }
 
+  /** Bloque de la secuencia (etiqueta del dibujo: "loop [c]", "alt [c]", "try"…) → Mermaid. */
+  function mmFrag(label) {
+    const m = /^(\w+)(?:\s*\[(.*)\])?$/.exec(label) || [];
+    const kw = m[1];
+    const text = m[2] || "";
+    if (kw === "loop" || kw === "opt") return kw + " " + mmEscape(text);
+    if (kw === "try") return "alt intentar";
+    if (kw === "catch") return "alt " + mmEscape(("excepción " + text).trim());
+    if (kw === "alt") return "alt " + mmEscape(text === "else" ? "si no" : text);
+    return "opt " + mmEscape(label);
+  }
+
+  /** La secuencia que se ve, en Mermaid, reconstruida desde su dibujo (no se guarda aparte:
+   * en Laravel eran 20 MB más). Bloques por su altura: se abren arriba y se cierran abajo. La
+   * CLI (`desglosa mermaid --secuencia`) usa el modelo completo; aquí un `catch` va como un
+   * `alt` propio en vez de `else` del `try`. */
+  function mermaidSequence(sid) {
+    const seq = sequenceOf(sid);
+    if (!seq) return null;
+    const lay = state.showExternal && seq.layout_all ? seq.layout_all : seq.layout;
+    const out = mmHeader("Secuencia de " + SYMBOLS[sid].qualname, "sequenceDiagram");
+    const centers = lay.participants.map(([x, , w]) => x + w / 2);
+    lay.participants.forEach(([, , , , label, kind], i) => {
+      out.push("    " + (kind === "actor" ? "actor" : "participant") + " P" + i + " as " + mmEscape(label));
+    });
+    const who = (x) => {
+      let best = 0;
+      centers.forEach((c, i) => { if (Math.abs(c - x) < Math.abs(centers[best] - x)) best = i; });
+      return "P" + best;
+    };
+    const ev = [];
+    for (const [, y, , hh, label, , divider] of lay.fragments) {
+      ev.push({ y, order: 0, h: hh, text: mmFrag(label) });
+      if (divider !== null && divider !== undefined) ev.push({ y: divider, order: 1 });
+      ev.push({ y: y + hh, order: 3, h: hh });
+    }
+    for (const m of lay.messages) ev.push({ y: m[2], order: 2, msg: m });
+    // A la misma altura: abrir (el de afuera primero), mensajes, cerrar (el de adentro primero).
+    ev.sort((a, b) => a.y - b.y || a.order - b.order || (a.order === 0 ? b.h - a.h : a.h - b.h));
+    let depth = 0;
+    const pad = (d) => "    ".repeat(d + 1);
+    for (const e of ev) {
+      if (e.order === 0) { out.push(pad(depth) + e.text); depth++; }
+      else if (e.order === 1) out.push(pad(depth - 1) + "else si no");
+      else if (e.order === 3) { depth = Math.max(0, depth - 1); out.push(pad(depth) + "end"); }
+      else {
+        const [x1, x2, , text, kind, , conf] = e.msg;
+        const note = kind !== "retorno" && conf && conf !== "exacta" && conf !== "externa" ? " [" + conf + "]" : "";
+        out.push(pad(depth) + who(x1) + (kind === "retorno" ? "-->>" : "->>") + who(x2) + ": " + mmEscape(text + note));
+      }
+    }
+    return out.join("\n") + "\n";
+  }
+
   function mermaidForView() {
     const v = state.view || "mapa";
     if (v === "flujo" && state.id) return mermaidFlow(state.id);
-    if (v === "secuencia" && state.id) {
-      const seq = sequenceOf(state.id);
-      if (!seq) return null;
-      return state.showExternal && seq.mermaid_all ? seq.mermaid_all : seq.mermaid || null;
-    }
+    if (v === "secuencia" && state.id) return mermaidSequence(state.id);
     if (v === "dibujo" && DATA.drawing) return DATA.drawing.source;
     if (v === "arquitectura" && DATA.arch) return mermaidBoxes("Arquitectura de " + ((DATA.meta && DATA.meta.name) || "proyecto"), DATA.arch.nodes, DATA.arch.edges, DATA.arch.columns);
     if (v === "mapa" && MAP) {

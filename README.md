@@ -23,6 +23,21 @@ detalle:
 5. **Galaxia**: todos los archivos del proyecto en una sola vista, agrupados en
    *subsistemas* que se detectan solos (archivos que se llaman mucho entre sí), con los
    archivos centrales marcados por su nombre.
+6. **Arquitectura**: las capas del programa (rutas → controladores → servicios → datos →
+   base de datos) y lo que usa de afuera (MySQL, Redis, correo, APIs…), detectado por
+   nombres, carpetas e imports.
+
+Y para explicarlo:
+
+- **Recorrer un diagrama de flujo** paso a paso, como una prueba de escritorio: en cada
+  rombo eliges «sí» o «no», o lo dejas en automático.
+- **Trazar una ruta**: «¿cómo llega este botón a la base de datos?», resaltada paso a paso.
+- **Modo presentación**: una visita guiada del proyecto que puede avanzar sola (ideal para
+  un stand de feria).
+- **Mermaid de ida y vuelta**: exporta cualquier diagrama a Mermaid, o dibuja tu propio
+  diagrama de flujo escrito en Mermaid con el estilo de Desglosa.
+- **Estilos** moderno, clásico (blanco y negro, como en un libro), pizarra y alto
+  contraste; minimapa; exportar a SVG, PNG o PDF.
 
 Además puedes **preguntarle al código** desde la consola (`explain`, `path`, `buscar`), ver
 las notas `TODO`/`FIXME` de cada función, usarlo en GitHub Actions o dárselo a tu asistente
@@ -41,9 +56,17 @@ Todo sale de **análisis estático**: Desglosa lee el código con
 |---|---|
 | ![Diagrama entidad-relación](https://raw.githubusercontent.com/ItaloReyesCordero/PROYECTO-PARA-LA-FERIA-DE-ING-1/main/docs/img/er.png) | ![Flujo del GPS](https://raw.githubusercontent.com/ItaloReyesCordero/PROYECTO-PARA-LA-FERIA-DE-ING-1/main/docs/img/flujo-gps.png) |
 
-| Galaxia: subsistemas y archivos centrales |
+| Galaxia: subsistemas y archivos centrales | Arquitectura de Spring Petclinic |
+|---|---|
+| ![Vista galaxia](https://raw.githubusercontent.com/ItaloReyesCordero/PROYECTO-PARA-LA-FERIA-DE-ING-1/main/docs/img/galaxia.png) | ![Mapa de arquitectura](https://raw.githubusercontent.com/ItaloReyesCordero/PROYECTO-PARA-LA-FERIA-DE-ING-1/main/docs/img/arquitectura.png) |
+
+| Recorrido paso a paso del `main()` del GPS | «¿Cómo llega `store()` a la base de datos?» |
+|---|---|
+| ![Recorrido animado del flujo](https://raw.githubusercontent.com/ItaloReyesCordero/PROYECTO-PARA-LA-FERIA-DE-ING-1/main/docs/img/recorrido.png) | ![Ruta hasta la base de datos](https://raw.githubusercontent.com/ItaloReyesCordero/PROYECTO-PARA-LA-FERIA-DE-ING-1/main/docs/img/ruta.png) |
+
+| Diagrama escrito en Mermaid, dibujado en estilo clásico |
 |---|
-| ![Vista galaxia](https://raw.githubusercontent.com/ItaloReyesCordero/PROYECTO-PARA-LA-FERIA-DE-ING-1/main/docs/img/galaxia.png) |
+| ![Cajero automático dibujado desde Mermaid](https://raw.githubusercontent.com/ItaloReyesCordero/PROYECTO-PARA-LA-FERIA-DE-ING-1/main/docs/img/dibujo-clasico.png) |
 
 ## Instalación
 
@@ -135,6 +158,12 @@ uv run desglosa sequence examples/laravel-mini --entry FacturaController.store -
 
 # Solo el diagrama entidad-relación
 uv run desglosa sql examples/laravel-mini -o er.html
+
+# El flujo de una función en Mermaid (para un README, Notion o mermaid.live)
+uv run desglosa mermaid examples/laravel-mini FacturacionService.emitir
+
+# Dibujar con el estilo de Desglosa un diagrama de flujo escrito a mano en Mermaid
+uv run desglosa dibujar examples/dibujo/cajero.mmd -o cajero.html
 ```
 
 | Comando | Qué hace |
@@ -148,6 +177,8 @@ uv run desglosa sql examples/laravel-mini -o er.html
 | `explain <ruta> <nombre>` | todo sobre una función o clase: dónde está, quién la llama, a quién llama, complejidad |
 | `path <ruta> <desde> <hasta>` | el camino de llamadas más corto entre dos funciones |
 | `buscar <ruta> "texto"` | busca funciones y clases por palabras (nombre, descripción, archivo) |
+| `mermaid <ruta> <nombre>` | el flujo (o con `--secuencia`, la secuencia) de una función en Mermaid |
+| `dibujar <archivo.mmd>` | dibuja un diagrama de flujo de Mermaid con el estilo de Desglosa (ver abajo) |
 | `export-ir <ruta>` | el modelo intermedio en JSON (ver [docs/IR.md](https://github.com/ItaloReyesCordero/PROYECTO-PARA-LA-FERIA-DE-ING-1/blob/main/docs/IR.md)) |
 | `skill install` / `skill show` | instala o muestra la skill para asistentes de IA |
 | `debug-ast <archivo>` | imprime el árbol sintáctico (para agregar lenguajes) |
@@ -188,6 +219,27 @@ en uno de medio millón de líneas (Django), ~17 s con la caché llena.
 Códigos de salida: `0` bien, `1` error de uso, `2` faltan gramáticas (ejecuta `setup`),
 `3` nombre ambiguo, `4` no encontrado.
 
+### Dibujar un diagrama de flujo escrito a mano
+
+Escribe tu algoritmo en [Mermaid](https://mermaid.js.org/) y Desglosa lo dibuja con los
+símbolos clásicos, en ángulo recto y de arriba hacia abajo:
+
+```
+flowchart TD
+    A([Inicio]) --> B[/Leer la tarjeta/]
+    B --> C@{ shape: manual-input, label: "Ingresar el PIN" }
+    C --> D{"¿PIN correcto?"}
+    D -- no --> C
+    D -- sí --> E@{ shape: display, label: "Bienvenido" }
+    E --> F([Fin])
+```
+
+Formas: `([…])` inicio/fin, `[…]` proceso, `[[…]]` subproceso, `{…}` decisión, `[/…/]`
+entrada/salida, `((…))` conector y, con la sintaxis de Mermaid 11.3, `manual-input`
+(teclado), `display` (pantalla) y `doc` (documento). Flechas `-->`, `-- texto -->`,
+`-->|texto|`, `-.->`, `==>` y `A & B --> C`. Los estilos (`classDef`, `style`) se
+ignoran: el estilo lo pone Desglosa. Ejemplo completo en `examples/dibujo/cajero.mmd`.
+
 ## Cómo se usa el visor
 
 - **Clic** en un elemento del mapa para entrar; las **migas** de arriba sirven para volver.
@@ -195,14 +247,30 @@ Códigos de salida: `0` bien, `1` error de uso, `2` faltan gramáticas (ejecuta 
 - En un flujo, el **clic en un subproceso** (rectángulo con doble línea) abre esa función.
 - **Modo fácil / técnico** (`M`): textos en español ("¿total > 0?", "Para cada item en
   items") o el código literal.
-- `/` buscar · `Esc` subir · `+` `−` `0` zoom · `F` encuadrar · `T` tema · `?` ayuda.
-- Pestañas **Mapa · Galaxia · Entidad-relación**. En la galaxia, el clic en un subsistema
-  de la leyenda lo resalta; el clic en un archivo abre su lugar en el mapa y Alt+clic lo
-  enfoca con sus conexiones.
+- `/` buscar · `Esc` subir · `+` `−` `0` zoom · `F` encuadrar · `T` tema · `S` estilo ·
+  `N` minimapa · `?` ayuda.
+- Pestañas **Mapa · Arquitectura · Galaxia · Entidad-relación**. En la arquitectura, pasa
+  el mouse por un componente para ver *por qué* está en esa capa. En la galaxia, el clic
+  en un subsistema de la leyenda lo resalta; el clic en un archivo abre su lugar en el
+  mapa y Alt+clic lo enfoca con sus conexiones.
+- **▶ Recorrer** (`R`) en un flujo: avanza nodo por nodo y resalta la línea de código. En
+  cada rombo eliges «sí» o «no», o lo dejas en automático: en un bucle entra una vez y
+  sale; en un «si» sigue el camino principal. `←` `→` y espacio controlan el recorrido.
+- **Trazar ruta…** y **¿Cómo llega a la base de datos?** en el panel de una función: el
+  camino de llamadas más corto hasta otra función o una tabla, paso a paso.
+- **Presentar** (`P`): una visita guiada (portada, mapa, arquitectura, galaxia, el flujo
+  de un punto de entrada recorrido solo, su secuencia, su ruta a la base de datos y el
+  ER), con un texto sencillo en cada paso. Abre el HTML con `#/mapa?presentar=auto` y
+  avanza sola y se repite: lista para dejarla en un stand.
 - Panel lateral con el código fuente, las líneas del nodo seleccionado resaltadas, las
   llamadas entrantes y salientes, la complejidad, las notas del código (`TODO`, `FIXME`,
   `HACK`, `XXX`, `BUG`, `NOTE`, `WHY`) y, si existen, la ruta HTTP y las tablas.
-- Botones **SVG** y **PNG** para exportar la vista; también se puede imprimir.
+- **Estilos**: moderno (tema claro u oscuro), clásico (blanco y negro, como en un libro),
+  pizarra y alto contraste. El **minimapa** aparece cuando el diagrama no entra en pantalla.
+- Exportar: **SVG** y **PNG** del diagrama completo (también los muy largos), **PDF**
+  (partido en páginas sin cortar las cajas; elige «Guardar como PDF» en el diálogo de
+  impresión) y **Mermaid**.
+- En las carpetas con un `README`, su título y primera frase aparecen como nota en el mapa.
 
 Las líneas sólidas son relaciones seguras; las punteadas, probables o ambiguas; las grises,
 llamadas fuera del proyecto. Así nunca se presenta una suposición como un hecho.
@@ -213,6 +281,7 @@ llamadas fuera del proyecto. Así nunca se presenta una suposición como un hech
 |---|---|---|
 | [`examples/gps-c/`](https://github.com/ItaloReyesCordero/PROYECTO-PARA-LA-FERIA-DE-ING-1/tree/main/examples/gps-c/) | lectura de un GPS por puerto serie en C: bucles, decisiones, tramas NMEA; el flujo se parte en columnas con conectores | [`desglosa.html`](https://github.com/ItaloReyesCordero/PROYECTO-PARA-LA-FERIA-DE-ING-1/blob/main/examples/gps-c/desglosa.html) |
 | [`examples/laravel-mini/`](https://github.com/ItaloReyesCordero/PROYECTO-PARA-LA-FERIA-DE-ING-1/tree/main/examples/laravel-mini/) | un mini sistema de facturación en Laravel: rutas, controlador, servicio, interfaz de repositorio con implementación MySQL y esquema SQL | [`desglosa.html`](https://github.com/ItaloReyesCordero/PROYECTO-PARA-LA-FERIA-DE-ING-1/blob/main/examples/laravel-mini/desglosa.html) · [`reporte.md`](https://github.com/ItaloReyesCordero/PROYECTO-PARA-LA-FERIA-DE-ING-1/blob/main/examples/laravel-mini/reporte.md) |
+| [`examples/dibujo/`](https://github.com/ItaloReyesCordero/PROYECTO-PARA-LA-FERIA-DE-ING-1/tree/main/examples/dibujo/) | un cajero automático escrito a mano en Mermaid (`cajero.mmd`) y dibujado por Desglosa | [`cajero.html`](https://github.com/ItaloReyesCordero/PROYECTO-PARA-LA-FERIA-DE-ING-1/blob/main/examples/dibujo/cajero.html) |
 
 Descarga el `.html` y ábrelo con doble clic.
 
@@ -242,18 +311,21 @@ simple. Detalles por lenguaje en [docs/ADDING_A_LANGUAGE.md](https://github.com/
 ## Rendimiento
 
 Probado con proyectos reales de GitHub, en un portátil con Windows 11 y 8 núcleos
-(Python 3.14), comando `analyze` completo y sin caché:
+(Python 3.14), comando `analyze` completo y sin caché (medido el 2026-10-26, con todas las
+vistas del Bloque 3):
 
 | Proyecto | Líneas | Análisis | Total | HTML | Abre en el navegador |
 |---|---|---|---|---|---|
-| `examples/laravel-mini` | 260 | 0,1 s | 2 s | 0,1 MB | al instante |
-| [Spring Petclinic](https://github.com/spring-projects/spring-petclinic) (Java) | 4 300 | 1 s | 3 s | 0,3 MB | al instante |
-| [Express](https://github.com/expressjs/express) (JavaScript) | 22 000 | 4 s | 5 s | 0,3 MB | al instante |
-| [Laravel](https://github.com/laravel/framework) (PHP) | 581 000 | 32 s | 72 s | 52 MB | 1,4 s |
-| [Django](https://github.com/django/django) (Python) | 530 000 | 35 s | 90 s | 69 MB | 1,8 s |
+| `examples/laravel-mini` | 260 | 0,1 s | 2 s | 0,2 MB | al instante |
+| [Spring Petclinic](https://github.com/spring-projects/spring-petclinic) (Java) | 4 300 | 1 s | 3 s | 0,4 MB | al instante |
+| [Express](https://github.com/expressjs/express) (JavaScript) | 22 000 | 4 s | 6 s | 0,5 MB | al instante |
+| [Laravel](https://github.com/laravel/framework) (PHP) | 581 000 | 30 s | 82 s | 55 MB | 1,1 s |
+| [Django](https://github.com/django/django) (Python) | 530 000 | 34 s | 106 s | 74 MB | 1,4 s |
 
 "Análisis" es lo que imprime la consola; "Total" incluye generar el HTML. La SPEC pedía
-1 000 archivos en menos de 2 minutos: Laravel tiene 3 030 y Django 2 968.
+1 000 archivos en menos de 2 minutos: Laravel tiene 3 030 y Django 2 968. El visor en sí
+ocupa unos 140 KB de cada HTML; el resto son los datos del proyecto. Lo que más tarda al
+generar el HTML son las secuencias (Laravel tiene 23 000).
 
 - **Con caché**, si cambias un archivo de un proyecto de 200 000 líneas, el análisis baja
   de 13 s a unos 6 s.

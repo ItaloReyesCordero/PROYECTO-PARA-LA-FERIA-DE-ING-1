@@ -11,7 +11,6 @@ from desglosa.galaxy import build_galaxy
 from desglosa.ir import CONFIDENCE_RANK, Symbol
 from desglosa.layout.er import layout_er
 from desglosa.layout.sequence import layout_sequence
-from desglosa.mermaid import sequence_to_mermaid
 from desglosa.pipeline import Analysis
 from desglosa.render.packs import FORMAT, pack, pack_index
 from desglosa.scan import decode_bytes
@@ -297,16 +296,11 @@ def sequence_payload(
             project, {}, sid, depth=depth, routes=routes, new_calls=new_calls, index=index,
             returns=returns,
         )
-        title = f"Secuencia de {by_id[sid].qualname}"
-        plain = without_externals(diagram)
-        # El texto Mermaid sale de aquí (con los bloques if/else reales), no del dibujo.
-        entry = {
-            "layout": _sequence_layout(layout_sequence(plain)),
-            "mermaid": sequence_to_mermaid(plain, title),
-        }
+        # Sin el texto Mermaid: el visor lo arma desde el dibujo. Guardarlo aquí sumaba 20 MB
+        # al HTML de Laravel (23 000 secuencias, con y sin llamadas externas).
+        entry = {"layout": _sequence_layout(layout_sequence(without_externals(diagram)))}
         if any(m.external for m in diagram.messages):
             entry["layout_all"] = _sequence_layout(layout_sequence(diagram))
-            entry["mermaid_all"] = sequence_to_mermaid(diagram, title)
         out[sid] = entry
     return out
 

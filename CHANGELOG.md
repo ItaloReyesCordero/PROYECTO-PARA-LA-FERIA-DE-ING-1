@@ -2,6 +2,29 @@
 
 ## [Sin publicar]
 
+### Bloque 3 — Explicar y presentar: arquitectura, rutas, recorrido, Mermaid y estilos
+- **Mapa de arquitectura**: capas (Rutas → Entrada → Lógica → Datos → Base de datos →
+  Servicios externos) por convenciones de nombre y carpeta, con el motivo de cada una;
+  servicios externos por sus imports (MySQL, PostgreSQL, SQLite, MongoDB, Redis, SQL/ORM,
+  correo, HTTP, colas, nube, pagos, puerto serie). Las pruebas no son una capa. También
+  en el reporte.
+- **Trazar una ruta** en el visor: el camino de llamadas más corto hasta otra función,
+  una tabla o «cualquier tabla», paso a paso y con la línea de cada llamada.
+- **Recorrido animado del flujo** (`R`): prueba de escritorio nodo por nodo, eligiendo
+  «sí»/«no» o en automático.
+- **Modo presentación** (`P`, `#/mapa?presentar=auto`): visita guiada que avanza sola y
+  se repite.
+- **Mermaid**: `desglosa mermaid` y botón en el visor (flujo, secuencia, mapa,
+  arquitectura); `desglosa dibujar` dibuja un flowchart de Mermaid con el estilo de
+  Desglosa. Ejemplo `examples/dibujo/cajero.mmd`.
+- **Estilos** moderno, clásico, pizarra y alto contraste (`S`); **minimapa** (`N`);
+  exportar SVG/PNG del diagrama completo con título y **PDF** en páginas sin cortar cajas.
+- Títulos de los README como notas de cada carpeta en el mapa (pendiente del Bloque 2).
+- Layout por capas: columnas fijas para la arquitectura y cajas centradas con quienes las
+  llaman.
+- Corregido: `explain` y `mermaid` dibujaban el archivo pedido sin los símbolos de los
+  demás (una llamada a otro archivo no salía como subproceso).
+
 ### Bloque 2 — Preguntarle al código, galaxia y distribución
 - Mapa: cada flecha agrupada lleva la confianza de la **mayoría** de sus llamadas; al
   pasar el mouse se ve el desglose (exactas, probables, ambiguas).

@@ -105,4 +105,27 @@ el mouse y leer el desglose ("221 exactas · 82 probables · 364 ambiguas").
 - Enfocar un elemento del mapa (Alt+clic o tecla `E`) resalta en ámbar lo que usa y lo que
   lo usa; el resto queda al 25 % de opacidad.
 - La ayuda (`?`) es un `<dialog>` nativo: atrapa el foco y se cierra con `Esc`.
-- Impresión: se ocultan barras y paneles; solo queda el diagrama sobre fondo blanco.
+- Impresión: se ocultan barras y paneles; solo queda el diagrama sobre fondo blanco. El
+  botón PDF arma páginas A4 que no cortan las cajas.
+- Recorrido del flujo y trazar ruta: el paso actual lleva el borde ámbar de foco y late
+  (se desactiva con `prefers-reduced-motion`); los pasos ya visitados quedan con el borde
+  ámbar al 55 %. La leyenda se oculta mientras dura el recorrido para no tapar el cuadro de
+  pasos.
+- Minimapa: esquina inferior derecha, solo si el diagrama no entra en pantalla; el
+  rectángulo ámbar es lo que se ve.
+
+## Estilos visuales
+
+Cada estilo redefine **todos** los tokens de color (un test lo comprueba); las formas no
+cambian, así que el tipo de nodo se reconoce siempre por la forma.
+
+| Estilo | Para qué | Fondo | Nodos |
+|---|---|---|---|
+| Moderno | uso diario, con tema oscuro o claro | `#0b1120` / `#f8fafc` | colores del mapa semántico |
+| Clásico | imprimir, entregar en un informe, el profesor | blanco, sin rejilla | negro, sin relleno |
+| Pizarra | proyectar en la feria | verde pizarra `#1d3a2f` | tonos de tiza |
+| Alto contraste | baja visión, proyectores con poco brillo | negro | colores puros y trazos de 2,4 px |
+
+En el mapa de arquitectura, los componentes usan los colores de clase, interfaz y punto
+de entrada; la base de datos, el de las tablas (`--c-tabla`); los servicios externos, el
+de lo externo con borde punteado. Las columnas son franjas de `--superficie-2`.
