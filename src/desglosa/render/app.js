@@ -101,6 +101,7 @@
     "uml-hereda": "Hereda de (▷ la base)",
     "uml-implementa": "Implementa (▷ la interfaz)",
     "uml-asociacion": "Asociación: un atributo de ese tipo",
+    "salta-capa": "Se salta una capa (ver Dependencias)",
   };
   const CONF_NAMES = {
     exacta: "Relación exacta",
@@ -269,6 +270,7 @@
     else if (view === "ruta") renderRoute(id);
     else if (view === "dibujo") renderDrawing();
     else if (view === "clases") renderClasses(id);
+    else if (view === "dependencias") renderDeps();
     else renderMap(null);
     renderCrumbs();
     tourHook();
@@ -385,6 +387,7 @@
     else if (state.view === "ruta") renderRoute(state.id);
     else if (state.view === "dibujo") renderDrawing();
     else if (state.view === "clases") renderClasses(state.id);
+    else if (state.view === "dependencias") renderDeps();
     state.selectedNode = keep;
     if (state.tour) paintTour();
   }
@@ -510,6 +513,8 @@
       items.push({ label: "Trazar ruta", hash: buildHash("ruta", state.id) });
     } else if (state.view === "clases") {
       items.push({ label: "Clases" + (state.id && state.id !== "." ? ": " + state.id : ""), hash: buildHash("clases", state.id) });
+    } else if (state.view === "dependencias") {
+      items.push({ label: "Dependencias", hash: buildHash("dependencias", null) });
     }
     items.forEach((it, i) => {
       if (i > 0) nav.appendChild(h("span", { class: "sep", "aria-hidden": "true" }, "›"));
@@ -544,7 +549,7 @@
       else go("mapa", null);
       return;
     }
-    if (["er", "galaxia", "arquitectura", "clases"].includes(state.view)) go("mapa", null);
+    if (["er", "galaxia", "arquitectura", "clases", "dependencias"].includes(state.view)) go("mapa", null);
   }
 
   // ------------------------------------------------------------------ pestañas e info
@@ -555,10 +560,14 @@
     if (!sid) {
       const hasER = DATA.er && DATA.er.tables && DATA.er.tables.length;
       const hasUml = DATA.uml && Object.keys(DATA.uml).length;
-      if (hasER || DATA.galaxy || DATA.arch || hasUml) {
+      if (hasER || DATA.galaxy || DATA.arch || hasUml || DATA.deps) {
         tabs.appendChild(tabButton("Mapa", state.view === "mapa" || !state.view, () => go("mapa", null)));
         if (DATA.arch) tabs.appendChild(tabButton("Arquitectura", state.view === "arquitectura", () => go("arquitectura", null)));
         if (hasUml) tabs.appendChild(tabButton("Clases", state.view === "clases", () => go("clases", null)));
+        if (DATA.deps) {
+          const n = DATA.deps.n_ciclos;
+          tabs.appendChild(tabButton("Dependencias" + (n ? " (" + n + ")" : ""), state.view === "dependencias", () => go("dependencias", null)));
+        }
         if (DATA.galaxy) tabs.appendChild(tabButton("Galaxia", state.view === "galaxia", () => go("galaxia", null)));
         if (hasER) tabs.appendChild(tabButton("Entidad-relación", state.view === "er", () => go("er", null)));
       }
@@ -778,7 +787,7 @@
     const box = h("div", { class: "leyenda", role: "list", "aria-label": "Leyenda" });
     for (const k of kinds) {
       const icon = s("svg", { viewBox: "0 0 26 16", "aria-hidden": "true" });
-      if (k.startsWith("uml-")) {
+      if (k.startsWith("uml-") || k === "salta-capa") {
         icon.appendChild(s("line", { x1: 1, y1: 8, x2: 25, y2: 8, class: "arista " + k }));
       } else if (CONF_NAMES[k]) {
         icon.appendChild(s("line", { x1: 1, y1: 8, x2: 25, y2: 8, class: "arista c-" + k }));
@@ -1310,13 +1319,18 @@
       g.appendChild(s("text", { class: "columna-sub", x: cx, y: 40, "text-anchor": "middle" }, count));
     }
     const lit = focus ? neighborhood(arch.edges, focus) : null;
+    // Llamadas que se saltan una capa (pestaña Dependencias): origen\u0000destino → texto.
+    const skips = new Map((DATA.deps ? DATA.deps.capas : []).map((c) => [c[4] + "\u0000" + c[5], c[0]]));
+    const legend = (arch.legend || []).slice();
     for (const [src, dst, pts, conf, label, lx, ly, lw, lh, mix, back, text] of arch.edges) {
       const dim = lit && !(lit.has(src) && lit.has(dst)) ? " atenuado" : "";
       const lightEdge = lit && !dim ? " resaltada" : "";
+      const skip = skips.get(src + "\u0000" + dst);
+      if (skip && !legend.includes("salta-capa")) legend.push("salta-capa");
       const parts = [];
       for (const k of ["exacta", "probable", "ambigua"]) if (mix && mix[k]) parts.push(mix[k] + " " + MIX_NAMES[k][mix[k] === 1 ? 0 : 1]);
-      const tip = names[src] + " → " + names[dst] + (text ? "\n" + text : "") + (parts.length ? "\n" + parts.join(" · ") : "") + (back ? "\nVa hacia una capa anterior" : "");
-      g.appendChild(s("path", { class: "arista c-" + conf + dim + lightEdge + (back ? " hacia-atras" : ""), d: pathFrom(pts), "marker-end": lightEdge ? "url(#punta-foco)" : "url(#punta)" }));
+      const tip = names[src] + " → " + names[dst] + (text ? "\n" + text : "") + (parts.length ? "\n" + parts.join(" · ") : "") + (back ? "\nVa hacia una capa anterior" : "") + (skip ? "\nSe salta una capa: " + skip : "");
+      g.appendChild(s("path", { class: "arista c-" + conf + dim + lightEdge + (back ? " hacia-atras" : "") + (skip ? " salta-capa" : ""), d: pathFrom(pts), "marker-end": lightEdge ? "url(#punta-foco)" : "url(#punta)" }));
       g.appendChild(s("path", { class: "arista-hit", d: pathFrom(pts) }, s("title", null, tip)));
       if (label) {
         const lg = drawLabel(label, lx, ly, lw, lh, dim.trim());
@@ -1343,7 +1357,7 @@
       });
       g.appendChild(ng);
     }
-    mount(svg, g, arch.w, arch.h, arch.legend || []);
+    mount(svg, g, arch.w, arch.h, legend);
   }
 
   // ------------------------------------------------------------------ vista: trazar una ruta
@@ -2286,6 +2300,73 @@
     mount(svg, g, d.w, d.h, order.filter((k) => kinds.has(k)));
   }
 
+  // ------------------------------------------------------------------ vista: dependencias
+
+  /** Un paso de una dependencia: "archivo:línea  motivo", con enlace a la función. */
+  function depStep(why, at, sid) {
+    const sym = sid ? SYMBOLS[sid] : null;
+    const text = sym && hasFlow(sid) ? h("a", { href: buildHash("flujo", sid) }, why) : why;
+    return h("li", null, h("code", { class: "dep-lugar" }, at), " ", text);
+  }
+
+  function renderDeps() {
+    renderTabs(null);
+    hidePanel();
+    const d = DATA.deps;
+    if (!d) { renderInfo([]); showEmpty("No hay dependencias entre archivos para revisar."); return; }
+    renderInfo([
+      h("strong", null, "Dependencias"), "  ·  " + d.archivos + " archivos, " + d.relaciones + " relaciones",
+      h("div", { class: "pista" }, "Un archivo depende de otro si llama a sus funciones, hereda de sus clases o las usa como tipo. Solo cuentan las llamadas exactas o probables."),
+    ]);
+    const lienzo = $("lienzo");
+    clear(lienzo);
+    minimap = null;
+    currentGroup = null;
+    const doc = h("div", { class: "documento", role: "region", "aria-label": "Dependencias" });
+    const okCycles = !d.n_ciclos;
+    doc.appendChild(h("div", { class: "resumen-deps" },
+      h("div", { class: "tarjeta " + (okCycles ? "bien" : "mal") },
+        h("span", { class: "cifra" }, String(d.n_ciclos)),
+        h("span", null, d.n_ciclos === 1 ? "ciclo" : "ciclos")),
+      h("div", { class: "tarjeta " + (d.n_capas ? "aviso" : "bien") },
+        h("span", { class: "cifra" }, String(d.n_capas)),
+        h("span", null, d.n_capas === 1 ? "capa que se salta" : "capas que se saltan"))));
+
+    doc.appendChild(h("h2", null, "Ciclos"));
+    if (okCycles) {
+      doc.appendChild(h("p", null, "No hay ciclos: ninguna carpeta ni archivo depende, dando la vuelta, de sí mismo. Se puede entender (y probar) cada parte empezando por las de abajo."));
+    } else {
+      doc.appendChild(h("p", { class: "nota-deps" }, "En un ciclo, A depende de B y B (directa o indirectamente) de A: no se puede cambiar ni probar una sin la otra. Se rompe moviendo lo que comparten a un tercer lugar o invirtiendo una dependencia (una interfaz)."));
+      const list = h("ol", { class: "lista-deps" });
+      for (const c of d.ciclos) {
+        const chips = [];
+        c.camino.forEach((p, i) => {
+          if (i) chips.push(h("span", { class: "flecha-dep", "aria-hidden": "true" }, "→"));
+          chips.push(h("span", { class: "chip-dep" }, p || "(raíz)"));
+        });
+        const extra = c.nudo > c.camino.length - 1 ? h("span", { class: "nota" }, " · el nudo completo tiene " + c.nudo + (c.nivel === "carpeta" ? " carpetas" : " archivos")) : null;
+        list.appendChild(h("li", null,
+          h("div", { class: "camino-dep" }, h("span", { class: "nivel-dep" }, c.nivel === "carpeta" ? "carpetas" : "archivos"), chips, extra),
+          h("ul", { class: "pasos-dep" }, c.pasos.map(([why, at, sid]) => depStep(why, at, sid)))));
+      }
+      doc.appendChild(list);
+      if (d.n_ciclos > d.ciclos.length) doc.appendChild(h("p", { class: "nota" }, "… y " + (d.n_ciclos - d.ciclos.length) + " más (desglosa check --json los lista todos)."));
+    }
+
+    doc.appendChild(h("h2", null, "Capas que se saltan"));
+    if (!d.n_capas) {
+      doc.appendChild(h("p", null, "Ninguna. Cuando la entrada (un controlador) llama directo al acceso a datos aunque exista un servicio que ya lo usa, aparece aquí."));
+    } else {
+      const list = h("ul", { class: "lista-deps" });
+      for (const [text, why, at, sid] of d.capas) list.appendChild(h("li", null, h("div", null, text), h("ul", { class: "pasos-dep" }, depStep(why, at, sid))));
+      doc.appendChild(list);
+      if (DATA.arch) doc.appendChild(h("p", { class: "nota" }, "En la pestaña Arquitectura se ven como flechas punteadas de color."));
+    }
+    doc.appendChild(h("h2", null, "En integración continua"));
+    doc.appendChild(h("p", null, "desglosa check RUTA falla (código 5) si aparece un ciclo nuevo. Con --aceptar se guardan los de hoy como aceptados en .desglosa-check.json."));
+    lienzo.appendChild(doc);
+  }
+
   // ------------------------------------------------------------------ vista: entidad-relación
 
   // ------------------------------------------------------------------ vista: galaxia
@@ -2461,6 +2542,7 @@
       case "flujo": return sym ? "Diagrama de flujo · " + sym.qualname + " · " + sym.file + ":" + sym.line_start : name;
       case "secuencia": return sym ? "Diagrama de secuencia · " + sym.qualname : name;
       case "codigo": return sym ? sym.qualname : name;
+      case "dependencias": return "Dependencias · " + name;
       case "pseudo": return sym ? "Pseudocódigo · " + sym.qualname : name;
       case "arquitectura": return "Arquitectura · " + name;
       case "galaxia": return "Galaxia · " + name;

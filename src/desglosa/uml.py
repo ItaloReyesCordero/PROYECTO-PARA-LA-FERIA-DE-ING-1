@@ -202,7 +202,19 @@ def build_class_model(analysis) -> tuple[dict[str, UClass], list[URel]]:
 
     def resolve(name: str, near: UClass) -> UClass | None:
         """Una clase del proyecto con ese nombre: la de la misma carpeta o la única."""
-        cands = by_name.get(normalize_type(name) or name, [])
+        simple = normalize_type(name) or name
+        cands = by_name.get(simple, [])
+        if simple == near.name:
+            # `class Migration(migrations.Migration)`: la base no es otra clase hermana que
+            # se escribe igual (cada archivo de migraciones tiene una).
+            cands = [c for c in cands if name not in bases.get(c.id, [])]
+        parts = re.split(r"\.|::|\\", name.strip("\\"))
+        if len(parts) > 1:  # `models.Model`, `Foo\Bar`: el calificador elige la carpeta
+            qual = parts[-2].lower()
+            narrowed = [c for c in cands if qual in c.file.lower().split("/")
+                        or posixpath.splitext(posixpath.basename(c.file))[0].lower() == qual]
+            if narrowed:
+                cands = narrowed
         same = [c for c in cands if c.folder == near.folder and c.id != near.id]
         if len(same) == 1:
             return same[0]

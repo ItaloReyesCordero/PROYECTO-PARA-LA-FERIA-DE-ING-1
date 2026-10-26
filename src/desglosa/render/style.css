@@ -401,6 +401,31 @@ button, input, select { font: inherit; color: inherit; }
 .ps-cad { color: var(--texto-suave); }
 .ps-com { color: var(--texto-suave); font-style: italic; opacity: .85; }
 
+/* Dependencias: un documento con ciclos y capas que se saltan. */
+.documento { position: absolute; inset: 0; overflow: auto; padding: 18px 28px 40px;
+  color: var(--texto); line-height: 1.5; max-width: 980px; }
+.documento h2 { font-size: 16px; margin: 22px 0 8px; }
+.resumen-deps { display: flex; gap: 12px; flex-wrap: wrap; }
+.tarjeta { display: flex; align-items: baseline; gap: 8px; padding: 10px 16px;
+  border: 1px solid var(--borde); border-radius: 10px; background: var(--superficie-2); }
+.tarjeta .cifra { font-size: 26px; font-weight: 700; }
+.tarjeta.mal .cifra { color: var(--c-excepcion); }
+.tarjeta.aviso .cifra { color: var(--foco); }
+.tarjeta.bien .cifra { color: var(--acento); }
+.lista-deps { padding-left: 22px; }
+.lista-deps > li { margin: 10px 0; }
+.camino-dep { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.chip-dep { font-family: var(--mono); font-size: 12.5px; padding: 2px 8px; border-radius: 6px;
+  border: 1px solid var(--borde); background: var(--superficie-2); }
+.flecha-dep { color: var(--texto-suave); }
+.nivel-dep { font-size: 11px; text-transform: uppercase; letter-spacing: .04em;
+  color: var(--texto-suave); margin-right: 4px; }
+.pasos-dep { margin: 6px 0 0; padding-left: 18px; color: var(--texto-suave); }
+.pasos-dep li { margin: 2px 0; }
+.dep-lugar { font-size: 12px; color: var(--texto-suave); }
+.nota-deps { color: var(--texto-suave); }
+.arista.salta-capa { stroke: var(--foco); stroke-dasharray: 2 4; stroke-width: 2.2; }
+
 /* Diagrama de clases (UML). */
 .uml-estereotipo { fill: var(--texto-suave); font: italic 11px var(--sans); }
 .uml-nombre { fill: var(--texto); font: 600 13px var(--mono); }

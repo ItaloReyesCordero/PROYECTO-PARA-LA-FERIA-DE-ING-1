@@ -22,6 +22,10 @@ inputs:
     description: "Argumentos extra para `desglosa analyze`, separados por espacios (p. ej. --no-cache)."
     required: false
     default: ""
+  check:
+    description: "Si es \"true\", después del análisis ejecuta `desglosa check`: falla si aparece un ciclo de dependencias nuevo."
+    required: false
+    default: "false"
   python-version:
     description: "Versión de Python con la que se ejecuta Desglosa."
     required: false
@@ -73,3 +77,11 @@ runs:
         "${cmd[@]}"
         echo "html=$IN_OUTPUT" >> "$GITHUB_OUTPUT"
         echo "report=$IN_REPORT" >> "$GITHUB_OUTPUT"
+
+    - name: Revisar dependencias (ciclos nuevos)
+      if: ${{ inputs.check == 'true' }}
+      shell: bash
+      env:
+        DESGLOSA_SRC: ${{ github.action_path }}
+        IN_PATH: ${{ inputs.path }}
+      run: uvx --from "$DESGLOSA_SRC" desglosa check "$IN_PATH"

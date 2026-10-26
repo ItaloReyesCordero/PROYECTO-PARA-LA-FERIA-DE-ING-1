@@ -1,7 +1,8 @@
 """Interfaz de línea de comandos de Desglosa (argparse, SPEC §12).
 
 Códigos de salida: 0 ok, 1 error de uso, 2 faltan gramáticas; en las consultas
-(`explain`, `path`, `buscar`) además 3 = nombre ambiguo y 4 = no encontrado.
+(`explain`, `path`, `buscar`) además 3 = nombre ambiguo y 4 = no encontrado; `check`
+devuelve 5 cuando encuentra un ciclo nuevo.
 """
 
 from __future__ import annotations
@@ -21,6 +22,7 @@ EXIT_USAGE = 1
 EXIT_GRAMMARS = 2
 EXIT_AMBIGUOUS = 3  # consultas: el nombre corresponde a varios símbolos
 EXIT_NOT_FOUND = 4  # consultas: no hay símbolo, camino ni resultado
+EXIT_CHECK = 5  # check: hay un ciclo (o una capa saltada) nuevo
 
 
 def _pkg_version(name: str) -> str:
@@ -379,6 +381,73 @@ def cmd_pseudo(args: argparse.Namespace) -> int:
     if args.output != "-":
         print(f"Pseudocódigo escrito en {args.output}")
     return EXIT_OK
+
+
+def cmd_check(args: argparse.Namespace) -> int:
+    from desglosa.deps import (
+        BASE_FILE,
+        cycle_text,
+        dependency_report,
+        load_base,
+        save_base,
+        skip_text,
+    )
+
+    analysis, code = _run_analysis(args, flows=False)
+    if analysis is None:
+        return code
+    report = dependency_report(analysis)
+    base = Path(args.base) if args.base else Path(args.path) / BASE_FILE
+    if args.aceptar:
+        save_base(base, report)
+        print(f"Base guardada en {base}: {len(report.cycles)} ciclos y "
+              f"{len(report.skips)} capas saltadas aceptados.")
+        return EXIT_OK
+    known = load_base(base)
+    new_cycles = [c for c in report.cycles if c.key not in known]
+    new_skips = [s for s in report.skips if s.key not in known]
+    current = {c.key for c in report.cycles} | {s.key for s in report.skips}
+    gone = sorted(k for k in known if k not in current)
+    fails = bool(new_cycles) or (args.capas and bool(new_skips))
+    if args.json:
+        data = {
+            "ok": not fails,
+            "archivos": report.n_files,
+            "relaciones": report.n_edges,
+            "ciclos": [{"clave": c.key, "nivel": c.level, "camino": list(c.path),
+                        "nuevo": c.key not in known,
+                        "pasos": [{"motivo": s.why, "en": s.at} for s in c.steps]}
+                       for c in report.cycles],
+            "capas": [{"clave": s.key, "texto": skip_text(s), "motivo": s.step.why,
+                       "en": s.step.at, "nuevo": s.key not in known} for s in report.skips],
+            "ya_no_estan": gone,
+        }
+        print(json.dumps(data, ensure_ascii=False, indent=2, sort_keys=True))
+        return EXIT_CHECK if fails else EXIT_OK
+    print(f"Dependencias: {report.n_files} archivos, {report.n_edges} relaciones.")
+    old = len(report.cycles) - len(new_cycles)
+    print(f"Ciclos: {len(report.cycles)}" + (f" ({old} ya aceptados en {base.name})"
+                                              if old else ""))
+    for c in new_cycles[:args.limit]:
+        print(f"  NUEVO [{c.level}] {cycle_text(c, '->')}"
+              + (f"  (el nudo tiene {len(c.members)})" if len(c.members) > len(c.path) - 1
+                 else ""))
+        for s in c.steps:
+            print(f"      {s.at}  {s.why}")
+    if len(new_cycles) > args.limit:
+        print(f"  ... y {len(new_cycles) - args.limit} ciclos nuevos más (usa --json)")
+    print(f"Capas que se saltan: {len(report.skips)}")
+    for s in new_skips[:args.limit]:
+        print(f"  {'NUEVO ' if args.capas else ''}{skip_text(s, '->')}")
+        print(f"      {s.step.at}  {s.step.why}")
+    if gone:
+        print(f"Ya no están ({len(gone)}): actualiza la base con --aceptar.")
+    if fails:
+        print("Resultado: FALLA. Rompe el ciclo o, si se acepta, ejecuta "
+              "`desglosa check RUTA --aceptar` y sube la base.")
+    else:
+        print("Resultado: bien, no hay ciclos nuevos.")
+    return EXIT_CHECK if fails else EXIT_OK
 
 
 def cmd_classes(args: argparse.Namespace) -> int:
@@ -784,6 +853,20 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("-o", "--output", default="-", help="archivo .mmd ('-' = pantalla)")
     _add_flow_args(p)
     p.set_defaults(func=cmd_mermaid)
+
+    p = sub.add_parser(
+        "check", aliases=["revisar"],
+        help="ciclos entre carpetas o archivos y capas que se saltan (para CI)",
+    )
+    _add_analysis_args(p)
+    p.add_argument("--base", help="archivo de ciclos aceptados (def. RUTA/.desglosa-check.json)")
+    p.add_argument("--aceptar", action="store_true",
+                   help="guarda lo que hay hoy como aceptado (la base) y termina bien")
+    p.add_argument("--capas", action="store_true",
+                   help="falla también con capas que se saltan nuevas (no solo ciclos)")
+    p.add_argument("--limit", type=int, default=20, help="máximo de casos a mostrar (def. 20)")
+    p.add_argument("--json", action="store_true", help="salida en JSON")
+    p.set_defaults(func=cmd_check)
 
     p = sub.add_parser(
         "pseudo", aliases=["pseudocodigo"],

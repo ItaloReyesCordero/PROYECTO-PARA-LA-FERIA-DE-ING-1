@@ -18,6 +18,14 @@
   `console.log`, `cout`, `scanf`, `input`… Lo que PSeInt no tiene (retornar a mitad,
   `break`, `try`) va como comentario. Se descarga como `.psc`; un archivo entero sale con
   sus funciones y `main` al final.
+- **Dependencias entre módulos** (pestaña «Dependencias», `desglosa check`, sección en el
+  reporte): ciclos entre carpetas y entre archivos (Tarjan) con el camino más corto y la
+  llamada que sostiene cada paso; llamadas de la entrada directo al acceso a datos cuando
+  un servicio ya lo usa (punteadas en Arquitectura). `check` sale con código 5 si aparece
+  un ciclo nuevo; `--aceptar` guarda los actuales en `.desglosa-check.json`. La Action
+  acepta `check: true`.
+- Diagrama de clases: `class Migration(migrations.Migration)` ya no hereda de la migración
+  vecina; el calificador (`migrations.`) elige la carpeta.
 
 ### Bloque 3 — Explicar y presentar: arquitectura, rutas, recorrido, Mermaid y estilos
 - **Mapa de arquitectura**: capas (Rutas → Entrada → Lógica → Datos → Base de datos →

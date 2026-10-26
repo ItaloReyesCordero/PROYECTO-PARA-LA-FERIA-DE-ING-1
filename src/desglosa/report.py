@@ -134,53 +134,53 @@ def _call_graph(
 
 
 def _cycles(edges: dict[str, set[str]]) -> list[list[str]]:
-    """Componentes fuertemente conexos (Tarjan iterativo) con ciclo real."""
-    index: dict[str, int] = {}
-    low: dict[str, int] = {}
-    on_stack: set[str] = set()
-    stack: list[str] = []
-    found: list[list[str]] = []
-    counter = 0
+    """Componentes fuertemente conexos con ciclo real (también la recursión directa)."""
+    from desglosa.deps import strongly_connected
+
     nodes = sorted(set(edges) | {t for ts in edges.values() for t in ts})
-    for root in nodes:
-        if root in index:
-            continue
-        work = [(root, iter(sorted(edges.get(root, ()))))]
-        index[root] = low[root] = counter
-        counter += 1
-        stack.append(root)
-        on_stack.add(root)
-        while work:
-            node, it = work[-1]
-            advanced = False
-            for nxt in it:
-                if nxt not in index:
-                    index[nxt] = low[nxt] = counter
-                    counter += 1
-                    stack.append(nxt)
-                    on_stack.add(nxt)
-                    work.append((nxt, iter(sorted(edges.get(nxt, ())))))
-                    advanced = True
-                    break
-                if nxt in on_stack:
-                    low[node] = min(low[node], index[nxt])
-            if advanced:
-                continue
-            work.pop()
-            if work:
-                parent = work[-1][0]
-                low[parent] = min(low[parent], low[node])
-            if low[node] == index[node]:
-                comp = []
-                while True:
-                    top = stack.pop()
-                    on_stack.discard(top)
-                    comp.append(top)
-                    if top == node:
-                        break
-                if len(comp) > 1 or node in edges.get(node, ()):
-                    found.append(comp)
-    return found
+    adj = {k: sorted(v) for k, v in edges.items()}
+    return [c for c in strongly_connected(nodes, adj)
+            if len(c) > 1 or c[0] in edges.get(c[0], ())]
+
+
+def _dependencies_section(analysis: Analysis, limit: int = 10) -> list[str]:
+    """Ciclos entre carpetas y archivos, y llamadas que se saltan una capa (deps.py)."""
+    from desglosa.deps import cycle_text, dependency_report, skip_text
+
+    report = dependency_report(analysis)
+    if not report.n_edges:
+        return []
+    out = ["## Dependencias entre módulos", ""]
+    out.append(
+        "Un archivo depende de otro si llama a sus funciones (llamadas exactas o probables), "
+        "hereda de sus clases o las usa como tipo. `desglosa check` falla en CI cuando "
+        "aparece un ciclo nuevo."
+    )
+    out.append("")
+    if report.cycles:
+        out.append(
+            f"**Ciclos: {len(report.cycles)}** (entre carpetas: {len(report.folder_cycles)}; "
+            f"entre archivos: {len(report.file_cycles)})."
+        )
+        out.append("")
+        for c in report.cycles[:limit]:
+            names = cycle_text(c).split(" → ")
+            out.append(f"- {c.level.capitalize()}s: " + " → ".join(_code(n) for n in names))
+            for s in c.steps:
+                out.append(f"  - {_code(s.at)} {_cell(s.why)}")
+        if len(report.cycles) > limit:
+            out.append("")
+            out.append(f"… y {len(report.cycles) - limit} más (`desglosa check --json`).")
+    else:
+        out.append("Sin ciclos entre carpetas ni entre archivos.")
+    out.append("")
+    if report.skips:
+        out.append(f"**Capas que se saltan: {len(report.skips)}**")
+        out.append("")
+        for s in report.skips[:limit]:
+            out.append(f"- {_cell(skip_text(s))} ({_code(s.step.at)} {_cell(s.step.why)})")
+        out.append("")
+    return out
 
 
 def build_report(analysis: Analysis, top: int = 10) -> str:
@@ -374,6 +374,7 @@ def build_report(analysis: Analysis, top: int = 10) -> str:
 
     # ------------------------------------------------------------------ arquitectura
     out += _architecture_section(analysis)
+    out += _dependencies_section(analysis)
 
     # ------------------------------------------------------------------ notas
     out += ["## Notas en el código", ""]

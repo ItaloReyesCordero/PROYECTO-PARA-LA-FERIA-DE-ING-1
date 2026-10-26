@@ -144,6 +144,21 @@ que conviene conocer (y explicar en la feria) en vez de esconder.
   de 12 componentes en una columna, el resto va a «Otros (N)»; en diagramas muy
   conectados se dibuja el esqueleto de relaciones más fuertes.
 
+## Dependencias y `check`
+- Una dependencia es una llamada **exacta o probable**, una herencia o un atributo con el
+  tipo de otra clase. Una llamada probable a un método solo cuenta si el archivo que llama
+  nombra esa clase en algún lado (su tipo, un `new`, un import, incluso un comentario):
+  así no cuenta `m.groups()` de una expresión regular que se llama igual que un método del
+  proyecto. Lo dinámico (`getattr`, inyección por nombre, eventos) no se ve.
+- Los imports que no se usan no crean dependencias: solo lo que se llama o se hereda.
+- Se muestra el ciclo más corto de cada «nudo» (componente fuertemente conexo) y cuántos
+  archivos o carpetas tiene el nudo entero. `check` compara nudos: si uno crece, cuenta
+  como nuevo.
+- «Capa que se salta» usa las capas de la arquitectura (convenciones de nombre y carpeta):
+  solo se marca cuando la entrada usa un repositorio o DAO que **ya usa un servicio**, o
+  una tabla que ya maneja un repositorio. Usar un modelo (Active Record) desde un
+  controlador no se marca: en Laravel o Django es lo normal.
+
 ## Pseudocódigo
 - Es una **traducción del texto**, no una ejecución: cada sentencia se reescribe con las
   palabras de PSeInt. Lo que PSeInt no tiene se deja como comentario `//` y el resultado

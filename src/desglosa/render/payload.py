@@ -6,6 +6,8 @@ from collections import defaultdict
 
 from desglosa import __version__
 from desglosa.architecture import build_architecture
+from desglosa.deps import dependency_report
+from desglosa.deps import payload as deps_payload
 from desglosa.flows_stage import cyclomatic
 from desglosa.galaxy import build_galaxy
 from desglosa.ir import CONFIDENCE_RANK, Symbol
@@ -231,6 +233,10 @@ def build_payload(
         index, diagrams = build_uml(analysis, _class_links(map_data, project))
         payload["uml"] = index
         payload["packs"].update({f"@uml/{f}": pack(d) for f, d in diagrams.items()})
+        # Dependencias: ciclos y capas que se saltan (pestaña «Dependencias»).
+        report = dependency_report(analysis)
+        if report.n_edges:
+            payload["deps"] = deps_payload(report)
     if extra:
         payload.update(extra)
     return pack_index(payload)
