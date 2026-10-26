@@ -66,6 +66,47 @@
   color-scheme: light;
 }
 
+/* Estilos visuales (Bloque 3). Cada uno redefine los tokens: las formas no cambian y,
+   dentro de un estilo, un color sigue siendo un significado. */
+[data-estilo="clasico"] {
+  /* Blanco y negro, como en un cuaderno o un libro: el tipo se reconoce por la forma. */
+  --fondo: #ffffff; --rejilla: #ffffff; --superficie: #ffffff; --superficie-2: #f4f4f5;
+  --borde: #a1a1aa; --texto: #111111; --texto-suave: #3f3f46; --linea: #111111;
+  --acento: #1d4ed8; --foco: #b45309;
+  --c-terminal: #111111; --c-proceso: #111111; --c-subproceso: #111111; --c-decision: #111111;
+  --c-es: #111111; --c-teclado: #111111; --c-pantalla: #111111; --c-documento: #111111;
+  --c-excepcion: #111111; --c-externo: #52525b; --c-conector: #111111; --c-modulo: #111111;
+  --c-clase: #111111; --c-funcion: #111111; --c-entrada: #111111; --c-tabla: #111111;
+  --relleno: 0;
+  color-scheme: light;
+}
+[data-estilo="pizarra"] {
+  /* Tiza sobre pizarra verde: para la feria. */
+  --fondo: #1d3a2f; --rejilla: #24473a; --superficie: #1d3a2f; --superficie-2: #234536;
+  --borde: #4b7a66; --texto: #f3f4ee; --texto-suave: #c9d3c8; --linea: #f3f4ee;
+  --acento: #fde68a; --foco: #fde68a;
+  --c-terminal: #bbf7d0; --c-proceso: #e0f2fe; --c-subproceso: #e9d5ff; --c-decision: #fde68a;
+  --c-es: #a5f3fc; --c-teclado: #a5f3fc; --c-pantalla: #fbcfe8; --c-documento: #fbcfe8;
+  --c-excepcion: #fecaca; --c-externo: #cbd5e1; --c-conector: #cbd5e1; --c-modulo: #c7d2fe;
+  --c-clase: #e0f2fe; --c-funcion: #e9d5ff; --c-entrada: #bbf7d0; --c-tabla: #fed7aa;
+  --relleno: 0.06;
+  color-scheme: dark;
+}
+[data-estilo="contraste"] {
+  /* Alto contraste: fondo negro, colores puros y trazos gruesos. */
+  --fondo: #000000; --rejilla: #000000; --superficie: #000000; --superficie-2: #111111;
+  --borde: #ffffff; --texto: #ffffff; --texto-suave: #ffffff; --linea: #ffffff;
+  --acento: #ffff00; --foco: #ffff00;
+  --c-terminal: #00ff88; --c-proceso: #66b3ff; --c-subproceso: #d9a6ff; --c-decision: #ffd400;
+  --c-es: #00e5ff; --c-teclado: #00e5ff; --c-pantalla: #ff66cc; --c-documento: #ff66cc;
+  --c-excepcion: #ff5c5c; --c-externo: #e5e5e5; --c-conector: #e5e5e5; --c-modulo: #a5a8ff;
+  --c-clase: #66b3ff; --c-funcion: #d9a6ff; --c-entrada: #00ff88; --c-tabla: #ffa64d;
+  --relleno: 0.12;
+  color-scheme: dark;
+}
+[data-estilo="contraste"] .nodo .forma, [data-estilo="contraste"] .arista { stroke-width: 2.4; }
+[data-estilo="clasico"] .nodo .forma { stroke-width: 1.8; }
+
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; }
 body {
@@ -353,8 +394,32 @@ button, input, select { font: inherit; color: inherit; }
   border-radius: 6px; padding: 8px; resize: vertical; }
 .acciones-dialogo { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 10px; }
 
+/* Minimapa: esquina inferior derecha, con el rectángulo de lo que se ve. */
+.minimapa { position: absolute; right: 12px; bottom: 12px; padding: 4px; border-radius: 8px;
+  background: var(--superficie); border: 1px solid var(--borde); z-index: 4; }
+.minimapa[hidden] { display: none; }
+.lienzo .minimapa svg { position: static; display: block; cursor: pointer; }
+.minimapa-visor { fill: var(--foco); fill-opacity: .12; stroke: var(--foco); stroke-width: 2;
+  vector-effect: non-scaling-stroke; }
+.minimapa-cerrar { position: absolute; top: -9px; right: -9px; width: 18px; height: 18px;
+  border-radius: 50%; background: var(--superficie); border: 1px solid var(--borde);
+  text-align: center; line-height: 14px; padding: 0; }
+.en-presentacion .minimapa { display: none; }
+
+/* PDF: solo la versión para imprimir, en páginas que no cortan las cajas. */
+#impresion { display: none; }
 @media print {
-  .barra, .panel, .pestanas, .leyenda, .herramientas, .ayuda, .info .pista { display: none !important; }
+  body.imprimiendo { display: block; overflow: visible; height: auto; background: #fff; }
+  body.imprimiendo > :not(#impresion) { display: none !important; }
+  body.imprimiendo #impresion { display: block; }
+  .pagina-impresion { break-after: page; }
+  .pagina-impresion:last-child { break-after: auto; }
+  .pagina-impresion p { font: 10px sans-serif; color: #444; margin: 0 0 4px; }
+  .pagina-impresion svg { display: block; width: 100%; height: auto; }
+}
+
+@media print {
+  .barra, .panel, .pestanas, .leyenda, .minimapa, .herramientas, .ayuda, .info .pista { display: none !important; }
   body { overflow: visible; height: auto; background: #fff; }
   .lienzo { background: #fff; overflow: visible; }
 }

@@ -97,3 +97,18 @@ def test_only_semantic_colors_in_svg_rules():
     rules = re.findall(r"\n(\.(?:nodo|arista|k-|punta|etiqueta)[^{]*)\{([^}]*)\}", CSS)
     for selector, body in rules:
         assert not re.search(r"#[0-9a-fA-F]{3,6}\b", body), f"color fijo en {selector.strip()}"
+
+
+def test_every_visual_style_defines_all_tokens():
+    """Clásico, pizarra y alto contraste redefinen todos los colores: si faltara uno, ese
+    tipo de nodo heredaría el color de otro estilo y se perdería su significado."""
+    for style in ("clasico", "pizarra", "contraste"):
+        tokens = _block(f'[data-estilo="{style}"]')
+        missing = set(DARK) - set(tokens)
+        assert not missing, (style, missing)
+        assert "--relleno" in tokens
+    # En clásico todo es blanco y negro: el tipo se reconoce por la forma.
+    clasico = _block('[data-estilo="clasico"]')
+    assert {clasico[k].strip() for k in DARK if k.startswith("--c-") and k != "--c-externo"} == {
+        "#111111"
+    }

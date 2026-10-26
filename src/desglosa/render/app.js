@@ -123,6 +123,8 @@
     route: null, // vista "Trazar ruta": cadena dibujada y controles
     routeStep: null,
     routeTimer: null,
+    estilo: "moderno", // moderno | clasico | pizarra | contraste
+    minimapOff: false,
     walk: null, // recorrido animado del flujo
     tour: null, // modo presentación
     tourChecked: false,
@@ -184,6 +186,7 @@
     if (focus) p.set("focus", focus);
     if (state.mode !== "facil") p.set("modo", state.mode);
     if (state.theme !== "oscuro") p.set("tema", state.theme);
+    if (state.estilo !== "moderno") p.set("estilo", state.estilo);
     const q = p.toString();
     return q ? out + "?" + q : out;
   }
@@ -213,6 +216,8 @@
     state.theme = r.params.get("tema") === "claro" ? "claro" : "oscuro";
     state.focus = r.params.get("focus");
     document.documentElement.dataset.tema = state.theme;
+    state.estilo = STYLES.includes(r.params.get("estilo")) ? r.params.get("estilo") : "moderno";
+    applyStyle();
     let view = r.view;
     let id = r.id;
     if (!view) {
@@ -290,15 +295,19 @@
       const zoomIn = h("button", { class: "boton", type: "button", title: "Acercar (+)", "aria-label": "Acercar", onclick: () => zoomBy(1.25) }, "+");
       const fitBtn = h("button", { class: "boton", type: "button", title: "Encuadrar (f)", onclick: () => { fit(); apply(); } }, "Encuadrar");
       tools.exportSvg = h("button", { class: "boton", type: "button", title: "Exportar la vista como SVG", onclick: exportSVG }, "SVG");
-      tools.exportPng = h("button", { class: "boton", type: "button", title: "Exportar la vista como PNG", onclick: exportPNG }, "PNG");
+      tools.exportPng = h("button", { class: "boton", type: "button", title: "El diagrama completo como imagen PNG (también los muy largos)", onclick: exportPNG }, "PNG");
+      tools.pdf = h("button", { class: "boton", type: "button", title: "Imprimir o guardar como PDF, en páginas sin cortar las cajas", onclick: printDiagram }, "PDF");
+      tools.style = h("button", { class: "boton", type: "button", title: "Estilo visual: moderno, clásico (blanco y negro), pizarra o alto contraste (s)", onclick: cycleStyle });
       const helpBtn = h("button", { class: "boton", type: "button", title: "Ayuda y atajos de teclado (?)", "aria-label": "Ayuda", onclick: showHelp }, "?");
       const tourBtn = h("button", { class: "boton", type: "button", title: "Presentación guiada del proyecto (p)", onclick: () => (state.tour ? endTour() : startTour(false)) }, "Presentar");
       const mermaidBtn = h("button", { class: "boton", type: "button", title: "Esta vista como texto Mermaid (para README, Notion o mermaid.live)", onclick: showMermaid }, "Mermaid");
-      appendAll(bar, [search, tools.mode, tools.theme, zoomOut, zoomIn, fitBtn, tools.exportSvg, tools.exportPng, mermaidBtn, tourBtn, helpBtn]);
+      appendAll(bar, [search, tools.mode, tools.style, tools.theme, zoomOut, zoomIn, fitBtn, tools.exportSvg, tools.exportPng, tools.pdf, mermaidBtn, tourBtn, helpBtn]);
     }
     tools.mode.textContent = state.mode === "facil" ? "Modo: fácil" : "Modo: técnico";
     tools.mode.setAttribute("aria-pressed", state.mode === "tecnico" ? "true" : "false");
     tools.theme.textContent = state.theme === "oscuro" ? "Tema: oscuro" : "Tema: claro";
+    tools.theme.hidden = state.estilo !== "moderno"; // los demás estilos ya fijan su fondo
+    tools.style.textContent = "Estilo: " + STYLE_NAMES[state.estilo];
   }
 
   // ------------------------------------------------------------------ ayuda
@@ -317,6 +326,8 @@
     ["R", "En un flujo: recorrerlo paso a paso, como una prueba de escritorio"],
     ["P", "Presentación guiada del proyecto (con avance automático para un stand)"],
     ["T", "Tema claro u oscuro"],
+    ["S", "Estilo: moderno, clásico (blanco y negro), pizarra o alto contraste"],
+    ["N", "Mostrar u ocultar el minimapa"],
     ["?", "Mostrar esta ayuda"],
   ];
   let helpDialog = null;
@@ -557,6 +568,8 @@
   }
 
   function showEmpty(message) {
+    minimap = null;
+    currentGroup = null;
     const lienzo = $("lienzo");
     clear(lienzo);
     lienzo.appendChild(h("div", { class: "vacio" }, message));
@@ -569,10 +582,14 @@
   function mount(svg, group, w, hgt, legendKinds, legendNames) {
     const lienzo = $("lienzo");
     clear(lienzo);
-    svg.appendChild(group);
+    // El zoom va en un grupo de afuera: así el minimapa puede reusar el contenido (<use>).
+    group.setAttribute("id", "contenido");
+    const zoom = s("g", { class: "zoom" }, group);
+    svg.appendChild(zoom);
     lienzo.appendChild(svg);
     if (legendKinds && legendKinds.length) lienzo.appendChild(buildLegend(legendKinds, legendNames));
-    currentGroup = group;
+    lienzo.appendChild(buildMinimap(w, hgt));
+    currentGroup = zoom;
     state.size = { w, h: hgt };
     if (!state.keepTransform) fit();
     apply();
@@ -591,6 +608,7 @@
     if (!currentGroup) return;
     const t = state.transform;
     currentGroup.setAttribute("transform", "translate(" + t.x.toFixed(1) + "," + t.y.toFixed(1) + ") scale(" + t.k.toFixed(4) + ")");
+    updateMinimap();
   }
 
   function zoomBy(f, cx, cy) {
@@ -2178,17 +2196,39 @@
 
   // ------------------------------------------------------------------ exportar
 
+  /** Título que acompaña a una imagen o a un PDF: qué diagrama es y de dónde sale. */
+  function viewTitle() {
+    const name = (DATA.meta && DATA.meta.name) || "";
+    const sym = state.id && SYMBOLS[state.id];
+    switch (state.view) {
+      case "flujo": return sym ? "Diagrama de flujo · " + sym.qualname + " · " + sym.file + ":" + sym.line_start : name;
+      case "secuencia": return sym ? "Diagrama de secuencia · " + sym.qualname : name;
+      case "codigo": return sym ? sym.qualname : name;
+      case "arquitectura": return "Arquitectura · " + name;
+      case "galaxia": return "Galaxia · " + name;
+      case "er": return "Entidad-relación · " + name;
+      case "ruta": return "Ruta de llamadas · " + name;
+      case "dibujo": return (DATA.drawing && DATA.drawing.title) || name;
+      default: {
+        const g = MAP && MAP.groups[state.id && MAP.groups[state.id] ? state.id : MAP.root];
+        return "Mapa · " + (g ? g.name : name);
+      }
+    }
+  }
+
+  const EXPORT_HEAD = 40; // franja del título arriba de la imagen
+
+  /** El diagrama completo (no solo lo que se ve) como SVG con estilos en línea y título. */
   function currentSVGString() {
     const svg = $("lienzo").querySelector("svg");
     if (!svg) return null;
     const clone = svg.cloneNode(true);
-    const g = clone.querySelector("g.vista");
-    if (g) g.removeAttribute("transform");
     clone.querySelectorAll(".atenuado").forEach((n) => n.classList.remove("atenuado"));
     clone.querySelectorAll(".seleccionado").forEach((n) => n.classList.remove("seleccionado"));
     clone.querySelectorAll(".resaltada").forEach((n) => n.classList.remove("resaltada"));
-    const w = state.size.w;
-    const hh = state.size.h;
+    clone.querySelectorAll(".actual, .visitado").forEach((n) => n.classList.remove("actual", "visitado"));
+    const w = Math.ceil(state.size.w);
+    const hh = Math.ceil(state.size.h) + EXPORT_HEAD;
     clone.setAttribute("xmlns", SVG_NS);
     clone.setAttribute("width", w);
     clone.setAttribute("height", hh);
@@ -2204,10 +2244,16 @@
       for (const p of props) parts.push(p + ":" + cs.getPropertyValue(p));
       dst[i].setAttribute("style", parts.join(";"));
     }
-    const bg = getComputedStyle(document.body).backgroundColor;
+    const zoom = clone.querySelector("g.zoom");
+    if (zoom) zoom.setAttribute("transform", "translate(0," + EXPORT_HEAD + ")");
+    const body = getComputedStyle(document.body);
     const rect = document.createElementNS(SVG_NS, "rect");
-    setAttrs(rect, { x: 0, y: 0, width: w, height: hh, fill: bg });
+    setAttrs(rect, { x: 0, y: 0, width: w, height: hh, fill: body.backgroundColor });
     clone.insertBefore(rect, clone.firstChild);
+    const title = document.createElementNS(SVG_NS, "text");
+    setAttrs(title, { x: 16, y: 26, style: "font:600 15px " + body.fontFamily + ";fill:" + body.color });
+    title.textContent = viewTitle();
+    clone.insertBefore(title, rect.nextSibling);
     return new XMLSerializer().serializeToString(clone);
   }
 
@@ -2230,22 +2276,162 @@
     if (text) download(exportName("svg"), new Blob([text], { type: "image/svg+xml" }));
   }
 
+  // Los navegadores no dibujan lienzos de más de ~16 000 px por lado ni de más de ~268
+  // millones de píxeles: un flujo muy largo baja su escala en vez de fallar.
+  const CANVAS_SIDE = 16000;
+  const CANVAS_AREA = 2.6e8;
+
   function exportPNG() {
     const text = currentSVGString();
     if (!text) return;
+    const w = Math.ceil(state.size.w);
+    const hh = Math.ceil(state.size.h) + EXPORT_HEAD;
+    const scale = Math.max(0.1, Math.min(2, CANVAS_SIDE / Math.max(w, hh), Math.sqrt(CANVAS_AREA / (w * hh))));
     const img = new Image();
     const url = URL.createObjectURL(new Blob([text], { type: "image/svg+xml" }));
     img.onload = () => {
       const canvas = document.createElement("canvas");
-      canvas.width = Math.ceil(state.size.w * 2);
-      canvas.height = Math.ceil(state.size.h * 2);
+      canvas.width = Math.ceil(w * scale);
+      canvas.height = Math.ceil(hh * scale);
       const ctx = canvas.getContext("2d");
-      ctx.scale(2, 2);
+      ctx.scale(scale, scale);
       ctx.drawImage(img, 0, 0);
       URL.revokeObjectURL(url);
       canvas.toBlob((blob) => { if (blob) download(exportName("png"), blob); }, "image/png");
     };
     img.src = url;
+  }
+
+  // PDF sin librerías: se arma una versión para imprimir, partida en páginas sin cortar
+  // cajas, y el navegador la guarda como PDF ("Guardar como PDF" en el diálogo).
+  const PAGE_RATIO = { portrait: 265 / 186, landscape: 178 / 273 }; // alto/ancho útil (A4)
+
+  function pageCuts(total, slice, intervals) {
+    const cuts = [0];
+    let start = 0;
+    while (total - start > slice) {
+      let cut = start + slice;
+      const blocking = (y) => intervals.find(([a, b]) => a < y && y < b);
+      for (let b = blocking(cut), guard = 0; b && guard < 500; b = blocking(cut), guard++) cut = b[0] - 6;
+      if (cut <= start + slice * 0.3) cut = start + slice; // una caja más alta que la página
+      cuts.push(cut);
+      start = cut;
+    }
+    cuts.push(total);
+    return cuts;
+  }
+
+  function printDiagram() {
+    const root = document.documentElement;
+    const saved = { tema: root.dataset.tema, estilo: root.dataset.estilo };
+    // En papel: fondo blanco (moderno claro, o clásico para pizarra y alto contraste).
+    if (state.estilo === "moderno") root.dataset.tema = "claro";
+    else if (state.estilo !== "clasico") root.dataset.estilo = "clasico";
+    let text = null;
+    try {
+      text = currentSVGString();
+    } finally {
+      root.dataset.tema = saved.tema;
+      if (saved.estilo === undefined) delete root.dataset.estilo;
+      else root.dataset.estilo = saved.estilo;
+    }
+    if (!text) return;
+    const w = Math.ceil(state.size.w);
+    const total = Math.ceil(state.size.h) + EXPORT_HEAD;
+    const orientation = w > total ? "landscape" : "portrait";
+    const intervals = [];
+    document.querySelectorAll("#contenido .nodo, #contenido .galaxia-nodo").forEach((n) => {
+      const b = n.getBBox();
+      intervals.push([b.y + EXPORT_HEAD, b.y + b.height + EXPORT_HEAD]);
+    });
+    const cuts = pageCuts(total, w * PAGE_RATIO[orientation], intervals);
+    const base = new DOMParser().parseFromString(text, "image/svg+xml").documentElement;
+    const box = h("div", { id: "impresion" }, h("style", null, "@page { size: A4 " + orientation + "; margin: 12mm; }"));
+    const n = cuts.length - 1;
+    for (let i = 0; i < n; i++) {
+      const y0 = cuts[i];
+      const sh = cuts[i + 1] - y0;
+      const page = document.importNode(base, true);
+      setAttrs(page, { width: w, height: sh, viewBox: "0 " + y0 + " " + w + " " + sh });
+      const note = n > 1 ? "Página " + (i + 1) + " de " + n + (i < n - 1 ? " · continúa en la página " + (i + 2) : "") : "";
+      box.appendChild(h("div", { class: "pagina-impresion" }, note ? h("p", null, note) : null, page));
+    }
+    document.body.appendChild(box);
+    document.body.classList.add("imprimiendo");
+    const done = () => {
+      document.body.classList.remove("imprimiendo");
+      box.remove();
+      window.removeEventListener("afterprint", done);
+    };
+    window.addEventListener("afterprint", done);
+    window.print();
+    setTimeout(done, 0); // por si el navegador no avisa "afterprint"
+  }
+
+  // ------------------------------------------------------------------ minimapa
+
+  let minimap = null; // { box, rect, w, h }
+
+  function buildMinimap(w, hh) {
+    const scale = Math.min(180 / w, 130 / hh);
+    const mw = Math.max(40, Math.round(w * scale));
+    const mh = Math.max(30, Math.round(hh * scale));
+    const svg = s("svg", { viewBox: "0 0 " + w + " " + hh, style: "width:" + mw + "px;height:" + mh + "px", role: "img", "aria-label": "Minimapa" });
+    svg.appendChild(s("use", { href: "#contenido" }));
+    const rect = s("rect", { class: "minimapa-visor" });
+    svg.appendChild(rect);
+    const close = h("button", { class: "boton-limpio minimapa-cerrar", type: "button", title: "Ocultar el minimapa (n)", "aria-label": "Ocultar el minimapa",
+      onclick: (e) => { e.stopPropagation(); state.minimapOff = true; updateMinimap(); } }, "×");
+    const box = h("div", { class: "minimapa", title: "Minimapa: clic o arrastra para moverte" }, svg, close);
+    let dragging = false;
+    const moveTo = (e) => {
+      const r = svg.getBoundingClientRect();
+      const L = $("lienzo").getBoundingClientRect();
+      const cx = ((e.clientX - r.left) / r.width) * w;
+      const cy = ((e.clientY - r.top) / r.height) * hh;
+      state.transform.x = L.width / 2 - cx * state.transform.k;
+      state.transform.y = L.height / 2 - cy * state.transform.k;
+      apply();
+    };
+    svg.addEventListener("pointerdown", (e) => { dragging = true; svg.setPointerCapture(e.pointerId); moveTo(e); });
+    svg.addEventListener("pointermove", (e) => { if (dragging) moveTo(e); });
+    svg.addEventListener("pointerup", () => { dragging = false; });
+    // Que el lienzo no arrastre ni suba de nivel por un clic en el minimapa.
+    for (const ev of ["pointerdown", "dblclick", "wheel"]) box.addEventListener(ev, (e) => e.stopPropagation());
+    minimap = { box, rect, w, h: hh };
+    return box;
+  }
+
+  /** Solo se muestra si el diagrama no entra entero en pantalla. */
+  function updateMinimap() {
+    if (!minimap) return;
+    const L = $("lienzo").getBoundingClientRect();
+    const t = state.transform;
+    const vx = -t.x / t.k;
+    const vy = -t.y / t.k;
+    const vw = L.width / t.k;
+    const vh = L.height / t.k;
+    const fits = vx <= 1 && vy <= 1 && vx + vw >= minimap.w - 1 && vy + vh >= minimap.h - 1;
+    minimap.box.hidden = state.minimapOff || fits;
+    setAttrs(minimap.rect, { x: vx.toFixed(1), y: vy.toFixed(1), width: vw.toFixed(1), height: vh.toFixed(1) });
+  }
+
+  // ------------------------------------------------------------------ estilos visuales
+
+  const STYLES = ["moderno", "clasico", "pizarra", "contraste"];
+  const STYLE_NAMES = { moderno: "moderno", clasico: "clásico", pizarra: "pizarra", contraste: "alto contraste" };
+
+  function cycleStyle() {
+    state.estilo = STYLES[(STYLES.indexOf(state.estilo) + 1) % STYLES.length];
+    applyStyle();
+    syncHash();
+    renderToolbar();
+  }
+
+  function applyStyle() {
+    const root = document.documentElement;
+    if (state.estilo === "moderno") delete root.dataset.estilo;
+    else root.dataset.estilo = state.estilo;
   }
 
   // ------------------------------------------------------------------ teclado
@@ -2285,6 +2471,8 @@
       else if (e.key === "Escape" && state.focus && (["mapa", "galaxia", "arquitectura"].includes(state.view) || !state.view)) toggleFocus(state.focus);
       else if (e.key === "Escape") goUp();
       else if (e.key === "t") toggleTheme();
+      else if (e.key === "s") cycleStyle();
+      else if (e.key === "n") { state.minimapOff = !state.minimapOff; updateMinimap(); }
       else if (e.key === "m") toggleMode();
       else if (e.key === "+" || e.key === "=") zoomBy(1.25);
       else if (e.key === "-") zoomBy(1 / 1.25);
@@ -2308,7 +2496,7 @@
       SYMBOLS = DATA.symbols || {};
       MAP = DATA.map || null;
       window.addEventListener("hashchange", render);
-      window.addEventListener("resize", () => { if (!state.keepTransform) { fit(); apply(); } });
+      window.addEventListener("resize", () => { if (!state.keepTransform) fit(); apply(); });
       render();
     },
     (err) => showEmpty(err && err.message === "navegador-antiguo" ? OLD_BROWSER : "No se pudieron abrir los datos del proyecto."),
