@@ -201,12 +201,28 @@ def _pick_one(analysis, name: str, kinds=None):
     return cands[0], EXIT_OK
 
 
-def cmd_explain(args: argparse.Namespace) -> int:
+def _file_flows(analysis, sym, args: argparse.Namespace) -> None:
+    """Dibuja solo los flujos del archivo de `sym` (no los de todo el proyecto): en Django
+    eso evita cargar 1 700 archivos de flujos para una consulta."""
     from desglosa.flows_stage import build_file_flows, make_tasks
+
+    # Todos los símbolos: una llamada a otro archivo tiene que verse como subproceso.
+    # Armar las tareas es barato; lo caro (dibujar) se hace solo para este archivo.
+    tasks = make_tasks(
+        str(analysis.scan.root),
+        list(analysis.project.symbols),
+        list(analysis.project.calls),
+        args.max_flow_nodes,
+        args.flow_max_height,
+    )
+    for task in (t for t in tasks if t.path == sym.file):
+        for out in build_file_flows(task):
+            analysis.flows[out.graph.symbol_id] = out
+
+
+def cmd_explain(args: argparse.Namespace) -> int:
     from desglosa.query import explain, format_explain
 
-    # Sin flujos de todo el proyecto: solo se dibuja el archivo de la función pedida (para
-    # su complejidad). En Django eso evita cargar 1 700 archivos de flujos.
     analysis, code = _run_analysis(args, flows=False)
     if analysis is None:
         return code
@@ -214,16 +230,7 @@ def cmd_explain(args: argparse.Namespace) -> int:
     if sym is None:
         return code
     if sym.kind in ("function", "method"):
-        tasks = make_tasks(
-            str(analysis.scan.root),
-            [s for s in analysis.project.symbols if s.file == sym.file],
-            list(analysis.project.calls),
-            args.max_flow_nodes,
-            args.flow_max_height,
-        )
-        for task in tasks:
-            for out in build_file_flows(task):
-                analysis.flows[out.graph.symbol_id] = out
+        _file_flows(analysis, sym, args)  # para su complejidad
     info = explain(analysis, sym)
     _emit(args, info, format_explain(info))
     return EXIT_OK
@@ -276,6 +283,77 @@ def cmd_search(args: argparse.Namespace) -> int:
     ]
     _emit(args, data, format_search(hits))
     return EXIT_OK if hits else EXIT_NOT_FOUND
+
+
+# --------------------------------------------------------------------------- Mermaid
+
+
+def cmd_mermaid(args: argparse.Namespace) -> int:
+    from desglosa.mermaid import flow_to_mermaid, sequence_to_mermaid
+    from desglosa.sequence import build_sequence, without_externals
+
+    # La secuencia necesita saber qué funciones devuelven algo: ahí sí van todos los flujos.
+    analysis, code = _run_analysis(args, flows=args.secuencia)
+    if analysis is None:
+        return code
+    sym, code = _pick_one(analysis, args.name, ("function", "method"))
+    if sym is None:
+        return code
+    if args.secuencia:
+        routes = {r.symbol_id: f"{r.verb} {r.path}" for r in analysis.routes if r.symbol_id}
+        diagram = build_sequence(
+            analysis.project, {k: v.graph for k, v in analysis.flows.items()}, sym.id,
+            depth=args.depth, routes=routes, new_calls=analysis.new_calls,
+        )
+        if not args.externas:
+            diagram = without_externals(diagram)
+        text = sequence_to_mermaid(diagram, title=f"Secuencia de {sym.qualname}")
+    else:
+        _file_flows(analysis, sym, args)
+        flow = analysis.flows.get(sym.id)
+        if flow is None or not flow.graph.nodes:
+            print(f"{sym.qualname} no tiene cuerpo para dibujar.", file=sys.stderr)
+            return EXIT_NOT_FOUND
+        text = flow_to_mermaid(flow.graph, technical=args.tecnico, title=sym.qualname)
+    _write_text(args.output, text)
+    if args.output != "-":
+        print(f"Mermaid escrito en {args.output}")
+    return EXIT_OK
+
+
+def cmd_draw(args: argparse.Namespace) -> int:
+    from desglosa.mermaid import MermaidError, drawing_payload, parse_mermaid
+    from desglosa.render.html import render_html
+    from desglosa.render.packs import FORMAT
+    from desglosa.scan import decode_bytes
+
+    if args.file == "-":
+        text = sys.stdin.read()
+        name = "dibujo"
+    else:
+        source = Path(args.file)
+        if not source.is_file():
+            print(f"No existe el archivo: {source}", file=sys.stderr)
+            return EXIT_USAGE
+        text = decode_bytes(source.read_bytes())[0]
+        name = source.stem
+    try:
+        drawing = parse_mermaid(text)
+    except MermaidError as exc:
+        print(f"No pude leer el diagrama: {exc}", file=sys.stderr)
+        return EXIT_USAGE
+    title = args.titulo or drawing.title or name
+    payload = {
+        "meta": {"name": title, "version": __version__, "start": "#/dibujo",
+                 "generator": "Desglosa", "format": FORMAT},
+        "drawing": drawing_payload(drawing, text),
+    }
+    _write_text(args.output, render_html(payload, f"{title} — Desglosa"))
+    for w in drawing.warnings:
+        print(f"  Aviso: {w}")
+    print(f"Diagrama: {len(drawing.nodes)} nodos, {len(drawing.edges)} flechas.")
+    print(f"HTML escrito en {args.output}")
+    return EXIT_OK
 
 
 # --------------------------------------------------------------------------- skill
@@ -599,6 +677,26 @@ def build_parser() -> argparse.ArgumentParser:
     _add_flow_args(p)
     p.add_argument("-o", "--output", default="flujo.html", help="archivo HTML de salida")
     p.set_defaults(func=cmd_flow)
+
+    p = sub.add_parser("mermaid", help="el flujo (o la secuencia) de una función en Mermaid")
+    _add_analysis_args(p)
+    p.add_argument("name", metavar="nombre", help="Clase.metodo, funcion o archivo:Nombre")
+    p.add_argument("--secuencia", action="store_true", help="diagrama de secuencia")
+    p.add_argument("--depth", type=int, default=4, help="profundidad de la secuencia (def. 4)")
+    p.add_argument("--externas", action="store_true", help="incluir llamadas externas")
+    p.add_argument("--tecnico", action="store_true", help="textos con el código literal")
+    p.add_argument("-o", "--output", default="-", help="archivo .mmd ('-' = pantalla)")
+    _add_flow_args(p)
+    p.set_defaults(func=cmd_mermaid)
+
+    p = sub.add_parser(
+        "dibujar", aliases=["draw"],
+        help="dibuja un diagrama de flujo escrito en Mermaid con el estilo de Desglosa",
+    )
+    p.add_argument("file", metavar="archivo.mmd", help="texto Mermaid ('-' = entrada estándar)")
+    p.add_argument("-o", "--output", default="dibujo.html", help="archivo HTML de salida")
+    p.add_argument("--titulo", help="título del diagrama")
+    p.set_defaults(func=cmd_draw)
 
     p = sub.add_parser("skill", help="skill para asistentes de IA (Claude Code y compatibles)")
     p.set_defaults(func=_help_of(p))

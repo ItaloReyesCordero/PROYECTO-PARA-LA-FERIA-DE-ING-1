@@ -342,6 +342,17 @@ button, input, select { font: inherit; color: inherit; }
 .presentacion.portada p { font-size: 17px; margin: 0 0 18px; color: var(--texto); }
 .presentacion.portada .presentacion-controles { justify-content: center; }
 
+/* Dibujos desde Mermaid: flechas punteadas y gruesas. */
+.arista.k-punteada { stroke-dasharray: 5 4; }
+.arista.k-gruesa { stroke-width: 2.6; }
+
+/* Exportar a Mermaid. */
+.dialogo-mermaid { width: min(760px, calc(100% - 32px)); max-width: min(760px, calc(100% - 32px)); }
+.texto-mermaid { display: block; width: 100%; box-sizing: border-box; font: 12px/1.45 var(--mono);
+  background: var(--superficie-2); color: var(--texto); border: 1px solid var(--borde);
+  border-radius: 6px; padding: 8px; resize: vertical; }
+.acciones-dialogo { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 10px; }
+
 @media print {
   .barra, .panel, .pestanas, .leyenda, .herramientas, .ayuda, .info .pista { display: none !important; }
   body { overflow: visible; height: auto; background: #fff; }

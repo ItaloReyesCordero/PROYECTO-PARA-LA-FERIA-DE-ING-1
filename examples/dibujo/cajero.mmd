@@ -1,0 +1,22 @@
+---
+title: Cajero automático
+---
+%% Diagrama de flujo escrito a mano en Mermaid.
+%% Dibujarlo con el estilo de Desglosa:  desglosa dibujar cajero.mmd -o cajero.html
+flowchart TD
+    A([Inicio]) --> B[intentos = 0]
+    B --> C[/Leer la tarjeta/]
+    C --> D@{ shape: manual-input, label: "Ingresar el PIN" }
+    D --> E{"¿PIN correcto?"}
+    E -- no --> F[intentos = intentos + 1]
+    F --> G{"¿intentos < 3?"}
+    G -- sí --> D
+    G -- no --> H@{ shape: display, label: "Tarjeta retenida" }
+    H --> Z([Fin])
+    E -- sí --> I@{ shape: manual-input, label: "Ingresar el monto" }
+    I --> J{"¿monto <= saldo?"}
+    J -- no --> K@{ shape: display, label: "Saldo insuficiente" }
+    K --> I
+    J -- sí --> L[[Entregar los billetes]]
+    L --> M@{ shape: doc, label: "Imprimir el comprobante" }
+    M --> Z

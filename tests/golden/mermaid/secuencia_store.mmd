@@ -1,0 +1,49 @@
+---
+title: "Secuencia de FacturaController.store"
+---
+sequenceDiagram
+    actor P0 as Usuario
+    participant P1 as FacturaController
+    participant P2 as FacturacionService
+    participant P3 as CalculadoraImpuestos
+    participant P4 as Factura
+    participant P5 as MySqlFacturaRepository
+    participant P6 as Externo
+    P0->>P1: 1: POST /facturas → store()
+    P1->>P6: 1.1: validate()
+    alt intentar
+        P1->>P2: 1.2: emitir() [probable]
+        P2->>P6: 1.2.1: count()
+        opt count($items) === 0
+            P2->>P6: 1.2.2: new DomainException()
+        end
+        P2->>P3: 1.2.3: aplicar() [probable]
+        alt otro
+            P3->>P6: 1.2.3.1: new DomainException()
+        end
+        P3->>P6: 1.2.3.2: round()
+        P3-->>P2: retorna
+        P2->>P4: 1.2.4: new Factura()
+        P2->>P5: 1.2.5: guardar() [probable]
+        P5->>P6: 1.2.5.1: beginTransaction()
+        alt intentar
+            P5->>P6: 1.2.5.2: prepare()
+            P5->>P6: 1.2.5.3: execute()
+            P5->>P6: 1.2.5.4: lastInsertId()
+            loop foreach ($factura-#gt;items as $item)
+                P5->>P6: 1.2.5.5: prepare()
+                P5->>P6: 1.2.5.6: execute()
+            end
+            P5->>P6: 1.2.5.7: commit()
+        else excepción PDOException
+            P5->>P6: 1.2.5.8: rollBack()
+        end
+        P2-->>P1: retorna
+    else excepción DomainException
+        P1->>P6: 1.3: response()
+        P1->>P6: 1.4: json()
+        P1->>P6: 1.5: getMessage()
+    end
+    P1->>P6: 1.6: response()
+    P1->>P6: 1.7: json()
+    P1-->>P0: retorna

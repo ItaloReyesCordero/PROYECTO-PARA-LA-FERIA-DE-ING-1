@@ -111,7 +111,10 @@ def _layers(order: list[str], dag: dict[str, list[str]]) -> dict[str, int]:
 
 
 def layout_layered(
-    nodes: list[LNode], edges: list[LEdge], fixed: dict[str, int] | None = None
+    nodes: list[LNode],
+    edges: list[LEdge],
+    fixed: dict[str, int] | None = None,
+    layer_gap: float = LAYER_GAP,
 ) -> LayeredLayout:
     """Layout por capas. Con `fixed` (nodo → columna) las capas no se calculan: cada nodo
     va a su columna (mapa de arquitectura). Las aristas hacia una columna anterior se
@@ -202,23 +205,30 @@ def layout_layered(
     x = float(MARGIN)
     for w in col_w:
         xs.append(x)
-        x += w + LAYER_GAP
+        x += w + layer_gap
     pos_y: dict[str, float] = {}
     for li, row in enumerate(layers):
-        y = float(MARGIN)
+        y: float | None = None  # siguiente lugar libre de la capa (None: el primero)
         for n in row:
             h = sizes[n][1]
-            desired = y
+            desired = float(MARGIN) if y is None else y
             # Con columnas fijas no se acerca cada nodo a sus vecinos: en proyectos grandes
             # ese corrimiento se acumula y el diagrama queda altísimo (Laravel: 3 600 px).
             if li > 0 and fixed is None:
                 ns = [pos_y[m] + sizes[m][1] / 2 for m in up[n] if m in pos_y]
                 if ns:
-                    desired = max(y, sum(ns) / len(ns) - h / 2)
+                    # Centrado con quienes lo llaman; el primero de la capa puede quedar
+                    # más arriba que el margen (se corrige al final, moviendo todo).
+                    target = sum(ns) / len(ns) - h / 2
+                    desired = target if y is None else max(y, target)
             pos_y[n] = desired
             # Los puntos de paso de las flechas largas van más juntos con columnas fijas.
             gap = VIRTUAL_GAP if fixed is not None and n.startswith("~v") else NODE_GAP
             y = desired + h + gap
+    low = min(pos_y.values(), default=MARGIN)
+    if low < MARGIN:
+        for n in pos_y:
+            pos_y[n] += MARGIN - low
     if fixed is not None and layers:
         # Columnas compactas y centradas en vertical respecto de la más alta.
         bottoms = [max((pos_y[n] + sizes[n][1] for n in row), default=MARGIN) for row in layers]
@@ -237,7 +247,7 @@ def layout_layered(
             px = xs[li] + (col_w[li] - w) / 2
             placed[n] = Placed(n, round(px, 1), round(pos_y[n], 1), w, h)
 
-    graph_w = (x - LAYER_GAP + MARGIN) if layers else 0.0
+    graph_w = (x - layer_gap + MARGIN) if layers else 0.0
     graph_h = max((p.y + p.h for p in placed.values()), default=0.0) + MARGIN
 
     out_edges: list[PlacedEdge] = []

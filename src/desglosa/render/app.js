@@ -257,6 +257,7 @@
     else if (view === "galaxia") renderGalaxy();
     else if (view === "arquitectura") renderArch();
     else if (view === "ruta") renderRoute(id);
+    else if (view === "dibujo") renderDrawing();
     else renderMap(null);
     renderCrumbs();
     tourHook();
@@ -292,7 +293,8 @@
       tools.exportPng = h("button", { class: "boton", type: "button", title: "Exportar la vista como PNG", onclick: exportPNG }, "PNG");
       const helpBtn = h("button", { class: "boton", type: "button", title: "Ayuda y atajos de teclado (?)", "aria-label": "Ayuda", onclick: showHelp }, "?");
       const tourBtn = h("button", { class: "boton", type: "button", title: "Presentación guiada del proyecto (p)", onclick: () => (state.tour ? endTour() : startTour(false)) }, "Presentar");
-      appendAll(bar, [search, tools.mode, tools.theme, zoomOut, zoomIn, fitBtn, tools.exportSvg, tools.exportPng, tourBtn, helpBtn]);
+      const mermaidBtn = h("button", { class: "boton", type: "button", title: "Esta vista como texto Mermaid (para README, Notion o mermaid.live)", onclick: showMermaid }, "Mermaid");
+      appendAll(bar, [search, tools.mode, tools.theme, zoomOut, zoomIn, fitBtn, tools.exportSvg, tools.exportPng, mermaidBtn, tourBtn, helpBtn]);
     }
     tools.mode.textContent = state.mode === "facil" ? "Modo: fácil" : "Modo: técnico";
     tools.mode.setAttribute("aria-pressed", state.mode === "tecnico" ? "true" : "false");
@@ -363,6 +365,7 @@
     else if (state.view === "galaxia") renderGalaxy();
     else if (state.view === "arquitectura") renderArch();
     else if (state.view === "ruta") renderRoute(state.id);
+    else if (state.view === "dibujo") renderDrawing();
     state.selectedNode = keep;
     if (state.tour) paintTour();
   }
@@ -563,12 +566,12 @@
 
   let currentGroup = null;
 
-  function mount(svg, group, w, hgt, legendKinds) {
+  function mount(svg, group, w, hgt, legendKinds, legendNames) {
     const lienzo = $("lienzo");
     clear(lienzo);
     svg.appendChild(group);
     lienzo.appendChild(svg);
-    if (legendKinds && legendKinds.length) lienzo.appendChild(buildLegend(legendKinds));
+    if (legendKinds && legendKinds.length) lienzo.appendChild(buildLegend(legendKinds, legendNames));
     currentGroup = group;
     state.size = { w, h: hgt };
     if (!state.keepTransform) fit();
@@ -734,7 +737,7 @@
 
   // ------------------------------------------------------------------ leyenda
 
-  function buildLegend(kinds) {
+  function buildLegend(kinds, names) {
     const box = h("div", { class: "leyenda", role: "list", "aria-label": "Leyenda" });
     for (const k of kinds) {
       const icon = s("svg", { viewBox: "0 0 26 16", "aria-hidden": "true" });
@@ -749,7 +752,7 @@
         appendAll(g, flowShape(k === "funcion" || k === "entrada" ? "terminal" : k, 2, 2, 22, 12));
         icon.appendChild(g);
       }
-      box.appendChild(h("div", { class: "item", role: "listitem", "data-tipo": k }, icon, NODE_NAMES[k] || CONF_NAMES[k] || k));
+      box.appendChild(h("div", { class: "item", role: "listitem", "data-tipo": k }, icon, (names && names[k]) || NODE_NAMES[k] || CONF_NAMES[k] || k));
     }
     return box;
   }
@@ -1858,6 +1861,156 @@
       h("h2", null, sl.title), h("p", null, sl.text), controls)]);
   }
 
+  // ------------------------------------------------------------------ vista: dibujo (Mermaid → Desglosa)
+
+  function renderDrawing() {
+    renderTabs(null);
+    hidePanel();
+    const d = DATA.drawing;
+    if (!d) { renderInfo([]); showEmpty("No hay ningún dibujo en este archivo."); return; }
+    const info = [h("strong", null, d.title || (DATA.meta && DATA.meta.name) || "Dibujo"), "  ·  " + d.nodes.length + " nodos, " + d.edges.length + " flechas, dibujado desde Mermaid"];
+    for (const w of d.warnings || []) info.push(h("div", { class: "pista" }, "Aviso: " + w));
+    renderInfo(info);
+    const svg = s("svg", { role: "img", "aria-label": "Diagrama " + (d.title || "") });
+    svg.appendChild(markers());
+    const g = s("g", { class: "vista" });
+    for (const [, , pts, style, arrow, label, lx, ly, lw, lh] of d.edges) {
+      g.appendChild(s("path", { class: "arista k-" + style, d: pathFrom(pts), "marker-end": arrow ? "url(#punta)" : null }));
+      if (label) g.appendChild(drawLabel(label, lx, ly, lw, lh));
+    }
+    for (const [nid, kind, x, y, w, hh, lines] of d.nodes) {
+      const ng = s("g", { class: "nodo k-" + kind, "data-id": nid });
+      if (kind === "conector") ng.appendChild(s("circle", { class: "forma", cx: x + w / 2, cy: y + hh / 2, r: w / 2 }));
+      else appendAll(ng, flowShape(kind, x, y, w, hh));
+      ng.appendChild(textBlock(lines, x + w / 2, y + hh / 2 + textOffset(kind)));
+      ng.appendChild(s("title", null, lines.join(" ") + "\n(" + nid + ")"));
+      g.appendChild(ng);
+    }
+    // En un dibujo nada se abre con clic: la leyenda no lo promete.
+    mount(svg, g, d.w, d.h, d.legend || [], { subproceso: "Subproceso", es: "Entrada / salida de datos" });
+  }
+
+  // ------------------------------------------------------------------ exportar a Mermaid
+
+  // Mismas reglas que desglosa/mermaid.py (flow_to_mermaid): formas clásicas y, para
+  // pantalla, teclado y documento, la sintaxis @{ shape } de Mermaid 11.3.
+  const MM_CLASSIC = { terminal: ['(["', '"])'], proceso: ['["', '"]'], subproceso: ['[["', '"]]'], decision: ['{"', '"}'], es: ['[/"', '"/]'], conector: ['(("', '"))'], externo: ['["', '"]'] };
+  const MM_NEW = { pantalla: "curv-trap", teclado: "sl-rect", documento: "doc" };
+  const MM_COLORS = { terminal: "#059669", proceso: "#2563eb", subproceso: "#7c3aed", decision: "#b45309", es: "#0891b2", teclado: "#0891b2", pantalla: "#db2777", documento: "#db2777", externo: "#64748b", conector: "#64748b", modulo: "#4f46e5", clase: "#2563eb", interfaz: "#2563eb", funcion: "#7c3aed", entrada: "#059669", otros: "#64748b", bd: "#c2410c", tabla: "#c2410c" };
+  const MM_ENT = { "#": "#35;", '"': "#quot;", "<": "#lt;", ">": "#gt;", ";": "#59;", "|": "#124;", "{": "#123;", "}": "#125;" };
+
+  function mmEscape(text) {
+    return String(text).split(/\s+/).filter(Boolean).join(" ").replace(/[#"<>;|{}]/g, (c) => MM_ENT[c]);
+  }
+
+  function mmNode(id, kind, text) {
+    if (MM_NEW[kind]) return id + "@{ shape: " + MM_NEW[kind] + ', label: "' + mmEscape(text) + '" }';
+    const [a, b] = MM_CLASSIC[kind] || MM_CLASSIC.proceso;
+    return id + a + mmEscape(text) + b;
+  }
+
+  function mmClasses(kinds) {
+    const by = {};
+    for (const [id, kind] of Object.entries(kinds)) if (MM_COLORS[kind]) (by[kind] = by[kind] || []).push(id);
+    const names = Object.keys(by).sort();
+    return names.map((k) => "    classDef " + k + " fill:" + MM_COLORS[k] + "26,stroke:" + MM_COLORS[k] + ",stroke-width:2px" + (k === "externo" || k === "otros" ? ",stroke-dasharray:4 3" : ""))
+      .concat(names.map((k) => "    class " + by[k].join(",") + " " + k));
+  }
+
+  function mmHeader(title, kind) {
+    return ["---", 'title: "' + mmEscape(title) + '"', "---", kind];
+  }
+
+  function mermaidFlow(sid) {
+    const flow = flowOf(sid);
+    if (!flow || !flow.edges) return null;
+    const out = mmHeader(SYMBOLS[sid].qualname, "flowchart TD");
+    const kinds = {};
+    for (const n of flow.layout.nodes) {
+      const info = flow.nodes[n[0]];
+      kinds[n[0]] = info.kind;
+      out.push("    " + mmNode(n[0], info.kind, state.mode === "facil" ? n[5].join(" ") : info.tech));
+    }
+    for (const [a, b, label, kind] of flow.edges) {
+      out.push("    " + a + (kind === "excepcion" ? " -.->" : " -->") + (label ? '|"' + mmEscape(label) + '"|' : "") + " " + b);
+    }
+    return out.concat(mmClasses(kinds)).join("\n") + "\n";
+  }
+
+  /** Nivel del mapa o arquitectura: cajas y flechas con su número de llamadas. */
+  function mermaidBoxes(title, nodes, edges, columns) {
+    const out = mmHeader(title, "flowchart LR");
+    const ids = {};
+    const kinds = {};
+    nodes.forEach((n, i) => { ids[n[0]] = "m" + i; kinds["m" + i] = n[1]; });
+    const line = (n) => {
+      const text = n[6] + (n[7] ? " · " + n[7] : "");
+      const round = n[1] === "funcion" || n[1] === "entrada";
+      return ids[n[0]] + (round ? '(["' : '["') + mmEscape(text) + (round ? '"])' : '"]');
+    };
+    if (columns) {
+      columns.forEach(([name, cx], ci) => {
+        const inCol = nodes.filter((n) => Math.abs(n[2] + n[4] / 2 - cx) < 1);
+        if (!inCol.length) return;
+        out.push("    subgraph c" + ci + '["' + mmEscape(name) + '"]');
+        for (const n of inCol) out.push("        " + line(n));
+        out.push("    end");
+      });
+    } else {
+      for (const n of nodes) out.push("    " + line(n));
+    }
+    for (const e of edges) {
+      const text = columns ? e[11] : e[4];
+      if (!(e[0] in ids) || !(e[1] in ids)) continue;
+      out.push("    " + ids[e[0]] + (e[3] === "exacta" ? " -->" : " -.->") + (text ? '|"' + mmEscape(text) + '"|' : "") + " " + ids[e[1]]);
+    }
+    return out.concat(mmClasses(kinds)).join("\n") + "\n";
+  }
+
+  function mermaidForView() {
+    const v = state.view || "mapa";
+    if (v === "flujo" && state.id) return mermaidFlow(state.id);
+    if (v === "secuencia" && state.id) {
+      const seq = sequenceOf(state.id);
+      if (!seq) return null;
+      return state.showExternal && seq.mermaid_all ? seq.mermaid_all : seq.mermaid || null;
+    }
+    if (v === "dibujo" && DATA.drawing) return DATA.drawing.source;
+    if (v === "arquitectura" && DATA.arch) return mermaidBoxes("Arquitectura de " + ((DATA.meta && DATA.meta.name) || "proyecto"), DATA.arch.nodes, DATA.arch.edges, DATA.arch.columns);
+    if (v === "mapa" && MAP) {
+      const gid = state.id && MAP.groups[state.id] ? state.id : MAP.root;
+      const lay = MAP.groups[gid].layout;
+      return lay ? mermaidBoxes(MAP.groups[gid].name, lay.nodes, lay.edges, null) : null;
+    }
+    return null;
+  }
+
+  let mermaidDialog = null;
+
+  function showMermaid() {
+    const text = mermaidForView();
+    if (mermaidDialog) mermaidDialog.remove();
+    const area = h("textarea", { class: "texto-mermaid", readonly: true, rows: 16, "aria-label": "Texto Mermaid", spellcheck: "false" });
+    area.value = text || "";
+    const status = h("span", { class: "nota", "aria-live": "polite" });
+    const copy = h("button", { class: "boton", type: "button", disabled: !text, onclick: () => {
+      const done = () => { status.textContent = "Copiado."; };
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(area.value).then(done, () => { area.select(); document.execCommand("copy"); done(); });
+      else { area.select(); document.execCommand("copy"); done(); }
+    } }, "Copiar");
+    const save = h("button", { class: "boton", type: "button", disabled: !text, onclick: () => download(exportName("mmd"), new Blob([area.value], { type: "text/plain" })) }, "Descargar .mmd");
+    const close = h("button", { class: "boton", type: "button", onclick: () => mermaidDialog.close() }, "Cerrar");
+    mermaidDialog = h("dialog", { class: "ayuda dialogo-mermaid", "aria-labelledby": "mermaid-titulo" },
+      h("h2", { id: "mermaid-titulo" }, "Esta vista en Mermaid"),
+      h("p", null, text
+        ? "Pégalo en un README de GitHub, en mermaid.live o en Notion. Pantalla, teclado y documento usan las formas de Mermaid 11.3 o más nuevo."
+        : "Esta vista no tiene exportación a Mermaid. Prueba en un flujo, una secuencia, el mapa, la arquitectura o un dibujo."),
+      text ? area : null,
+      h("div", { class: "acciones-dialogo" }, copy, save, close, status));
+    document.body.appendChild(mermaidDialog);
+    mermaidDialog.showModal();
+  }
+
   // ------------------------------------------------------------------ vista: entidad-relación
 
   // ------------------------------------------------------------------ vista: galaxia
@@ -2102,6 +2255,7 @@
       const tag = (e.target && e.target.tagName) || "";
       if (tag === "INPUT" || tag === "TEXTAREA") return;
       if (helpDialog && helpDialog.open) return; // el diálogo maneja Esc solo
+      if (mermaidDialog && mermaidDialog.open) return;
       if (e.ctrlKey || e.metaKey || e.altKey) return;
       if (state.tour && ["Escape", "ArrowRight", "ArrowLeft", " ", "p"].includes(e.key)) {
         e.preventDefault();
