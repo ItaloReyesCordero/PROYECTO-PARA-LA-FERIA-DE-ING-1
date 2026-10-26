@@ -144,6 +144,19 @@ que conviene conocer (y explicar en la feria) en vez de esconder.
   de 12 componentes en una columna, el resto va a «Otros (N)»; en diagramas muy
   conectados se dibuja el esqueleto de relaciones más fuertes.
 
+## Comparar versiones
+- Una función se reconoce por su **archivo y nombre completo**: si se renombra o cambia de
+  archivo, aparece como eliminada y nueva. Las sobrecargas con el mismo nombre se emparejan
+  por su orden en el archivo.
+- «Cambió» compara el texto sin espacios al final ni líneas vacías: un comentario nuevo
+  cuenta como cambio; mover la función de lugar, no.
+- En el diagrama, un paso se marca como nuevo o quitado si su código exacto no está en la
+  otra versión: cambiar `x > 0` por `x >= 0` marca ese rombo en las dos.
+- Con `--desde`, el commit se extrae con `git archive` en una carpeta temporal que se borra
+  al terminar (solo archivos normales: sin enlaces ni rutas fuera de la carpeta). Hace
+  falta tener `git` instalado; los archivos que `git` no guarda (ignorados) no están en la
+  versión anterior.
+
 ## Dependencias y `check`
 - Una dependencia es una llamada **exacta o probable**, una herencia o un atributo con el
   tipo de otra clase. Una llamada probable a un método solo cuenta si el archivo que llama

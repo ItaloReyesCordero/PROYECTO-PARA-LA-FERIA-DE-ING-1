@@ -33,6 +33,7 @@ resultado sale por la salida estándar y los avisos por la de errores.
 | Las clases de una carpeta (UML)              | `desglosa clases RUTA --carpeta C --mermaid`               |
 | El algoritmo de `X` en pseudocódigo          | `desglosa pseudo RUTA X`                                   |
 | Si hay ciclos de dependencias                | `desglosa check RUTA --json`                               |
+| Qué funciones cambiaron desde un commit      | `desglosa comparar RUTA --desde COMMIT --json`             |
 | Un HTML interactivo para el usuario          | `desglosa analyze RUTA -o desglosa.html`                   |
 | Un resumen en Markdown                       | `desglosa analyze RUTA -o desglosa.html --report reporte.md` |
 

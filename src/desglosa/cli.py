@@ -383,6 +383,106 @@ def cmd_pseudo(args: argparse.Namespace) -> int:
     return EXIT_OK
 
 
+def _analysis_at(args: argparse.Namespace, path: Path, flows: bool, cache: bool = True):
+    """`_run_analysis` sobre otra carpeta con las mismas opciones."""
+    saved = (args.path, args.no_cache)
+    args.path, args.no_cache = str(path), args.no_cache or not cache
+    try:
+        return _run_analysis(args, flows=flows)
+    finally:
+        args.path, args.no_cache = saved
+
+
+def cmd_compare(args: argparse.Namespace) -> int:
+    import shutil
+
+    from desglosa.compare import CompareError, compare, export_commit, files_needing_flows
+    from desglosa.compare import payload as compare_payload
+
+    temps: list[Path] = []
+    try:
+        if args.desde:
+            if len(args.rutas) != 1:
+                print("Con --desde va una sola ruta: la carpeta del repositorio.", file=sys.stderr)
+                return EXIT_USAGE
+            repo = Path(args.rutas[0])
+            tmp, before_path = export_commit(repo, args.desde)
+            temps.append(tmp)
+            before_label = args.desde
+            if args.hasta:
+                tmp, after_path = export_commit(repo, args.hasta)
+                temps.append(tmp)
+                after_label = args.hasta
+            else:
+                after_path, after_label = repo, "copia de trabajo"
+        else:
+            if len(args.rutas) != 2:
+                print("Indica dos carpetas (antes y después) o una ruta con --desde COMMIT.",
+                      file=sys.stderr)
+                return EXIT_USAGE
+            before_path, after_path = Path(args.rutas[0]), Path(args.rutas[1])
+            before_label, after_label = before_path.name or "antes", after_path.name or "después"
+        # La versión exportada de git va sin caché: su carpeta temporal no se repite.
+        before, code = _analysis_at(args, before_path, flows=False,
+                                    cache=not args.desde)
+        if before is None:
+            return code
+        after, code = _analysis_at(args, after_path, flows=not args.json,
+                                   cache=not (args.desde and args.hasta))
+        if after is None:
+            return code
+        result = compare(before, after, before_label, after_label)
+        # Flujos de antes solo de los archivos que cambiaron (con --json, también los de
+        # después, para la complejidad).
+        for path in files_needing_flows(result, before):
+            _path_flows(before, path, args)
+        if args.json:
+            for path in sorted({c.file for c in result.changes if c.after}):
+                _path_flows(after, path, args)
+        result = compare(before, after, before_label, after_label)
+    except CompareError as exc:
+        print(f"No se pudo comparar: {exc}", file=sys.stderr)
+        return EXIT_USAGE
+    finally:
+        for tmp in temps:
+            shutil.rmtree(tmp, ignore_errors=True)
+    if args.json:
+        data = {
+            "antes": before_label,
+            "despues": after_label,
+            "archivos": {"nuevos": result.files_added, "eliminados": result.files_removed,
+                         "cambiados": result.files_changed},
+            "funciones": [
+                {"estado": c.status, "archivo": c.file, "nombre": c.qualname,
+                 "lineas": [c.lines_before, c.lines_after],
+                 "complejidad": [c.cc_before, c.cc_after]}
+                for c in result.changes
+            ],
+        }
+        print(json.dumps(data, ensure_ascii=False, indent=2, sort_keys=True))
+        return EXIT_OK
+    index, packs = compare_payload(result, before)
+    args.output = args.output or "comparar.html"
+    _write_app(args, after, "#/cambios", extra={"compare": index}, extra_packs=packs)
+    nuevas, eliminadas, cambiadas = (len(result.of(s)) for s in
+                                     ("nueva", "eliminada", "cambiada"))
+    print(f"De {before_label} a {after_label}: {cambiadas} funciones cambiadas, "
+          f"{nuevas} nuevas y {eliminadas} eliminadas "
+          f"({len(result.files_changed)} archivos cambiados, {len(result.files_added)} nuevos, "
+          f"{len(result.files_removed)} eliminados).")
+    for c in result.changes[:args.limit]:
+        mark = {"nueva": "+", "eliminada": "-", "cambiada": "~"}[c.status]
+        delta = ""
+        if c.status == "cambiada" and c.cc_before is not None and c.cc_after is not None \
+                and c.cc_before != c.cc_after:
+            delta = f"  (complejidad {c.cc_before} -> {c.cc_after})"
+        print(f"  {mark} {c.file}: {c.qualname}{delta}")
+    if len(result.changes) > args.limit:
+        print(f"  ... y {len(result.changes) - args.limit} más")
+    print(f"HTML escrito en {args.output}")
+    return EXIT_OK
+
+
 def cmd_check(args: argparse.Namespace) -> int:
     from desglosa.deps import (
         BASE_FILE,
@@ -629,7 +729,8 @@ def cmd_flow(args: argparse.Namespace) -> int:
 MAX_HTML_MB = 100
 
 
-def _write_app(args: argparse.Namespace, analysis, start: str, depth: int = 4) -> str:
+def _write_app(args: argparse.Namespace, analysis, start: str, depth: int = 4,
+               extra: dict | None = None, extra_packs: dict | None = None) -> str:
     """HTML completo (mapa, flujos, secuencias, ER) que abre en `start`."""
     from desglosa.macro import build_map
     from desglosa.render.html import render_html
@@ -645,6 +746,8 @@ def _write_app(args: argparse.Namespace, analysis, start: str, depth: int = 4) -
             analysis.readmes,
         ),
         depth=depth,
+        extra=extra,
+        extra_packs=extra_packs,
     )
     page = render_html(payload, f"{analysis.project.root_name} — Desglosa")
     _write_text(args.output, page)
@@ -729,8 +832,11 @@ def _add_flow_args(p: argparse.ArgumentParser) -> None:
     p.add_argument("--no-source", action="store_true", help="no incluir el código fuente")
 
 
-def _add_analysis_args(p: argparse.ArgumentParser) -> None:
-    p.add_argument("path", help="carpeta o archivo a analizar")
+def _add_analysis_args(p: argparse.ArgumentParser, with_path: bool = True) -> None:
+    if with_path:
+        p.add_argument("path", help="carpeta o archivo a analizar")
+    else:
+        p.set_defaults(path=None)
     p.add_argument("--lang", help="limitar a estos lenguajes (ej. php,python)")
     p.add_argument(
         "--ignore", action="append", metavar="PATRON", help="patrón extra a ignorar (repetible)"
@@ -853,6 +959,21 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("-o", "--output", default="-", help="archivo .mmd ('-' = pantalla)")
     _add_flow_args(p)
     p.set_defaults(func=cmd_mermaid)
+
+    p = sub.add_parser(
+        "comparar", aliases=["compare"],
+        help="qué funciones cambiaron entre dos versiones, con sus flujos de antes y después",
+    )
+    p.add_argument("rutas", nargs="+", metavar="ruta",
+                   help="dos carpetas (antes y después), o una con --desde COMMIT")
+    p.add_argument("--desde", help="commit, rama o etiqueta de git de la versión anterior")
+    p.add_argument("--hasta", help="commit de la versión nueva (def. la copia de trabajo)")
+    p.add_argument("-o", "--output", help="archivo HTML de salida (def. comparar.html)")
+    p.add_argument("--limit", type=int, default=30, help="máximo de funciones a listar")
+    p.add_argument("--json", action="store_true", help="salida en JSON (sin HTML)")
+    _add_analysis_args(p, with_path=False)
+    _add_flow_args(p)
+    p.set_defaults(func=cmd_compare)
 
     p = sub.add_parser(
         "check", aliases=["revisar"],

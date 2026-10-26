@@ -166,6 +166,9 @@ uv run desglosa sql examples/laravel-mini -o er.html
 # El flujo de una función en Mermaid (para un README, Notion o mermaid.live)
 uv run desglosa mermaid examples/laravel-mini FacturacionService.emitir
 
+# Qué funciones cambiaron desde un commit (o entre dos carpetas), con su flujo de antes y después
+uv run desglosa comparar . --desde HEAD~5 -o cambios.html
+
 # ¿Hay ciclos entre carpetas o capas que se saltan? (sale con código 5 si hay ciclos nuevos)
 uv run desglosa check examples/laravel-mini
 
@@ -191,6 +194,7 @@ uv run desglosa dibujar examples/dibujo/cajero.mmd -o cajero.html
 | `path <ruta> <desde> <hasta>` | el camino de llamadas más corto entre dos funciones |
 | `buscar <ruta> "texto"` | busca funciones y clases por palabras (nombre, descripción, archivo) |
 | `mermaid <ruta> <nombre>` | el flujo (o con `--secuencia`, la secuencia) de una función en Mermaid |
+| `comparar <antes> <después>` | funciones nuevas, eliminadas y cambiadas entre dos carpetas; o `comparar <ruta> --desde COMMIT [--hasta COMMIT]` con git (`--json`) |
 | `check <ruta>` | ciclos entre carpetas o archivos y capas que se saltan; falla (código 5) con ciclos nuevos (`--aceptar`, `--capas`, `--json`) |
 | `pseudo <ruta> <nombre>` | pseudocódigo estilo PSeInt de una función, o de todo un archivo (`gps.c`) |
 | `clases <ruta>` | diagrama de clases UML de una carpeta (`--carpeta`, `--mermaid`) |
@@ -268,6 +272,9 @@ ignoran: el estilo lo pone Desglosa. Ejemplo completo en `examples/dibujo/cajero
 - Cada función tiene las pestañas **Flujo · Secuencia · Pseudocódigo · Código**. El
   pseudocódigo está escrito como en PSeInt (`Si … Entonces`, `Mientras … Hacer`,
   `Para i <- 0 Hasta n - 1`, `Escribir`, `Leer`) y se copia o descarga como `.psc`.
+- El HTML de `comparar` abre en **Cambios**: las funciones nuevas, eliminadas y cambiadas
+  por archivo; en una cambiada, su diagrama de flujo de antes y de después lado a lado, con
+  los pasos nuevos en verde y los quitados en rojo.
 - Pestañas **Mapa · Arquitectura · Clases · Dependencias · Galaxia · Entidad-relación**.
   «Dependencias» lista los ciclos (con la llamada que sostiene cada paso, que abre su
   flujo) y las llamadas que se saltan una capa, que en Arquitectura salen punteadas. En «Clases», el

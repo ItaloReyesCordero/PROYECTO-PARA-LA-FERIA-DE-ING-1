@@ -37,6 +37,7 @@ flowchart LR
 | Arquitectura | `architecture.py`, `services.py` | componentes → capas (por nombre y carpeta) y servicios externos (por imports) → columnas fijas con `layout_layered(fixed=…)`. |
 | Clases (UML) | `uml.py`, `langs/members.py` | clases, atributos, métodos y visibilidad de cada lenguaje → un diagrama por carpeta (herencia, implementación y asociación) con `layout_directed`. |
 | Dependencias | `deps.py` | llamadas seguras, herencias y atributos → grafo entre archivos y carpetas → ciclos (Tarjan) y capas que se saltan; lo usan `check`, el reporte y la pestaña «Dependencias». |
+| Comparar | `compare.py` | dos análisis (dos carpetas o un commit extraído con `git archive`) → funciones nuevas, eliminadas y cambiadas; los flujos de antes viajan en paquetes `@antes/<archivo>`. |
 | Pseudocódigo | `pseudo.py` | la misma estructura del flujo (`SSeq`, `SIf`, `SLoop`…) con el código completo de cada sentencia → texto estilo PSeInt. Lo arma `FlowBuilder` al construir el flujo y viaja en la vista del flujo (`ps`). |
 | Mermaid | `mermaid.py` | flujo o secuencia → texto Mermaid; texto Mermaid → dibujo (`dibujar`) con el layout por capas girado y flechas en ángulo recto. |
 | Visor | `render/` | todo lo anterior → JSON incrustado en `template.html` con `app.js` y `style.css`. |

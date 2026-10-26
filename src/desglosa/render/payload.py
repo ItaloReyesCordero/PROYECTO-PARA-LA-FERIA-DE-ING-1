@@ -138,6 +138,7 @@ def build_payload(
     start: str | None = None,
     map_data: dict | None = None,
     extra: dict | None = None,
+    extra_packs: dict[str, dict] | None = None,
     depth: int = 4,
 ) -> dict:
     project = analysis.project
@@ -239,6 +240,8 @@ def build_payload(
             payload["deps"] = deps_payload(report)
     if extra:
         payload.update(extra)
+    if extra_packs:  # p. ej. los flujos de la versión anterior ("@antes/<archivo>")
+        payload["packs"].update({k: pack(v) for k, v in sorted(extra_packs.items())})
     return pack_index(payload)
 
 

@@ -26,6 +26,11 @@
   acepta `check: true`.
 - Diagrama de clases: `class Migration(migrations.Migration)` ya no hereda de la migración
   vecina; el calificador (`migrations.`) elige la carpeta.
+- **Comparar dos versiones** (`desglosa comparar`): entre dos carpetas o desde un commit de
+  git (`--desde`, `--hasta`). Funciones nuevas, eliminadas y cambiadas (moverlas no
+  cuenta), con su complejidad antes y después; el HTML abre en «Cambios» y muestra los dos
+  flujos lado a lado con lo agregado en verde y lo quitado en rojo. Solo se dibujan los
+  flujos de antes de los archivos que cambiaron.
 
 ### Bloque 3 — Explicar y presentar: arquitectura, rutas, recorrido, Mermaid y estilos
 - **Mapa de arquitectura**: capas (Rutas → Entrada → Lógica → Datos → Base de datos →

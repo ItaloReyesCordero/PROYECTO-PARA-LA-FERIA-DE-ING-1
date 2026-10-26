@@ -271,6 +271,8 @@
     else if (view === "dibujo") renderDrawing();
     else if (view === "clases") renderClasses(id);
     else if (view === "dependencias") renderDeps();
+    else if (view === "cambios") renderChanges();
+    else if (view === "comparar") renderCompare(id);
     else renderMap(null);
     renderCrumbs();
     tourHook();
@@ -388,6 +390,8 @@
     else if (state.view === "dibujo") renderDrawing();
     else if (state.view === "clases") renderClasses(state.id);
     else if (state.view === "dependencias") renderDeps();
+    else if (state.view === "cambios") renderChanges();
+    else if (state.view === "comparar") renderCompare(state.id);
     state.selectedNode = keep;
     if (state.tour) paintTour();
   }
@@ -515,6 +519,10 @@
       items.push({ label: "Clases" + (state.id && state.id !== "." ? ": " + state.id : ""), hash: buildHash("clases", state.id) });
     } else if (state.view === "dependencias") {
       items.push({ label: "Dependencias", hash: buildHash("dependencias", null) });
+    } else if (state.view === "cambios" || state.view === "comparar") {
+      items.push({ label: "Cambios", hash: buildHash("cambios", null) });
+      const row = state.view === "comparar" ? compareRows()[Number(state.id)] : null;
+      if (row) items.push({ label: row[2], hash: buildHash("comparar", state.id) });
     }
     items.forEach((it, i) => {
       if (i > 0) nav.appendChild(h("span", { class: "sep", "aria-hidden": "true" }, "›"));
@@ -549,7 +557,8 @@
       else go("mapa", null);
       return;
     }
-    if (["er", "galaxia", "arquitectura", "clases", "dependencias"].includes(state.view)) go("mapa", null);
+    if (state.view === "comparar") { go("cambios", null); return; }
+    if (["er", "galaxia", "arquitectura", "clases", "dependencias", "cambios"].includes(state.view)) go("mapa", null);
   }
 
   // ------------------------------------------------------------------ pestañas e info
@@ -560,7 +569,8 @@
     if (!sid) {
       const hasER = DATA.er && DATA.er.tables && DATA.er.tables.length;
       const hasUml = DATA.uml && Object.keys(DATA.uml).length;
-      if (hasER || DATA.galaxy || DATA.arch || hasUml || DATA.deps) {
+      if (hasER || DATA.galaxy || DATA.arch || hasUml || DATA.deps || DATA.compare) {
+        if (DATA.compare) tabs.appendChild(tabButton("Cambios (" + DATA.compare.funciones.length + ")", state.view === "cambios" || state.view === "comparar", () => go("cambios", null)));
         tabs.appendChild(tabButton("Mapa", state.view === "mapa" || !state.view, () => go("mapa", null)));
         if (DATA.arch) tabs.appendChild(tabButton("Arquitectura", state.view === "arquitectura", () => go("arquitectura", null)));
         if (hasUml) tabs.appendChild(tabButton("Clases", state.view === "clases", () => go("clases", null)));
@@ -820,6 +830,8 @@
     const infoParts = [h("code", null, sym.signature), "  ·  " + sym.file + ":" + sym.line_start];
     if (sym.doc) infoParts.push(h("div", { class: "doc" }, sym.doc));
     if (flow && flow.truncated) infoParts.push(h("div", null, "Función muy grande: algunos bloques se muestran colapsados (clic para ver el código)."));
+    const changed = DATA.compare ? compareIndexOf(sid) : -1;
+    if (changed >= 0) infoParts.push(h("div", { class: "acciones-flujo" }, h("a", { class: "boton", href: buildHash("comparar", String(changed)) }, "Ver antes y después (" + DATA.compare.antes + ")")));
     if (flow && flow.edges && flow.edges.length) {
       infoParts.push(h("div", { class: "acciones-flujo" },
         h("button", { class: "boton", type: "button", id: "boton-recorrer", title: "Animación paso a paso, como una prueba de escritorio (r)", onclick: () => (state.walk ? stopWalk() : walkStart(sid, false)) }, state.walk && state.walk.sid === sid ? "✕ Terminar recorrido" : "▶ Recorrer")));
@@ -2367,6 +2379,164 @@
     lienzo.appendChild(doc);
   }
 
+  // ------------------------------------------------------------------ vista: comparar versiones
+
+  // Fila: [estado, archivo, nombre, id antes, id después, líneas antes, líneas después,
+  //        complejidad antes, complejidad después]
+  function compareRows() {
+    return DATA.compare ? DATA.compare.funciones : [];
+  }
+
+  function compareIndexOf(sid) {
+    return compareRows().findIndex((r) => r[0] === "cambiada" && r[4] === sid);
+  }
+
+  function ccText(a, b) {
+    if (a === null || a === undefined || b === null || b === undefined || a === b) return "";
+    return "complejidad " + a + " → " + b;
+  }
+
+  function renderChanges() {
+    renderTabs(null);
+    hidePanel();
+    const c = DATA.compare;
+    if (!c) { renderInfo([]); showEmpty("Este HTML no es una comparación (usa desglosa comparar)."); return; }
+    renderInfo([
+      h("strong", null, "Cambios"), "  ·  de " + c.antes + " a " + c.despues,
+      h("div", { class: "pista" }, "Una función cambió si cambió su texto (moverla no cuenta). Clic en una cambiada: su diagrama de antes y de después, lado a lado."),
+    ]);
+    const lienzo = $("lienzo");
+    clear(lienzo);
+    minimap = null;
+    currentGroup = null;
+    const rows = compareRows();
+    const count = (st) => rows.filter((r) => r[0] === st).length;
+    const card = (n, label, cls) => h("div", { class: "tarjeta " + cls }, h("span", { class: "cifra" }, String(n)), h("span", null, label));
+    const files = c.archivos;
+    const doc = h("div", { class: "documento", role: "region", "aria-label": "Cambios entre versiones" });
+    doc.appendChild(h("div", { class: "resumen-deps" },
+      card(count("cambiada"), "cambiadas", "aviso"),
+      card(count("nueva"), "nuevas", "bien"),
+      card(count("eliminada"), "eliminadas", "mal"),
+      card(files.cambiados.length + files.nuevos.length + files.eliminados.length, "archivos tocados", "")));
+    if (!rows.length) doc.appendChild(h("p", null, "Ninguna función cambió entre las dos versiones."));
+    const byFile = new Map();
+    rows.forEach((r, i) => {
+      if (!byFile.has(r[1])) byFile.set(r[1], []);
+      byFile.get(r[1]).push([r, i]);
+    });
+    const tag = { nueva: "nueva", eliminada: "eliminada", cambiada: "cambiada" };
+    for (const [file, list] of byFile) {
+      const state_ = files.nuevos.includes(file) ? " (archivo nuevo)" : files.eliminados.includes(file) ? " (archivo eliminado)" : "";
+      doc.appendChild(h("h2", null, h("code", null, file), state_));
+      const ul = h("ul", { class: "lista-cambios" });
+      for (const [r, i] of list) {
+        const [st, , name, , after, , , ccA, ccD] = r;
+        let label = name;
+        if (st === "nueva" && after && SYMBOLS[after] && hasFlow(after)) label = h("a", { href: buildHash("flujo", after) }, name);
+        else if (st !== "nueva") label = h("a", { href: buildHash("comparar", String(i)) }, name);
+        const extra = ccText(ccA, ccD);
+        ul.appendChild(h("li", { class: "cambio-" + st }, h("span", { class: "marca-cambio" }, tag[st]), " ", label, extra ? h("span", { class: "nota" }, "  · " + extra) : null));
+      }
+      doc.appendChild(ul);
+    }
+    lienzo.appendChild(doc);
+  }
+
+  /** Dibuja un flujo ya armado (sin clics); `mark(tech)` dice si un nodo es nuevo o se quitó. */
+  function drawFlowGroup(flow, mark) {
+    const g = s("g");
+    const lay = flow.layout;
+    for (const [pts, kind, arrow] of lay.lines) {
+      g.appendChild(s("path", { class: "arista k-" + kind, d: pathFrom(pts), "marker-end": arrow ? (kind === "excepcion" ? "url(#punta-exc)" : "url(#punta)") : null }));
+    }
+    for (const [text, x, y, w, hh] of lay.labels) g.appendChild(drawLabel(text, x, y, w, hh));
+    for (const [nid, x, y, w, hh, easy, tech] of lay.nodes) {
+      const info = flow.nodes[nid];
+      const extra = mark(info.tech);
+      const ng = s("g", { class: "nodo k-" + info.kind + (extra ? " " + extra : "") });
+      appendAll(ng, flowShape(info.kind, x, y, w, hh));
+      ng.appendChild(textBlock(state.mode === "facil" ? easy : tech, x + w / 2, y + hh / 2 + textOffset(info.kind)));
+      ng.appendChild(s("title", null, info.tech + (extra === "agregado" ? "\nNuevo en esta versión" : extra === "quitado" ? "\nYa no está en la versión nueva" : "")));
+      g.appendChild(ng);
+    }
+    for (const [label, cx, cy, r] of lay.connectors) {
+      const cg = s("g", { class: "nodo k-conector" }, s("circle", { class: "forma", cx, cy, r }));
+      cg.appendChild(s("text", { x: cx, y: cy + 0.5, "text-anchor": "middle" }, label));
+      g.appendChild(cg);
+    }
+    return g;
+  }
+
+  function techCounts(flow) {
+    const out = new Map();
+    if (!flow) return out;
+    for (const id of Object.keys(flow.nodes)) {
+      const t = flow.nodes[id].tech;
+      out.set(t, (out.get(t) || 0) + 1);
+    }
+    return out;
+  }
+
+  function renderCompare(id) {
+    renderTabs(null);
+    hidePanel();
+    const rows = compareRows();
+    const row = rows[Number(id)];
+    if (!row) { renderInfo([]); showEmpty("No se encontró ese cambio."); return; }
+    const [st, file, name, before, after, linesA, linesD, ccA, ccD] = row;
+    const need = [];
+    if (before && !PACKS["@antes/" + file]) need.push("@antes/" + file);
+    if (after && !PACKS[file]) need.push(file);
+    if (need.length) {
+      showEmpty("Cargando las dos versiones…");
+      const want = location.hash;
+      Promise.all(need.map((k) => loadPack(k))).then(() => { if (location.hash === want) renderCompare(id); },
+        (err) => showEmpty(err && err.message === "navegador-antiguo" ? OLD_BROWSER : "No se pudo abrir la comparación."));
+      return;
+    }
+    const fb = before && PACKS["@antes/" + file] ? (PACKS["@antes/" + file].flows || {})[before] : null;
+    const fa = after ? flowOf(after) : null;
+    const c = DATA.compare;
+    const info = [h("strong", null, name), "  ·  " + file];
+    const extra = ccText(ccA, ccD);
+    if (extra) info.push("  ·  " + extra);
+    if (linesA && linesD && linesA !== linesD) info.push("  ·  " + linesA + " → " + linesD + " líneas");
+    info.push(h("div", { class: "pista" }, st === "eliminada"
+      ? "Esta función ya no existe en " + c.despues + ". Así era en " + c.antes + "."
+      : "Izquierda: " + c.antes + ". Derecha: " + c.despues + ". En verde los pasos nuevos; en rojo, punteados, los que se quitaron."));
+    if (after && SYMBOLS[after]) info.push(h("div", { class: "acciones-flujo" }, h("a", { class: "boton", href: buildHash("flujo", after) }, "Abrir el flujo actual")));
+    renderInfo(info);
+    if (!fb && !fa) { showEmpty("Ninguna de las dos versiones tiene cuerpo para dibujar."); return; }
+    const inA = techCounts(fb);
+    const inD = techCounts(fa);
+    const gap = 90;
+    const top = 44;
+    const wB = fb ? fb.layout.w : 0;
+    const wA = fa ? fa.layout.w : 0;
+    const svg = s("svg", { role: "img", "aria-label": "Antes y después de " + name });
+    svg.appendChild(markers());
+    const g = s("g", { class: "vista comparacion" });
+    let x = 0;
+    if (fb) {
+      g.appendChild(s("text", { class: "titulo-version", x: wB / 2, y: 24, "text-anchor": "middle" }, "Antes · " + c.antes));
+      const gb = drawFlowGroup(fb, (t) => (inD.has(t) ? "" : "quitado"));
+      gb.setAttribute("transform", "translate(0," + top + ")");
+      g.appendChild(gb);
+      x = wB + gap;
+    }
+    if (fa) {
+      g.appendChild(s("text", { class: "titulo-version", x: x + wA / 2, y: 24, "text-anchor": "middle" }, "Después · " + c.despues));
+      const ga = drawFlowGroup(fa, (t) => (!fb || inA.has(t) ? "" : "agregado"));
+      ga.setAttribute("transform", "translate(" + x + "," + top + ")");
+      g.appendChild(ga);
+    }
+    if (fb && fa) g.appendChild(s("line", { class: "separador-version", x1: wB + gap / 2, y1: 8, x2: wB + gap / 2, y2: top + Math.max(fb.layout.h, fa.layout.h) }));
+    const kinds = new Set([...((fb && fb.layout.legend) || []), ...((fa && fa.layout.legend) || [])]);
+    const h_ = top + Math.max(fb ? fb.layout.h : 0, fa ? fa.layout.h : 0);
+    mount(svg, g, x + wA || wB, h_, [...kinds]);
+  }
+
   // ------------------------------------------------------------------ vista: entidad-relación
 
   // ------------------------------------------------------------------ vista: galaxia
@@ -2543,6 +2713,8 @@
       case "secuencia": return sym ? "Diagrama de secuencia · " + sym.qualname : name;
       case "codigo": return sym ? sym.qualname : name;
       case "dependencias": return "Dependencias · " + name;
+      case "cambios": return "Cambios · " + name;
+      case "comparar": return "Antes y después · " + ((compareRows()[Number(state.id)] || [])[2] || name);
       case "pseudo": return sym ? "Pseudocódigo · " + sym.qualname : name;
       case "arquitectura": return "Arquitectura · " + name;
       case "galaxia": return "Galaxia · " + name;
