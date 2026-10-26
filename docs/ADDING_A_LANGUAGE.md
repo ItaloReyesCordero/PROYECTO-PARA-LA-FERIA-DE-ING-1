@@ -54,6 +54,37 @@ clase base implementa el caso "tipo C"; sobrescribe solo lo que cambie.
 | `extra_bases` | herencia declarada fuera de la clase (Rust `impl Trait for Tipo`) |
 | `parameter_list` | parámetros para "Inicio: f(a, b)" (Swift no tiene nodo contenedor) |
 
+## Ganchos del diagrama de clases (Bloque 4)
+
+Viven en `langs/members.py`, un *mixin* por lenguaje que su `Hooks` hereda
+(`class Hooks(JavaMembers, LangHooks)`). Cada uno se comprobó con `desglosa debug-ast`
+sobre `tests/fixtures/uml/<lenguaje>/` (Figura, Circulo, Dibujable, Punto).
+
+| Método | Devuelve |
+|---|---|
+| `default_visibility` | la visibilidad cuando no se escribe: Java `~`, C# `-`, Swift `~`, Go `~` (minúscula), Rust `-`, C++ según `class`/`struct`, resto `+` |
+| `class_members(clase)` | atributos declarados (`Member`: nombre, tipo, visibilidad, estático) |
+| `assigned_members(método)` | atributos creados al asignar (`self.x =`, `this.x =`, `@x =`) |
+| `method_info(método)` | visibilidad, estático, abstracto y tipo de retorno |
+| `declared_methods(clase)` | métodos sin cuerpo que no son símbolos (C++ `virtual f() = 0;`) |
+| `class_is_abstract(clase)` | abstracta sin la palabra `abstract` (Python `ABC`, C++ virtual puro) |
+
+Nodos que no son obvios:
+
+- PHP: `property_declaration > property_element`; en el constructor,
+  `property_promotion_parameter` (campos `visibility`, `type`, `name`) declara un atributo.
+- TypeScript: `public_field_definition`; en el constructor, un `required_parameter` u
+  `optional_parameter` con `accessibility_modifier` (o `readonly`) es un atributo.
+- Kotlin: `primary_constructor > class_parameter` con `val`/`var` (`binding_pattern_kind`)
+  es un atributo; los de `companion_object` son estáticos.
+- Ruby: `attr_reader/attr_accessor` son `call` con `simple_symbol`; `@@x` es
+  `class_variable` (estático); `Punto.new` es un `call` con `receiver` y `method: new`.
+- C++: la visibilidad es la última `access_specifier` antes del miembro; un método puro es
+  `field_declaration` con `function_declarator` y `= 0`.
+- Go: la visibilidad es la mayúscula inicial; los campos de un `struct_type`.
+- Rust: `field_declaration` con o sin `visibility_modifier`; los métodos de un `impl Trait`
+  son públicos.
+
 ## Campos extra del LangSpec (además de la tabla de la SPEC)
 
 | Campo | Para qué |

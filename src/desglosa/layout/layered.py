@@ -309,3 +309,53 @@ def layout_layered(
         width = max(width, MARGIN * 2 + cols * cell_w - GRID_GAP)
         height = top + rows * cell_h - GRID_GAP + MARGIN
     return LayeredLayout(round(width, 1), round(height, 1), placed, tuple(out_edges))
+
+
+# --------------------------------------------------------------------------- de arriba hacia abajo
+
+def orthogonal(points: list[tuple[float, float]], td: bool) -> list[tuple[float, float]]:
+    """Cambia cada tramo diagonal por tramos rectos que doblan a mitad de camino. Los
+    tramos diagonales solo cruzan el hueco entre filas (o columnas), donde no hay cajas."""
+    out = [points[0]]
+    for (x1, y1), (x2, y2) in zip(points, points[1:], strict=False):
+        if x1 != x2 and y1 != y2:
+            if td:
+                mid = round((y1 + y2) / 2, 1)
+                out += [(x1, mid), (x2, mid)]
+            else:
+                mid = round((x1 + x2) / 2, 1)
+                out += [(mid, y1), (mid, y2)]
+        out.append((x2, y2))
+    return out
+
+
+def layout_directed(
+    nodes: list[LNode], edges: list[LEdge], td: bool = True, layer_gap: float = LAYER_GAP
+) -> LayeredLayout:
+    """El layout por capas con flechas en ángulo recto, de arriba hacia abajo (`td`) o de
+    izquierda a derecha. De arriba hacia abajo se gira: las capas pasan a ser filas.
+    Cada etiqueta va en el tramo más largo de su flecha."""
+    if td:
+        nodes = [LNode(n.id, n.h, n.w, n.key) for n in nodes]
+    lay = layout_layered(nodes, edges, layer_gap=layer_gap)
+
+    def pt(x: float, y: float) -> tuple[float, float]:
+        return (y, x) if td else (x, y)
+
+    placed = {}
+    for nid, p in lay.nodes.items():
+        x, y = pt(p.x, p.y)
+        placed[nid] = Placed(nid, x, y, p.h if td else p.w, p.w if td else p.h)
+    out_edges = []
+    for e in lay.edges:
+        pts = orthogonal([pt(x, y) for x, y in e.points], td)
+        box = None
+        if e.label:
+            lw, lh = label_size(e.label)
+            seg = max(zip(pts, pts[1:], strict=False),
+                      key=lambda s: math.hypot(s[1][0] - s[0][0], s[1][1] - s[0][1]))
+            mx, my = (seg[0][0] + seg[1][0]) / 2, (seg[0][1] + seg[1][1]) / 2
+            box = (round(mx - lw / 2, 1), round(my - lh / 2, 1), round(lw, 1), round(lh, 1))
+        out_edges.append(PlacedEdge(e.src, e.dst, tuple(pts), e.label, box))
+    width, height = (lay.height, lay.width) if td else (lay.width, lay.height)
+    return LayeredLayout(width, height, placed, tuple(out_edges))

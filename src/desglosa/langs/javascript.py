@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from tree_sitter import Node
 
+from desglosa.langs.members import JsMembers
 from desglosa.langs.spec import (
     Binding,
     CallParts,
@@ -56,7 +57,7 @@ def _string_value(node: Node | None, src: Src) -> str:
     return "".join(frag) if frag else src.text(node).strip("\"'`")
 
 
-class Hooks(LangHooks):
+class Hooks(JsMembers, LangHooks):
     fallthrough = True
 
     def symbol_name(self, node: Node, src: Src) -> str | None:

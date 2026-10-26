@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from tree_sitter import Node
 
+from desglosa.langs.members import GoMembers
 from desglosa.langs.spec import (
     Binding,
     CallParts,
@@ -52,7 +53,7 @@ def _type_name(node: Node | None, src: Src) -> str:
     return src.text(node).lstrip("*&[]").split("[", 1)[0].rsplit(".", 1)[-1]
 
 
-class Hooks(LangHooks):
+class Hooks(GoMembers, LangHooks):
     flatten_blocks = ("statement_list",)
     wrapper_nodes = ("type_declaration",)
 

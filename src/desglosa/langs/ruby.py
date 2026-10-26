@@ -12,6 +12,7 @@ import re
 
 from tree_sitter import Node
 
+from desglosa.langs.members import RubyMembers
 from desglosa.langs.spec import (
     AltInfo,
     Binding,
@@ -103,7 +104,7 @@ def _block_of(call: Node) -> Node | None:
     return call.child_by_field_name("block")
 
 
-class Hooks(LangHooks):
+class Hooks(RubyMembers, LangHooks):
     # ---------------------------------------------------------------- símbolos
 
     def class_bases(self, node: Node, src: Src) -> tuple[str, ...]:

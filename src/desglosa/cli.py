@@ -321,6 +321,42 @@ def cmd_mermaid(args: argparse.Namespace) -> int:
     return EXIT_OK
 
 
+def cmd_classes(args: argparse.Namespace) -> int:
+    from desglosa.uml import build_uml
+
+    # El Mermaid solo necesita las clases; el HTML completo lleva también los flujos.
+    analysis, code = _run_analysis(args, flows=not args.mermaid)
+    if analysis is None:
+        return code
+    index, diagrams = build_uml(analysis)
+    if not index:
+        print("No se encontraron clases ni interfaces.", file=sys.stderr)
+        return EXIT_NOT_FOUND
+    if args.carpeta is None:
+        folder = min(index, key=lambda f: (-index[f]["clases"], f))  # la de más clases
+    else:
+        folder = args.carpeta.strip().replace("\\", "/").strip("/")
+        folder = "" if folder == "." else folder
+        if folder not in index:
+            print(f"La carpeta {args.carpeta!r} no tiene clases. Carpetas con clases:",
+                  file=sys.stderr)
+            for f in sorted(index):
+                print(f"  {f or '.'} ({index[f]['clases']})", file=sys.stderr)
+            return EXIT_NOT_FOUND
+    if args.mermaid:
+        _write_text(args.output or "-", diagrams[folder]["mermaid"])
+        if args.output and args.output != "-":
+            print(f"Mermaid escrito en {args.output}")
+        return EXIT_OK
+    args.output = args.output or "clases.html"
+    _write_app(args, analysis, "#/clases/" + (folder or "."))
+    total = sum(v["clases"] for v in index.values())
+    print(f"Clases: {total} en {len(index)} carpeta{'s' if len(index) != 1 else ''}"
+          f" · abre en {folder or '(raíz)'}")
+    print(f"HTML escrito en {args.output}")
+    return EXIT_OK
+
+
 def cmd_draw(args: argparse.Namespace) -> int:
     from desglosa.mermaid import MermaidError, drawing_payload, parse_mermaid
     from desglosa.render.html import render_html
@@ -688,6 +724,17 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("-o", "--output", default="-", help="archivo .mmd ('-' = pantalla)")
     _add_flow_args(p)
     p.set_defaults(func=cmd_mermaid)
+
+    p = sub.add_parser(
+        "clases", aliases=["classes"], help="diagrama de clases UML de una carpeta"
+    )
+    _add_analysis_args(p)
+    p.add_argument("--carpeta", help="carpeta a dibujar ('.' = raíz; def. la de más clases)")
+    p.add_argument("--mermaid", action="store_true", help="salida en Mermaid (classDiagram)")
+    p.add_argument("-o", "--output",
+                   help="archivo de salida (def. clases.html; con --mermaid, la pantalla)")
+    _add_flow_args(p)
+    p.set_defaults(func=cmd_classes)
 
     p = sub.add_parser(
         "dibujar", aliases=["draw"],

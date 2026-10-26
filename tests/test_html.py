@@ -170,6 +170,11 @@ def test_diagrams_travel_in_compressed_packs(tmp_path):
     for sid, sym in index["symbols"].items():
         assert sym["flow"] == (sid in data["flows"])
     assert set(index["seq_ids"]) == set(data["sequence"])
-    # Cada paquete tiene solo funciones de su archivo.
+    # Cada paquete de archivo tiene solo funciones de ese archivo; los diagramas de clases
+    # van en paquetes aparte ("@uml/<carpeta>"), uno por carpeta del índice.
+    uml = {k for k in raw["packs"] if k.startswith("@uml/")}
+    assert uml == {"@uml/" + f for f in index["uml"]} and uml
     for path, text in raw["packs"].items():
+        if path in uml:
+            continue
         assert all(index["symbols"][sid]["file"] == path for sid in unpack(text)["flows"])

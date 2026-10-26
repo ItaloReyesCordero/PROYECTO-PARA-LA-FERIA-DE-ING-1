@@ -144,6 +144,20 @@ que conviene conocer (y explicar en la feria) en vez de esconder.
   de 12 componentes en una columna, el resto va a «Otros (N)»; en diagramas muy
   conectados se dibuja el esqueleto de relaciones más fuertes.
 
+## Diagrama de clases
+- Los **tipos** son los que el código escribe. En lenguajes sin tipos (Python, Ruby,
+  JavaScript) solo se conoce el de un atributo que se crea con `Clase()`, `Clase.new` o
+  `new Clase()`; los demás salen sin tipo y sin flecha de asociación.
+- La **asociación** se dibuja cuando el tipo de un atributo es una clase del proyecto
+  (también dentro de `List<Punto>`, que se marca con `*`). No se distingue agregación de
+  composición: eso depende de quién crea y destruye el objeto, y no se ve sin ejecutar.
+- **Go** no declara qué interfaces implementa un tipo, así que no se dibuja esa flecha. En
+  **C++ y Python** una clase abstracta pura se dibuja como clase abstracta (no hay
+  interfaces) y la flecha es de herencia.
+- Un nombre de clase repetido en varias carpetas se resuelve por la misma carpeta; si aun
+  así es ambiguo, no se dibuja la flecha.
+- Hasta 60 clases por carpeta (las más relacionadas), 12 atributos y 16 métodos por caja.
+
 ## Trazar una ruta
 - Es el camino **más corto** por llamadas resueltas (exactas o probables, y de un método
   de interfaz a sus implementaciones). No sigue llamadas ambiguas ni dinámicas, así que

@@ -12,6 +12,7 @@ from dataclasses import replace
 from tree_sitter import Node
 
 from desglosa.langs import c
+from desglosa.langs.members import CppMembers
 from desglosa.langs.spec import Src, one_line
 
 SPEC = replace(
@@ -30,7 +31,7 @@ SPEC = replace(
 )
 
 
-class Hooks(c.Hooks):
+class Hooks(CppMembers, c.Hooks):
     def catch_label(self, node: Node, src: Src) -> str:
         params = node.child_by_field_name("parameters")
         if params is None:

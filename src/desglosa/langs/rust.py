@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from tree_sitter import Node
 
+from desglosa.langs.members import RustMembers
 from desglosa.langs.spec import (
     Binding,
     CallParts,
@@ -83,7 +84,7 @@ def _impl_of(node: Node) -> Node | None:
     return None
 
 
-class Hooks(LangHooks):
+class Hooks(RustMembers, LangHooks):
     # ---------------------------------------------------------------- símbolos
 
     def symbol_qualifier(self, node: Node, src: Src) -> str | None:

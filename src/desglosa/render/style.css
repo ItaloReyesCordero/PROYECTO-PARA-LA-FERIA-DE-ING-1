@@ -394,6 +394,20 @@ button, input, select { font: inherit; color: inherit; }
   border-radius: 6px; padding: 8px; resize: vertical; }
 .acciones-dialogo { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 10px; }
 
+/* Diagrama de clases (UML). */
+.uml-estereotipo { fill: var(--texto-suave); font: italic 11px var(--sans); }
+.uml-nombre { fill: var(--texto); font: 600 13px var(--mono); }
+.nodo .uml-miembro { font: 12px var(--mono); }
+.uml-nombre.abstracto, .nodo .uml-miembro.abstracto { font-style: italic; }
+.nodo .uml-miembro.estatico { text-decoration: underline; }
+.uml-fantasma .forma { stroke-dasharray: 4 3; fill-opacity: .04; }
+.uml-fantasma .uml-nombre { fill: var(--texto-suave); font-weight: 400; }
+.arista.uml-implementa { stroke-dasharray: 6 4; }
+.uml-punta-hueca { fill: var(--superficie); stroke: var(--linea); stroke-width: 1.4; }
+.uml-punta-abierta { fill: none; stroke: var(--linea); stroke-width: 1.4; }
+.selector-carpeta { background: var(--superficie-2); border: 1px solid var(--borde);
+  border-radius: 6px; padding: 2px 6px; max-width: min(420px, 60vw); }
+
 /* Minimapa: esquina inferior derecha, con el rectángulo de lo que se ve. */
 .minimapa { position: absolute; right: 12px; bottom: 12px; padding: 4px; border-radius: 8px;
   background: var(--superficie); border: 1px solid var(--borde); z-index: 4; }

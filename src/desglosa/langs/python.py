@@ -10,6 +10,7 @@ import re
 
 from tree_sitter import Node
 
+from desglosa.langs.members import PythonMembers
 from desglosa.langs.spec import Binding, ImportParts, LangHooks, LangSpec, Src, one_line
 
 SPEC = LangSpec(
@@ -61,7 +62,7 @@ def _string_literal_value(node: Node, src: Src) -> str:
     return text.strip("\"'rbuRBUfF")
 
 
-class Hooks(LangHooks):
+class Hooks(PythonMembers, LangHooks):
     def doc(self, node: Node, src: Src) -> str | None:
         target = node.child_by_field_name("body") if node.type != "module" else node
         string = _docstring_node(target)

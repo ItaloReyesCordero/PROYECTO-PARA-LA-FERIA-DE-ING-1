@@ -20,6 +20,7 @@ from desglosa.sequence import (
     returning_functions,
     without_externals,
 )
+from desglosa.uml import build_uml
 
 FUNC_KINDS = ("function", "method")
 
@@ -224,9 +225,28 @@ def build_payload(
         ) if map_data else None,
         "packs": build_packs(symbols, flows, sequences, sources),
     }
+    # Diagrama de clases: un paquete comprimido por carpeta ("@uml/<carpeta>"), que el visor
+    # abre solo cuando se pide; en el índice va solo cuántas clases tiene cada carpeta.
+    if map_data:
+        index, diagrams = build_uml(analysis, _class_links(map_data, project))
+        payload["uml"] = index
+        payload["packs"].update({f"@uml/{f}": pack(d) for f, d in diagrams.items()})
     if extra:
         payload.update(extra)
     return pack_index(payload)
+
+
+def _class_links(map_data: dict, project) -> dict[str, str]:
+    """Clase → su lugar en el mapa (para "clic: ver en el mapa" en el diagrama de clases)."""
+    groups = map_data.get("groups", {})
+    files = map_data.get("files", {})
+    out = {}
+    for s in project.symbols:
+        if s.kind in ("class", "interface"):
+            el = s.id if s.id in groups else files.get(s.file)
+            if el:
+                out[s.id] = f"#/mapa/{el}"
+    return out
 
 
 def notes_of(project, symbols: dict) -> dict[str, list]:

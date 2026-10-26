@@ -19,6 +19,7 @@ import re
 
 from tree_sitter import Node
 
+from desglosa.langs.members import CSharpMembers
 from desglosa.langs.spec import (
     Binding,
     CallParts,
@@ -80,7 +81,7 @@ def _last_name(text: str) -> str:
     return text.split("<", 1)[0].rsplit(".", 1)[-1].strip()
 
 
-class Hooks(LangHooks):
+class Hooks(CSharpMembers, LangHooks):
     # En C# un `case` sin `break` es un error de compilación: no hay caída al siguiente.
     fallthrough = False
 

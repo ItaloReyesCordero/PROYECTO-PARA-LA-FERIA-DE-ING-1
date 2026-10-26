@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from tree_sitter import Node
 
+from desglosa.langs.members import JavaMembers
 from desglosa.langs.spec import (
     Binding,
     CallParts,
@@ -51,7 +52,7 @@ def _type_text(node: Node | None, src: Src) -> str:
     return src.text(node) if node is not None else ""
 
 
-class Hooks(LangHooks):
+class Hooks(JavaMembers, LangHooks):
     fallthrough = True
 
     def is_static(self, node: Node, src: Src) -> bool:

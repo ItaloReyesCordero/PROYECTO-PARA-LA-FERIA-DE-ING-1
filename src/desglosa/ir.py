@@ -106,6 +106,38 @@ class Call:
     io_kind: str | None = None
 
 
+@dataclass(frozen=True, slots=True)
+class Member:
+    """Atributo de una clase, para el diagrama de clases (Bloque 4). No es parte del IR
+    exportado: lo guarda la extracción (`FileResult.members`)."""
+
+    name: str
+    type: str | None  # tal como está escrito (`List<Item>`), o None si no se declara
+    visibility: str | None  # "+" público, "-" privado, "#" protegido, "~" paquete/interno
+    static: bool
+    line: int
+
+
+@dataclass(frozen=True, slots=True)
+class MethodInfo:
+    """Lo que el diagrama de clases muestra de un método además de su firma."""
+
+    visibility: str | None
+    static: bool
+    abstract: bool
+    returns: str | None  # tipo de retorno escrito (sin `void`), o None
+
+
+@dataclass(frozen=True, slots=True)
+class DeclaredMethod:
+    """Método declarado sin cuerpo que no es un símbolo (C++ `virtual double area() = 0;`)."""
+
+    name: str
+    params: str
+    info: MethodInfo
+    line: int
+
+
 def call_targets(call: Call) -> tuple[str, ...]:
     """Destinos con los que se puede contar: el resuelto, o hasta MAX_ALTERNATIVES
     candidatos (interfaz o nombre repetido). Con más, ninguno."""

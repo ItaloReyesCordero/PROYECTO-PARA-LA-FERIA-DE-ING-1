@@ -1,0 +1,31 @@
+---
+title: "Clases de (raíz)"
+---
+classDiagram
+    class Dibujable {
+        <<interface>>
+        +dibujar()*
+    }
+    class Figura {
+        <<abstract>>
+        #String nombre
+        -int contador$
+        +Figura(nombre)
+        +area()* double
+        +total()$ int
+    }
+    class Circulo {
+        -double radio
+        +Punto centro
+        +Circulo(nombre, radio)
+        +area() double
+        +dibujar()
+        -esValido() boolean
+    }
+    class Punto {
+        ~int x
+        ~int y
+    }
+    Dibujable <|.. Circulo
+    Circulo --> Punto : centro
+    Figura <|-- Circulo

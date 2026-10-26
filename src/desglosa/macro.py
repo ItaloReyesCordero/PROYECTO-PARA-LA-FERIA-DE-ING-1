@@ -564,6 +564,8 @@ def build_map(
             "summary": mb.summary(gid),
             "layout": mb.group_layout(gid, edges),
         }
+        if g.kind == "modulo" and g.path is not None:
+            groups_out[gid]["path"] = g.path  # el visor abre las clases de esta carpeta
         doc = doc_of(g)
         if doc:
             groups_out[gid]["doc"] = doc

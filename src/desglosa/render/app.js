@@ -97,6 +97,9 @@
     otros: "Agrupados",
     tabla: "Tabla",
     bd: "Base de datos",
+    "uml-hereda": "Hereda de (▷ la base)",
+    "uml-implementa": "Implementa (▷ la interfaz)",
+    "uml-asociacion": "Asociación: un atributo de ese tipo",
   };
   const CONF_NAMES = {
     exacta: "Relación exacta",
@@ -263,6 +266,7 @@
     else if (view === "arquitectura") renderArch();
     else if (view === "ruta") renderRoute(id);
     else if (view === "dibujo") renderDrawing();
+    else if (view === "clases") renderClasses(id);
     else renderMap(null);
     renderCrumbs();
     tourHook();
@@ -377,6 +381,7 @@
     else if (state.view === "arquitectura") renderArch();
     else if (state.view === "ruta") renderRoute(state.id);
     else if (state.view === "dibujo") renderDrawing();
+    else if (state.view === "clases") renderClasses(state.id);
     state.selectedNode = keep;
     if (state.tour) paintTour();
   }
@@ -500,6 +505,8 @@
       items.push({ label: "Arquitectura", hash: buildHash("arquitectura", null) });
     } else if (state.view === "ruta") {
       items.push({ label: "Trazar ruta", hash: buildHash("ruta", state.id) });
+    } else if (state.view === "clases") {
+      items.push({ label: "Clases" + (state.id && state.id !== "." ? ": " + state.id : ""), hash: buildHash("clases", state.id) });
     }
     items.forEach((it, i) => {
       if (i > 0) nav.appendChild(h("span", { class: "sep", "aria-hidden": "true" }, "›"));
@@ -534,7 +541,7 @@
       else go("mapa", null);
       return;
     }
-    if (["er", "galaxia", "arquitectura"].includes(state.view)) go("mapa", null);
+    if (["er", "galaxia", "arquitectura", "clases"].includes(state.view)) go("mapa", null);
   }
 
   // ------------------------------------------------------------------ pestañas e info
@@ -544,9 +551,11 @@
     clear(tabs);
     if (!sid) {
       const hasER = DATA.er && DATA.er.tables && DATA.er.tables.length;
-      if (hasER || DATA.galaxy || DATA.arch) {
+      const hasUml = DATA.uml && Object.keys(DATA.uml).length;
+      if (hasER || DATA.galaxy || DATA.arch || hasUml) {
         tabs.appendChild(tabButton("Mapa", state.view === "mapa" || !state.view, () => go("mapa", null)));
         if (DATA.arch) tabs.appendChild(tabButton("Arquitectura", state.view === "arquitectura", () => go("arquitectura", null)));
+        if (hasUml) tabs.appendChild(tabButton("Clases", state.view === "clases", () => go("clases", null)));
         if (DATA.galaxy) tabs.appendChild(tabButton("Galaxia", state.view === "galaxia", () => go("galaxia", null)));
         if (hasER) tabs.appendChild(tabButton("Entidad-relación", state.view === "er", () => go("er", null)));
       }
@@ -666,7 +675,12 @@
     return s("defs", null,
       marker("punta", "punta"),
       marker("punta-exc", "punta-exc"),
-      marker("punta-foco", "punta-foco"));
+      marker("punta-foco", "punta-foco"),
+      // UML: triángulo hueco (herencia, implementación) y flecha abierta (asociación).
+      s("marker", { id: "uml-triangulo", viewBox: "0 0 12 12", refX: "11", refY: "6", markerWidth: "12", markerHeight: "12", orient: "auto-start-reverse", markerUnits: "userSpaceOnUse" },
+        s("path", { d: "M0,0 L11,6 L0,12 z", class: "uml-punta-hueca" })),
+      s("marker", { id: "uml-flecha", viewBox: "0 0 12 12", refX: "11", refY: "6", markerWidth: "12", markerHeight: "12", orient: "auto-start-reverse", markerUnits: "userSpaceOnUse" },
+        s("path", { d: "M0,0 L11,6 L0,12", class: "uml-punta-abierta" })));
   }
 
   function marker(id, cls) {
@@ -759,7 +773,9 @@
     const box = h("div", { class: "leyenda", role: "list", "aria-label": "Leyenda" });
     for (const k of kinds) {
       const icon = s("svg", { viewBox: "0 0 26 16", "aria-hidden": "true" });
-      if (CONF_NAMES[k]) {
+      if (k.startsWith("uml-")) {
+        icon.appendChild(s("line", { x1: 1, y1: 8, x2: 25, y2: 8, class: "arista " + k }));
+      } else if (CONF_NAMES[k]) {
         icon.appendChild(s("line", { x1: 1, y1: 8, x2: 25, y2: 8, class: "arista c-" + k }));
       } else if (k === "excepcion") {
         icon.appendChild(s("line", { x1: 1, y1: 8, x2: 25, y2: 8, class: "arista k-excepcion" }));
@@ -1011,6 +1027,7 @@
     }
     const id = gid && MAP.groups[gid] ? gid : MAP.root;
     const group = MAP.groups[id];
+    state.lastMapPath = group.path !== undefined ? group.path : group.kind === "proyecto" ? null : state.lastMapPath;
     const lay = group.layout;
     const focus = lay && state.focus && lay.nodes.some((n) => n[0] === state.focus) ? state.focus : null;
     const infoParts = [h("strong", null, group.name), group.summary ? "  ·  " + group.summary : ""];
@@ -2044,6 +2061,12 @@
     if (v === "flujo" && state.id) return mermaidFlow(state.id);
     if (v === "secuencia" && state.id) return mermaidSequence(state.id);
     if (v === "dibujo" && DATA.drawing) return DATA.drawing.source;
+    if (v === "clases") {
+      const index = DATA.uml || {};
+      const folder = state.id === null || state.id === undefined ? umlDefaultFolder() : state.id === "." ? "" : state.id;
+      const d = PACKS["@uml/" + folder];
+      return d ? d.mermaid : null;
+    }
     if (v === "arquitectura" && DATA.arch) return mermaidBoxes("Arquitectura de " + ((DATA.meta && DATA.meta.name) || "proyecto"), DATA.arch.nodes, DATA.arch.edges, DATA.arch.columns);
     if (v === "mapa" && MAP) {
       const gid = state.id && MAP.groups[state.id] ? state.id : MAP.root;
@@ -2077,6 +2100,105 @@
       h("div", { class: "acciones-dialogo" }, copy, save, close, status));
     document.body.appendChild(mermaidDialog);
     mermaidDialog.showModal();
+  }
+
+  // ------------------------------------------------------------------ vista: diagrama de clases (UML)
+
+  const UML_LINE = 16;
+  const UML_HEAD = 34;
+  const UML_PAD = 8;
+
+  /** Carpeta que se abre por defecto: la del nivel del mapa en que estabas, o la que
+   * tiene más clases. */
+  function umlDefaultFolder() {
+    const index = DATA.uml || {};
+    const folders = Object.keys(index);
+    const fromMap = state.lastMapPath;
+    if (fromMap !== undefined && fromMap !== null && index[fromMap]) return fromMap;
+    folders.sort((a, b) => index[b].clases - index[a].clases || a.localeCompare(b));
+    return folders[0];
+  }
+
+  function renderClasses(id) {
+    renderTabs(null);
+    hidePanel();
+    const index = DATA.uml || {};
+    const folders = Object.keys(index);
+    if (!folders.length) { renderInfo([]); showEmpty("El proyecto no tiene clases."); return; }
+    let folder = id === null || id === undefined ? umlDefaultFolder() : id === "." ? "" : id;
+    if (!(folder in index)) folder = umlDefaultFolder();
+    const key = "@uml/" + folder;
+    if (!PACKS[key]) {
+      showEmpty("Cargando el diagrama de clases…");
+      const want = location.hash;
+      loadPack(key).then(() => { if (location.hash === want) renderClasses(id); },
+        (err) => showEmpty(err && err.message === "navegador-antiguo" ? OLD_BROWSER : "No se pudo abrir el diagrama."));
+      return;
+    }
+    const d = PACKS[key];
+    // Selector de carpeta: las que tienen más clases primero.
+    const sorted = folders.slice().sort((a, b) => index[b].clases - index[a].clases || a.localeCompare(b));
+    const select = h("select", { class: "selector-carpeta", "aria-label": "Carpeta del diagrama de clases",
+      onchange: (e) => go("clases", e.target.value === "" ? "." : e.target.value) });
+    for (const f of sorted) {
+      const opt = h("option", { value: f }, (f || "(raíz)") + " — " + index[f].clases + (index[f].clases === 1 ? " clase" : " clases"));
+      if (f === folder) opt.selected = true;
+      select.appendChild(opt);
+    }
+    const info = [h("strong", null, "Diagrama de clases"), "  ·  ", select];
+    info.push(h("div", { class: "pista" }, "UML: + público, − privado, # protegido, ~ paquete; subrayado = estático, cursiva = abstracto. Las clases en gris son de otra carpeta (clic para ir a la suya)."));
+    if (d.hidden) info.push(h("div", { class: "pista" }, "Carpeta grande: se dibujan las " + (d.classes.filter((c) => !c[10]).length) + " clases más relacionadas; " + d.hidden + " no se muestran."));
+    renderInfo(info);
+    const svg = s("svg", { role: "img", "aria-label": "Diagrama de clases de " + (folder || "la raíz") });
+    svg.appendChild(markers());
+    const g = s("g", { class: "vista" });
+    const kinds = new Set();
+    for (const [, , pts, kind, label, lx, ly, lw, lh] of d.edges) {
+      kinds.add("uml-" + kind);
+      g.appendChild(s("path", { class: "arista uml-" + kind, d: pathFrom(pts),
+        "marker-end": kind === "asociacion" ? "url(#uml-flecha)" : "url(#uml-triangulo)" }));
+      if (label) g.appendChild(drawLabel(label, lx, ly, lw, lh));
+    }
+    for (const [cid, kind, x, y, w, hh, stereo, name, attrs, methods, ghost, ghostFolder, link, abstract, where] of d.classes) {
+      const nk = kind === "interface" ? "interfaz" : "clase";
+      kinds.add(nk);
+      const target = ghost ? null : link;
+      const cg = s("g", { class: "nodo k-" + nk + " uml-clase" + (ghost ? " uml-fantasma clicable" : link ? " clicable" : ""), "data-id": cid, tabindex: "0", role: "button",
+        "aria-label": (stereo ? stereo + " " : "") + name });
+      cg.appendChild(s("rect", { class: "forma", x, y, width: w, height: hh, rx: 3 }));
+      const cx = x + w / 2;
+      if (ghost) {
+        cg.appendChild(s("text", { class: "uml-nombre", x: cx, y: y + hh / 2 + 1, "text-anchor": "middle" }, name));
+      } else {
+        if (stereo) cg.appendChild(s("text", { class: "uml-estereotipo", x: cx, y: y + 12, "text-anchor": "middle" }, stereo));
+        cg.appendChild(s("text", { class: "uml-nombre" + (abstract || kind === "interface" ? " abstracto" : ""), x: cx, y: y + (stereo ? 26 : 19), "text-anchor": "middle" }, name));
+        let ty = y + UML_HEAD;
+        cg.appendChild(s("line", { class: "linea-interna", x1: x, y1: ty, x2: x + w, y2: ty }));
+        ty += UML_PAD / 2;
+        const block = (lines) => {
+          if (!lines.length) { ty += UML_LINE; return; }
+          for (const [text, flags] of lines) {
+            ty += UML_LINE;
+            cg.appendChild(s("text", { class: "uml-miembro" + (flags.includes("s") ? " estatico" : "") + (flags.includes("a") ? " abstracto" : ""), x: x + UML_PAD, y: ty - 4 }, text));
+          }
+        };
+        block(attrs);
+        ty += UML_PAD / 2;
+        cg.appendChild(s("line", { class: "linea-interna", x1: x, y1: ty, x2: x + w, y2: ty }));
+        ty += UML_PAD / 2;
+        block(methods);
+      }
+      cg.appendChild(s("title", null, (stereo ? stereo + " " : "") + name + "\n" + where + (ghost ? "\nDe la carpeta " + (ghostFolder || "(raíz)") + ": clic para ver su diagrama" : target ? "\nClic: verla en el mapa" : "")));
+      const open = () => {
+        if (ghost) go("clases", ghostFolder === "" ? "." : ghostFolder);
+        else if (target) location.hash = withParams(target);
+      };
+      cg.addEventListener("click", (e) => { if (state.dragged) return; e.stopPropagation(); open(); });
+      cg.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); open(); } });
+      g.appendChild(cg);
+    }
+    const order = ["clase", "interfaz", "uml-hereda", "uml-implementa", "uml-asociacion"];
+    mount(svg, g, d.w, d.h, order.filter((k) => kinds.has(k)));
   }
 
   // ------------------------------------------------------------------ vista: entidad-relación

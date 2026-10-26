@@ -25,7 +25,7 @@ from dataclasses import dataclass, field
 
 from desglosa.ir import FlowGraph, FlowNode
 from desglosa.layout.flow import node_size
-from desglosa.layout.layered import LEdge, LNode, layout_layered
+from desglosa.layout.layered import LEdge, LNode, layout_directed
 from desglosa.layout.text import label_size
 from desglosa.sequence import SequenceDiagram
 
@@ -527,22 +527,6 @@ DRAW_LEGEND_ORDER = ("terminal", "proceso", "subproceso", "decision", "es", "tec
 DRAW_LAYER_GAP = 64.0  # entre filas (o columnas): un diagrama de flujo va más junto que el mapa
 
 
-def orthogonal(points: list[tuple[float, float]], td: bool) -> list[tuple[float, float]]:
-    """Cambia cada tramo diagonal por tramos rectos que doblan a mitad de camino. Los
-    tramos diagonales solo cruzan el hueco entre filas (o columnas), donde no hay cajas."""
-    out = [points[0]]
-    for (x1, y1), (x2, y2) in zip(points, points[1:], strict=False):
-        if x1 != x2 and y1 != y2:
-            if td:
-                mid = round((y1 + y2) / 2, 1)
-                out += [(x1, mid), (x2, mid)]
-            else:
-                mid = round((x1 + x2) / 2, 1)
-                out += [(mid, y1), (mid, y2)]
-        out.append((x2, y2))
-    return out
-
-
 def drawing_payload(drawing: Drawing, source: str) -> dict:
     """Coordenadas del diagrama dibujado. De arriba hacia abajo (TD) se usa el layout por
     capas girado: las capas pasan a ser filas."""
@@ -554,40 +538,28 @@ def drawing_payload(drawing: Drawing, source: str) -> dict:
             w = h = max(w, h, 36.0)
         sizes[n.id] = (w, h, lines)
     order = {n.id: i for i, n in enumerate(drawing.nodes)}
-    lnodes = [
-        LNode(nid, h if td else w, w if td else h, f"{order[nid]:05d}")
-        for nid, (w, h, _) in sizes.items()
-    ]
-    lay = layout_layered(
-        lnodes, [LEdge(e.src, e.dst) for e in drawing.edges], layer_gap=DRAW_LAYER_GAP
+    lnodes = [LNode(nid, w, h, f"{order[nid]:05d}") for nid, (w, h, _) in sizes.items()]
+    lay = layout_directed(
+        lnodes, [LEdge(e.src, e.dst, e.label) for e in drawing.edges], td, DRAW_LAYER_GAP
     )
-
-    def pt(x: float, y: float) -> tuple[float, float]:
-        return (y, x) if td else (x, y)
-
     nodes_out = []
     for n in drawing.nodes:
         p = lay.nodes[n.id]
         w, h, lines = sizes[n.id]
-        x, y = pt(p.x, p.y)
-        nodes_out.append([n.id, n.kind, x, y, w, h, lines])
+        nodes_out.append([n.id, n.kind, p.x, p.y, w, h, lines])
     placed = {(e.src, e.dst): e for e in lay.edges}
     edges_out = []
     for e in drawing.edges:
         pe = placed.get((e.src, e.dst))
         if pe is None:
             continue
-        pts = orthogonal([pt(x, y) for x, y in pe.points], td)
-        flat = [round(v, 1) for xy in pts for v in xy]
-        box = [0, 0, 0, 0]
-        if e.label:
-            lw, lh = label_size(e.label)
-            seg = max(zip(pts, pts[1:], strict=False),
-                      key=lambda s: math.hypot(s[1][0] - s[0][0], s[1][1] - s[0][1]))
-            mx, my = (seg[0][0] + seg[1][0]) / 2, (seg[0][1] + seg[1][1]) / 2
-            box = [round(mx - lw / 2, 1), round(my - lh / 2, 1), round(lw, 1), round(lh, 1)]
+        flat = [round(v, 1) for xy in pe.points for v in xy]
+        # La etiqueta va en el tramo más largo; dos flechas iguales comparten caja.
+        box = list(pe.label_box) if e.label and pe.label_box else [0, 0, 0, 0]
+        if e.label and not pe.label_box:
+            box = list(_label_box(e.label, pe.points))
         edges_out.append([e.src, e.dst, flat, e.style, e.arrow, e.label, *box])
-    width, height = (lay.height, lay.width) if td else (lay.width, lay.height)
+    width, height = lay.width, lay.height
     kinds = {n.kind for n in drawing.nodes}
     return {
         "title": drawing.title,
@@ -600,3 +572,11 @@ def drawing_payload(drawing: Drawing, source: str) -> dict:
         "warnings": drawing.warnings,
         "source": source,
     }
+
+
+def _label_box(label: str, pts) -> tuple[float, float, float, float]:
+    lw, lh = label_size(label)
+    seg = max(zip(pts, pts[1:], strict=False),
+              key=lambda s: math.hypot(s[1][0] - s[0][0], s[1][1] - s[0][1]))
+    mx, my = (seg[0][0] + seg[1][0]) / 2, (seg[0][1] + seg[1][1]) / 2
+    return (round(mx - lw / 2, 1), round(my - lh / 2, 1), round(lw, 1), round(lh, 1))

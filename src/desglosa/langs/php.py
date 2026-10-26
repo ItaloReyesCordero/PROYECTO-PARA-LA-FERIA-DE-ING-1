@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from tree_sitter import Node
 
+from desglosa.langs.members import PhpMembers
 from desglosa.langs.spec import (
     Binding,
     CallParts,
@@ -72,7 +73,7 @@ def _var(text: str) -> str:
     return text.lstrip("$")
 
 
-class Hooks(LangHooks):
+class Hooks(PhpMembers, LangHooks):
     fallthrough = True
 
     def class_bases(self, node: Node, src: Src) -> tuple[str, ...]:

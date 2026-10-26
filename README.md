@@ -162,6 +162,9 @@ uv run desglosa sql examples/laravel-mini -o er.html
 # El flujo de una función en Mermaid (para un README, Notion o mermaid.live)
 uv run desglosa mermaid examples/laravel-mini FacturacionService.emitir
 
+# Diagrama de clases UML de una carpeta (o en Mermaid con --mermaid)
+uv run desglosa clases examples/laravel-mini --carpeta app/Services -o clases.html
+
 # Dibujar con el estilo de Desglosa un diagrama de flujo escrito a mano en Mermaid
 uv run desglosa dibujar examples/dibujo/cajero.mmd -o cajero.html
 ```
@@ -178,6 +181,7 @@ uv run desglosa dibujar examples/dibujo/cajero.mmd -o cajero.html
 | `path <ruta> <desde> <hasta>` | el camino de llamadas más corto entre dos funciones |
 | `buscar <ruta> "texto"` | busca funciones y clases por palabras (nombre, descripción, archivo) |
 | `mermaid <ruta> <nombre>` | el flujo (o con `--secuencia`, la secuencia) de una función en Mermaid |
+| `clases <ruta>` | diagrama de clases UML de una carpeta (`--carpeta`, `--mermaid`) |
 | `dibujar <archivo.mmd>` | dibuja un diagrama de flujo de Mermaid con el estilo de Desglosa (ver abajo) |
 | `export-ir <ruta>` | el modelo intermedio en JSON (ver [docs/IR.md](https://github.com/ItaloReyesCordero/PROYECTO-PARA-LA-FERIA-DE-ING-1/blob/main/docs/IR.md)) |
 | `skill install` / `skill show` | instala o muestra la skill para asistentes de IA |

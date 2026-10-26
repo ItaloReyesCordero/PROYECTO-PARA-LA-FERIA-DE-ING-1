@@ -2,6 +2,15 @@
 
 ## [Sin publicar]
 
+### Bloque 4 — Para la clase de programación: UML, pseudocódigo, dependencias y versiones
+- **Diagrama de clases UML** (pestaña «Clases», `desglosa clases`): atributos y métodos
+  con visibilidad (`+ - # ~`), tipos, estáticos subrayados y abstractos en cursiva;
+  herencia, implementación y asociación (un atributo cuyo tipo es otra clase). Un
+  diagrama por carpeta; las clases relacionadas de otras carpetas salen en gris y llevan a
+  la suya. Los 12 lenguajes con su regla de visibilidad por defecto; también los
+  atributos declarados en el constructor (PHP 8, TypeScript, Kotlin) y el tipo deducido de
+  `new Punto()` / `Punto.new` / `Punto()`. Exporta `classDiagram` de Mermaid.
+
 ### Bloque 3 — Explicar y presentar: arquitectura, rutas, recorrido, Mermaid y estilos
 - **Mapa de arquitectura**: capas (Rutas → Entrada → Lógica → Datos → Base de datos →
   Servicios externos) por convenciones de nombre y carpeta, con el motivo de cada una;

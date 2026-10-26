@@ -15,7 +15,18 @@ from pathlib import Path
 from tree_sitter import Node
 
 from desglosa import grammars, langs
-from desglosa.ir import Call, ControlCtx, Import, Note, SourceFile, Symbol, stable_id
+from desglosa.ir import (
+    Call,
+    ControlCtx,
+    DeclaredMethod,
+    Import,
+    Member,
+    MethodInfo,
+    Note,
+    SourceFile,
+    Symbol,
+    stable_id,
+)
 from desglosa.langs.builtins import classify_io
 from desglosa.langs.spec import (
     Binding,
@@ -49,6 +60,12 @@ class FileResult:
     extra_bases: list[tuple[str, str]] = field(default_factory=list)  # (tipo, base) externos
     warnings: list[str] = field(default_factory=list)
     notes: list[Note] = field(default_factory=list)  # TODO, FIXME, NOTE… en comentarios
+    # Diagrama de clases (Bloque 4): atributos de cada clase, datos de cada método y
+    # clases abstractas. No son parte del IR exportado.
+    members: dict[str, list[Member]] = field(default_factory=dict)
+    method_info: dict[str, MethodInfo] = field(default_factory=dict)
+    abstract_classes: list[str] = field(default_factory=list)
+    declared: dict[str, list[DeclaredMethod]] = field(default_factory=dict)
 
 
 class _Frame:
@@ -93,6 +110,10 @@ class _Walker:
         self.abstract: list[str] = []
         self.qualifiers: dict[str, str] = {}
         self.extra_bases: list[tuple[str, str]] = []
+        self.members: dict[str, list[Member]] = {}
+        self.method_info: dict[str, MethodInfo] = {}
+        self.abstract_classes: list[str] = []
+        self.declared: dict[str, list[DeclaredMethod]] = {}
         self.frames: list[_Frame] = []
         self.used_ids: set[str] = set()
         self.module_entry = False
@@ -171,6 +192,22 @@ class _Walker:
         self.symbols.append(sym)
         return sym
 
+    def _merge_members(self, class_id: str, found: list[Member]) -> None:
+        """Atributos creados en un método: solo los que la clase no declara ya.
+
+        Si la clase ya lo declara sin tipo (`attr_accessor :centro`) y el método dice cuál
+        es (`@centro = Punto.new`), se completa el tipo.
+        """
+        current = self.members[class_id]
+        index = {m.name: i for i, m in enumerate(current)}
+        for m in found:
+            i = index.get(m.name)
+            if i is None:
+                index[m.name] = len(current)
+                current.append(m)
+            elif current[i].type is None and m.type is not None:
+                current[i] = replace(current[i], type=m.type)
+
     # ------------------------------------------------------------------ recorrido
 
     def walk(self, node: Node, frame: _Frame, ctx: tuple[ControlCtx, ...]) -> None:
@@ -183,6 +220,12 @@ class _Walker:
             if name:
                 sym = self.add_symbol(node, kind, name, frame)
                 self.class_bases[sym.id] = hooks.class_bases(node, src)
+                self.members[sym.id] = list(hooks.class_members(node, src))
+                declared = hooks.declared_methods(node, src)
+                if declared:
+                    self.declared[sym.id] = declared
+                if hooks.class_is_abstract(node, src):
+                    self.abstract_classes.append(sym.id)
                 inner = _Frame(sym, kind, None)
                 inner.class_frame = inner
                 self.frames.append(inner)
@@ -206,6 +249,11 @@ class _Walker:
                 if not hooks.has_body(node):
                     self.abstract.append(sym.id)
                 class_frame = frame if in_class else frame.class_frame
+                if kind == "method":
+                    self.method_info[sym.id] = hooks.method_info(node, src)
+                    owner = class_frame.symbol.id if class_frame is not None else None
+                    if owner in self.members:
+                        self._merge_members(owner, hooks.assigned_members(node, src))
                 inner = _Frame(sym, kind, class_frame)
                 self.frames.append(inner)
                 for child in node.named_children:
@@ -409,6 +457,10 @@ def extract_bytes(path: str, lang: str, data: bytes) -> FileResult:
         field_types=dict(sorted(field_types.items())),
         qualifiers=dict(sorted(walker.qualifiers.items())),
         extra_bases=sorted(set(walker.extra_bases)),
+        members={k: v for k, v in sorted(walker.members.items()) if v},
+        method_info=dict(sorted(walker.method_info.items())),
+        abstract_classes=sorted(walker.abstract_classes),
+        declared=dict(sorted(walker.declared.items())),
         warnings=warnings,
         notes=find_notes(path, text),
     )

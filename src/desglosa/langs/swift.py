@@ -12,6 +12,7 @@ from __future__ import annotations
 
 from tree_sitter import Node
 
+from desglosa.langs.members import SwiftMembers
 from desglosa.langs.spec import (
     AltInfo,
     Binding,
@@ -78,7 +79,7 @@ def _type_text(node: Node | None, src: Src) -> str:
     return src.text(node).rstrip("?!").split("<", 1)[0].rsplit(".", 1)[-1]
 
 
-class Hooks(LangHooks):
+class Hooks(SwiftMembers, LangHooks):
     flatten_blocks = ("statements",)
 
     # ---------------------------------------------------------------- símbolos

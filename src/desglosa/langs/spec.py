@@ -14,6 +14,8 @@ from typing import NamedTuple
 
 from tree_sitter import Node
 
+from desglosa.ir import DeclaredMethod, Member, MethodInfo
+
 
 @dataclass(frozen=True)
 class LangSpec:
@@ -131,6 +133,61 @@ def normalize_type(text: str) -> str:
     return t.strip()
 
 
+# --------------------------------------------------------------------------- diagrama de clases
+
+MODIFIER_NODES = frozenset({
+    "modifiers", "modifier", "visibility_modifier", "accessibility_modifier",
+    "static_modifier", "abstract_modifier", "final_modifier", "readonly_modifier",
+    "storage_class_specifier", "property_modifier", "inheritance_modifier",
+    "member_modifier", "class_modifier", "function_modifier",
+})
+# Palabras que algunas gramáticas dejan como nodos sin nombre (TS: `static`, `readonly`).
+MODIFIER_WORDS = frozenset({
+    "public", "private", "protected", "internal", "static", "abstract", "pub",
+    "fileprivate", "open", "readonly", "final", "override", "virtual",
+})
+_WORD_RE = re.compile(r"[a-z]+(?:\([a-z]+\))?")
+_VISIBILITY = (
+    ("private", "-"), ("fileprivate", "-"), ("protected", "#"), ("internal", "~"),
+    ("pub(crate)", "~"), ("pub(super)", "~"), ("public", "+"), ("pub", "+"), ("open", "+"),
+)
+
+
+def modifier_words(node: Node, src: Src) -> set[str]:
+    """Modificadores de una declaración: {"public", "static", "abstract"…}."""
+    words: set[str] = set()
+    for c in node.children:
+        if c.type in MODIFIER_NODES:
+            words.update(_WORD_RE.findall(src.text(c)))
+        elif not c.is_named and c.type in MODIFIER_WORDS:
+            words.add(c.type)
+    return words
+
+
+def visibility_of(words: set[str], default: str | None = None) -> str | None:
+    for word, symbol in _VISIBILITY:
+        if word in words:
+            return symbol
+    return default
+
+
+def type_text(node: Node | None, src: Src) -> str | None:
+    """Texto de un tipo para el diagrama: `: string` → `string`; `void` → None."""
+    if node is None:
+        return None
+    text = one_line(src.text(node).strip().lstrip(":").strip(), 40)
+    return None if not text or text in ("void", "Unit", "()", "None") else text
+
+
+def name_visibility(name: str) -> str:
+    """Convención por nombre (Python): `__x` privado, `_x` protegido, el resto público."""
+    if name.startswith("__") and not name.endswith("__"):
+        return "-"
+    if name.startswith("_") and not name.startswith("__"):
+        return "#"
+    return "+"
+
+
 def strip_parens(text: str) -> str:
     """'(a && (b))' → 'a && (b)'; deja igual '(a) && (b)'."""
     text = text.strip()
@@ -239,6 +296,39 @@ class LangHooks:
 
     def class_bases(self, node: Node, src: Src) -> tuple[str, ...]:
         return ()
+
+    # ---------------------------------------------------------------- diagrama de clases
+    # Visibilidad cuando no se escribe ninguna (Java: paquete; C#: privado; Python: pública).
+    default_visibility: str | None = "+"
+
+    def class_members(self, node: Node, src: Src) -> list[Member]:
+        """Atributos declarados en el cuerpo de la clase."""
+        return []
+
+    def assigned_members(self, node: Node, src: Src) -> list[Member]:
+        """Atributos creados dentro de un método (`self.x = …`, `this.x = …`, `@x = …`)."""
+        return []
+
+    def declared_methods(self, node: Node, src: Src) -> list[DeclaredMethod]:
+        """Métodos declarados sin cuerpo que no son símbolos (C++ `virtual f() = 0;`)."""
+        return []
+
+    def class_is_abstract(self, node: Node, src: Src) -> bool:
+        return node.type.startswith("abstract") or "abstract" in modifier_words(node, src)
+
+    def method_info(self, node: Node, src: Src) -> MethodInfo:
+        words = modifier_words(node, src)
+        ret = None
+        for field_name in ("return_type", "returns", "result", "type"):
+            ret = node.child_by_field_name(field_name)
+            if ret is not None:
+                break
+        return MethodInfo(
+            visibility_of(words, self.default_visibility),
+            "static" in words,
+            "abstract" in words,
+            type_text(ret, src),
+        )
 
     def signature(self, node: Node, src: Src) -> str:
         body = self.function_body(node)

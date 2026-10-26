@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from tree_sitter import Node
 
+from desglosa.langs.members import KotlinMembers
 from desglosa.langs.spec import (
     Binding,
     CallParts,
@@ -61,7 +62,7 @@ def _type_text(node: Node | None, src: Src) -> str:
     return src.text(node).rstrip("?").split("<", 1)[0].rsplit(".", 1)[-1]
 
 
-class Hooks(LangHooks):
+class Hooks(KotlinMembers, LangHooks):
     flatten_blocks = ("statements", "control_structure_body")
 
     # ---------------------------------------------------------------- símbolos
