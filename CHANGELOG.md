@@ -10,6 +10,14 @@
   la suya. Los 12 lenguajes con su regla de visibilidad por defecto; también los
   atributos declarados en el constructor (PHP 8, TypeScript, Kotlin) y el tipo deducido de
   `new Punto()` / `Punto.new` / `Punto()`. Exporta `classDiagram` de Mermaid.
+- **Pseudocódigo estilo PSeInt** (pestaña «Pseudocódigo», `desglosa pseudo`): `Algoritmo`
+  para `main` y `Funcion` para el resto, `Si/SiNo`, `Mientras`, `Repetir … Hasta Que`,
+  `Segun`, `Para i <- a Hasta b Con Paso k` cuando el `for` cuenta de a pasos fijos (también
+  `range()`, `0 until n`, `0..n`), `Para Cada`, `Definir … Como Entero` en lenguajes con
+  tipos, `Dimension`, y `Escribir`/`Leer` desde `printf`, `print`, f-strings,
+  `console.log`, `cout`, `scanf`, `input`… Lo que PSeInt no tiene (retornar a mitad,
+  `break`, `try`) va como comentario. Se descarga como `.psc`; un archivo entero sale con
+  sus funciones y `main` al final.
 
 ### Bloque 3 — Explicar y presentar: arquitectura, rutas, recorrido, Mermaid y estilos
 - **Mapa de arquitectura**: capas (Rutas → Entrada → Lógica → Datos → Base de datos →

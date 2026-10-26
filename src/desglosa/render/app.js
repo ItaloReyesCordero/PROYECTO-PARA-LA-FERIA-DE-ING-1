@@ -27,6 +27,7 @@
   // Los flujos, secuencias y el código de cada archivo vienen comprimidos (zlib + base64)
   // y se abren solo cuando hacen falta: así un proyecto grande abre rápido.
   const PACKS = {};
+  const FUNC_VIEWS = ["flujo", "secuencia", "pseudo", "codigo"]; // vistas de una función
   const loading = {};
 
   function hasFlow(sid) {
@@ -232,7 +233,7 @@
     state.keepTransform = sameView;
     state.view = view;
     state.id = id;
-    if (["flujo", "secuencia", "codigo"].includes(view) && id) updateTrail(id);
+    if (FUNC_VIEWS.includes(view) && id) updateTrail(id);
     if (!sameView) { state.selectedNode = null; state.routeStep = null; }
     if (view !== "ruta") { stopRoutePlay(); state.route = null; }
     if (state.walk && !(view === "flujo" && id === state.walk.sid)) stopWalk();
@@ -244,7 +245,7 @@
 
     renderToolbar();
     // Vistas de una función: primero se abre el paquete de su archivo.
-    const file = ["flujo", "secuencia", "codigo"].includes(view) && SYMBOLS[id] ? SYMBOLS[id].file : null;
+    const file = FUNC_VIEWS.includes(view) && SYMBOLS[id] ? SYMBOLS[id].file : null;
     if (file && !PACKS[file]) {
       renderCrumbs();
       showEmpty("Cargando " + file + "…");
@@ -261,6 +262,7 @@
     else if (view === "flujo") renderFlow(id);
     else if (view === "secuencia") renderSequence(id);
     else if (view === "codigo") renderCodeView(id);
+    else if (view === "pseudo") renderPseudoView(id);
     else if (view === "er") renderER();
     else if (view === "galaxia") renderGalaxy();
     else if (view === "arquitectura") renderArch();
@@ -328,6 +330,7 @@
     ["Trazar ruta", "Botón del panel de una función: el camino de llamadas hasta otra función o la base de datos"],
     ["←  →  espacio", "En «Trazar ruta»: paso anterior, siguiente y reproducir"],
     ["R", "En un flujo: recorrerlo paso a paso, como una prueba de escritorio"],
+    ["Pseudocódigo", "Pestaña de cada función: el algoritmo estilo PSeInt, para copiar o descargar (.psc)"],
     ["P", "Presentación guiada del proyecto (con avance automático para un stand)"],
     ["T", "Tema claro u oscuro"],
     ["S", "Estilo: moderno, clásico (blanco y negro), pizarra o alto contraste"],
@@ -485,7 +488,7 @@
         if (g === rootGid) continue;
         items.push({ label: MAP.groups[g].name, hash: buildHash("mapa", g) });
       }
-    } else if (["flujo", "secuencia", "codigo"].includes(state.view) && state.trail.length) {
+    } else if (FUNC_VIEWS.includes(state.view) && state.trail.length) {
       const base = state.trail[0];
       const owner = MAP && MAP.owner ? MAP.owner[base] : null;
       for (const g of groupChain(owner)) {
@@ -520,7 +523,7 @@
   }
 
   function goUp() {
-    if (["flujo", "secuencia", "codigo"].includes(state.view)) {
+    if (FUNC_VIEWS.includes(state.view)) {
       if (state.trail.length > 1) {
         const prev = state.trail.slice(0, -1);
         go(state.view, prev[prev.length - 1], { trail: prev });
@@ -563,6 +566,8 @@
     }
     tabs.appendChild(tabButton("Flujo", state.view === "flujo", () => go("flujo", sid, { trail: state.trail })));
     tabs.appendChild(tabButton("Secuencia", state.view === "secuencia", () => go("secuencia", sid, { trail: state.trail })));
+    const flow = flowOf(sid);
+    if (flow && flow.ps) tabs.appendChild(tabButton("Pseudocódigo", state.view === "pseudo", () => go("pseudo", sid, { trail: state.trail })));
     tabs.appendChild(tabButton("Código", state.view === "codigo", () => go("codigo", sid, { trail: state.trail })));
   }
 
@@ -1009,6 +1014,86 @@
     const pre = h("div", { class: "codigo", style: "position:absolute;inset:0;" });
     source.split("\n").slice(sym.line_start - 1, sym.line_end).forEach((ln, i) => {
       pre.appendChild(h("div", { class: "ln" }, h("span", { class: "num" }, String(sym.line_start + i)), ln));
+    });
+    lienzo.appendChild(pre);
+  }
+
+  // ------------------------------------------------------------------ vista: pseudocódigo (PSeInt)
+
+  const PS_KEYWORDS = new Set([
+    "Algoritmo", "FinAlgoritmo", "Funcion", "FinFuncion", "SubProceso", "FinSubProceso",
+    "Si", "Entonces", "SiNo", "FinSi", "Mientras", "Hacer", "FinMientras", "Para", "Hasta",
+    "Con", "Paso", "FinPara", "Cada", "de", "Repetir", "Que", "Segun", "FinSegun", "De", "Otro",
+    "Modo", "Escribir", "Sin", "Saltar", "Leer", "Definir", "Como", "Dimension", "Esperar",
+    "Tecla", "Y", "O", "NO", "MOD",
+  ]);
+  const PS_VALUES = new Set(["Entero", "Real", "Caracter", "Logico", "Verdadero", "Falso"]);
+  const PS_TOKEN = /(\/\/.*$)|("[^"]*"|'[^']*')|([A-Za-zÁÉÍÓÚÜáéíóúüÑñ_][\wÁÉÍÓÚÜáéíóúüÑñ]*)|(<-)/g;
+
+  /** Una línea coloreada, solo con nodos de texto: el contenido viene del código analizado. */
+  function psLine(text) {
+    const out = [];
+    let pos = 0;
+    let m;
+    PS_TOKEN.lastIndex = 0;
+    while ((m = PS_TOKEN.exec(text))) {
+      if (m.index > pos) out.push(text.slice(pos, m.index));
+      if (m[1]) out.push(h("span", { class: "ps-com" }, m[1]));
+      else if (m[2]) out.push(h("span", { class: "ps-cad" }, m[2]));
+      else if (m[3]) out.push(PS_KEYWORDS.has(m[3]) ? h("span", { class: "ps-kw" }, m[3]) : PS_VALUES.has(m[3]) ? h("span", { class: "ps-val" }, m[3]) : m[3]);
+      else out.push(h("span", { class: "ps-kw" }, m[4]));
+      pos = PS_TOKEN.lastIndex;
+    }
+    if (pos < text.length) out.push(text.slice(pos));
+    return out;
+  }
+
+  function psFileName(sym) {
+    return String(sym.qualname).replace(/[^\w.-]+/g, "_") + ".psc";
+  }
+
+  function copyText(text, status) {
+    const done = () => { status.textContent = "Copiado."; };
+    const fallback = () => {
+      const area = h("textarea", { "aria-hidden": "true", style: "position:fixed;left:-9999px;" });
+      area.value = text;
+      document.body.appendChild(area);
+      area.select();
+      document.execCommand("copy");
+      area.remove();
+      done();
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, fallback);
+    else fallback();
+  }
+
+  function renderPseudoView(sid) {
+    renderTabs(sid);
+    const sym = SYMBOLS[sid];
+    if (!sym) { showEmpty("No se encontró la función."); return; }
+    renderPanel(sid);
+    const flow = flowOf(sid);
+    const text = flow && flow.ps;
+    if (!text) {
+      renderInfo([h("strong", null, "Pseudocódigo"), "  ·  " + sym.qualname]);
+      showEmpty("Esta función no tiene cuerpo para traducir.");
+      return;
+    }
+    const status = h("span", { class: "nota", "aria-live": "polite" });
+    const copy = h("button", { class: "boton", type: "button", onclick: () => copyText(text, status) }, "Copiar");
+    const save = h("button", { class: "boton", type: "button", title: "Archivo para abrir en PSeInt", onclick: () => download(psFileName(sym), new Blob([text], { type: "text/plain" })) }, "Descargar .psc");
+    renderInfo([
+      h("strong", null, "Pseudocódigo"), "  ·  estilo PSeInt  ·  ", copy, " ", save, " ", status,
+      h("div", { class: "pista" }, "Traducido del código sin ejecutarlo. Lo que PSeInt no tiene (retornar a mitad, break, try, objetos) va como comentario //."),
+    ]);
+    const lienzo = $("lienzo");
+    clear(lienzo);
+    minimap = null;
+    currentGroup = null;
+    const pre = h("div", { class: "codigo pseudo", style: "position:absolute;inset:0;", role: "region", "aria-label": "Pseudocódigo de " + sym.qualname });
+    text.replace(/\n$/, "").split("\n").forEach((ln, i) => {
+      // Un solo <span> por línea: en una fila flex los espacios sueltos se perderían.
+      pre.appendChild(h("div", { class: "ln" }, h("span", { class: "num" }, String(i + 1)), h("span", null, psLine(ln))));
     });
     lienzo.appendChild(pre);
   }
@@ -2095,7 +2180,7 @@
       h("h2", { id: "mermaid-titulo" }, "Esta vista en Mermaid"),
       h("p", null, text
         ? "Pégalo en un README de GitHub, en mermaid.live o en Notion. Pantalla, teclado y documento usan las formas de Mermaid 11.3 o más nuevo."
-        : "Esta vista no tiene exportación a Mermaid. Prueba en un flujo, una secuencia, el mapa, la arquitectura o un dibujo."),
+        : "Esta vista no tiene exportación a Mermaid. Prueba en un flujo, una secuencia, el mapa, la arquitectura, las clases o un dibujo."),
       text ? area : null,
       h("div", { class: "acciones-dialogo" }, copy, save, close, status));
     document.body.appendChild(mermaidDialog);
@@ -2376,6 +2461,7 @@
       case "flujo": return sym ? "Diagrama de flujo · " + sym.qualname + " · " + sym.file + ":" + sym.line_start : name;
       case "secuencia": return sym ? "Diagrama de secuencia · " + sym.qualname : name;
       case "codigo": return sym ? sym.qualname : name;
+      case "pseudo": return sym ? "Pseudocódigo · " + sym.qualname : name;
       case "arquitectura": return "Arquitectura · " + name;
       case "galaxia": return "Galaxia · " + name;
       case "er": return "Entidad-relación · " + name;

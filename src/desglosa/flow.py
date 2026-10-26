@@ -19,6 +19,7 @@ from dataclasses import dataclass, field
 
 from tree_sitter import Node
 
+from desglosa import pseudo
 from desglosa.extract import call_id
 from desglosa.ir import FlowEdge, FlowGraph, FlowNode, Symbol
 from desglosa.langs.spec import IfInfo, LangHooks, LangSpec, LoopInfo, Src, one_line
@@ -140,6 +141,7 @@ class FlowResult:
     graph: FlowGraph
     struct: SSeq
     warnings: list[str]
+    pseudo: str = ""  # pseudocódigo estilo PSeInt (pseudo.py)
 
 
 # --------------------------------------------------------------------------- textos
@@ -223,6 +225,7 @@ class FlowBuilder:
         symbol: Symbol,
         calls: dict[str, CallInfo],
         depth_limit: int | None = None,
+        want_pseudo: bool = True,
     ) -> None:
         self.spec = spec
         self.hooks = hooks
@@ -249,6 +252,13 @@ class FlowBuilder:
             | set(s.method_nodes)
         )
         self._info_cache: dict[int, _StmtInfo] = {}
+        # Pseudocódigo: líneas de PSeInt por nodo, datos completos de cada decisión
+        # (condición, variable del bucle…) y el valor de cada `return`.
+        self.want_pseudo = want_pseudo
+        self.ps: dict[str, list[str]] = {}
+        self.ps_meta: dict[str, dict] = {}
+        self.ps_returns: dict[str, str] = {}
+        self.ps_params = ""
 
     # ------------------------------------------------------------------ grafo
 
@@ -288,6 +298,11 @@ class FlowBuilder:
     def link(self, exits: list[Exit], dst: str, kind: str | None = None) -> None:
         for src, label, k in exits:
             self.edge(src, dst, label, kind or k)
+
+    def _ps(self, st: Node | None) -> list[str]:
+        if st is None or not self.want_pseudo:
+            return []
+        return pseudo.statement(self, st)
 
     def _sid(self) -> int:
         self.next_sid += 1
@@ -518,6 +533,7 @@ class FlowBuilder:
     def build(self, func: Node) -> FlowResult:
         sym = self.symbol
         params_easy, params_tech = self._params(func)
+        self.ps_params = params_easy
         start = self.node(
             "terminal",
             f"Inicio: {sym.name}({params_easy})",
@@ -533,6 +549,7 @@ class FlowBuilder:
                 f"return {_tech(self.text(body))}",
                 body,
             )
+            self.ps_returns[nid] = self.text(body)
             self.edge(start, nid)
             end = self.node("terminal", "Fin", "Fin", sym.line_end)
             self.edge(nid, end)
@@ -577,7 +594,15 @@ class FlowBuilder:
             edges=tuple(edges.values()),
             truncated=self.collapsed,
         )
-        return FlowResult(graph, struct, self.warnings)
+        text = ""
+        if self.want_pseudo:
+            try:
+                text = pseudo.render(self, struct)
+            except (ValueError, KeyError, IndexError, AttributeError, TypeError) as exc:
+                self.warnings.append(
+                    f"{self.path}:{self.symbol.line_start}: pseudocódigo no generado ({exc})"
+                )
+        return FlowResult(graph, struct, self.warnings, text)
 
     def _params(self, func: Node) -> tuple[str, str]:
         found = self.hooks.parameter_list(func, self.src)
@@ -623,6 +648,7 @@ class FlowBuilder:
                 easy = "\n".join(self.info(s).easy for s in chunk)
                 tech = "\n".join(self.info(s).tech for s in chunk)
                 nid = self.node("proceso", easy, tech, chunk[0], chunk[-1])
+                self.ps[nid] = [line for s in chunk for line in self._ps(s)]
                 self.link(exits, nid)
                 exits = [(nid, None, "normal")]
                 items.append(SNode(nid))
@@ -678,6 +704,7 @@ class FlowBuilder:
             label = self.text(inner.child_by_field_name("label")) or self.text(inner)
             self.warnings.append(f"{self.path}:{st.start_point[0] + 1}: goto no soportado")
             nid = self.node("proceso", f"goto {label} (no soportado)", _tech(self.text(st)), st)
+            self.ps[nid] = [f"// goto {label} (PSeInt no tiene goto)"]
             self.link(exits, nid)
             return SSeq([SNode(nid)]), [(nid, None, "normal")]
         if kind == "label":
@@ -695,6 +722,7 @@ class FlowBuilder:
         nid = self.node(
             info.kind, info.easy, info.tech, st, call_id=info.call_id, target=info.target
         )
+        self.ps[nid] = self._ps(st)
         self.link(exits, nid)
         return SSeq([SNode(nid)]), [(nid, None, "normal")]
 
@@ -702,6 +730,7 @@ class FlowBuilder:
         self.collapsed = True
         a, b = st.start_point[0] + 1, st.end_point[0] + 1
         nid = self.node("proceso", f"Bloque (L{a}–L{b})", f"Bloque (L{a}–L{b})", st)
+        self.ps[nid] = [f"// bloque de las líneas {a} a {b}"]
         self.link(exits, nid)
         return SSeq([SNode(nid)]), [(nid, None, "normal")]
 
@@ -741,6 +770,7 @@ class FlowBuilder:
 
     def _if_from(self, info: IfInfo, owner: Node, exits: list[Exit]):
         dec = self._decision(info, owner)
+        self.ps_meta[dec] = {"cond": info.cond_text, "negated": info.negated}
         self.link(exits, dec)
         yes_label, no_label = ("no", "sí") if info.negated else ("sí", "no")
         self._enter()
@@ -774,6 +804,7 @@ class FlowBuilder:
             if info.init is not None:
                 text = _tech(self.text(info.init))
                 init_id = self.node("proceso", easy_expr(text, lang), text, info.init)
+                self.ps[init_id] = self._ps(info.init)
                 self.link(exits, init_id)
                 exits = [(init_id, None, "normal")]
             cond = one_line(info.cond_text, TECH_LIMIT)
@@ -802,6 +833,15 @@ class FlowBuilder:
             cid,
             target,
         )
+        self.ps_meta[dec] = {
+            "loop": kind,
+            "cond": info.cond_text,
+            "var": info.var_text,
+            "coll": info.coll_text,
+            "init": self.text(info.init) if info.init is not None else "",
+            "update": self.text(info.update) if info.update is not None else "",
+            "negated": info.negated,
+        }
         self.link(exits, dec)
         yes_label, no_label = ("no", "sí") if info.negated else ("sí", "no")
         ctx = _Ctx("loop", sid)
@@ -814,6 +854,7 @@ class FlowBuilder:
         if info.update is not None:
             text = _tech(self.text(info.update))
             update_id = self.node("proceso", easy_expr(text, lang), text, info.update)
+            self.ps[update_id] = self._ps(info.update)
             self.link(body_exits, update_id)
             self.link(ctx.continues, update_id)
             if body_exits or ctx.continues:
@@ -845,6 +886,7 @@ class FlowBuilder:
             cid,
             target,
         )
+        self.ps_meta[dec] = {"cond": info.cond_text, "negated": info.negated}
         self.link(body_exits, dec)
         self.link(ctx.continues, dec)
         entry = self.nodes[first_index].id if len(self.nodes) - 1 > first_index else dec
@@ -870,6 +912,8 @@ class FlowBuilder:
         self.stack.append(ctx)
         self._enter()
         struct_cases: list[SCase] = []
+        case_values: list[list[str | None]] = []  # para el pseudocódigo
+        pending_values: list[str | None] = []
         pending: list[str] = []
         fall: list[Exit] = []
         total: list[Exit] = []
@@ -884,9 +928,12 @@ class FlowBuilder:
                 stmts = stmts[:-1]
             if not stmts and falls and not final_break:
                 pending.append(label)
+                pending_values.append(case.value)
                 continue
             full_label = " / ".join([*pending, label])
+            case_values.append([*pending_values, case.value])
             pending = []
+            pending_values = []
             seq, case_exits = self.block(stmts, [(dec, full_label, "normal"), *fall])
             if falls and not final_break and case_exits:
                 fall = case_exits
@@ -899,6 +946,7 @@ class FlowBuilder:
             label = " / ".join(pending)
             total.append((dec, label, "normal"))
             struct_cases.append(SCase(label, SSeq([])))
+            case_values.append(pending_values)
         if fall:
             total.extend(fall)
             if struct_cases:
@@ -906,6 +954,9 @@ class FlowBuilder:
         if not has_default:
             total.append((dec, "otro", "normal"))
             struct_cases.append(SCase("otro", SSeq([])))
+            case_values.append([None])
+        self.ps_meta[dec] = {"subject": subject, "cases": case_values,
+                             "auto_default": not has_default}
         self._leave()
         self.stack.pop()
         return SSwitch(dec, struct_cases, sid), total + ctx.breaks
@@ -965,6 +1016,12 @@ class FlowBuilder:
         if values is not None:
             tech = f"return {tech}"
         nid = self.node(kind, easy, tech, st, call_id=info.call_id, target=info.target)
+        if values is not None and (
+            kind in ("pantalla", "teclado") or self._assign_target(st) is not None
+        ):
+            self.ps[nid] = self._ps(st)  # última expresión que no devuelve nada útil
+        else:
+            self.ps_returns[nid] = " ".join(self.text(v) for v in value_nodes or [])
         self.link(exits, nid)
         if top_last:
             return SSeq([SNode(nid)]), [(nid, None, "normal")]
@@ -982,6 +1039,7 @@ class FlowBuilder:
         ctx = self._innermost(("loop", "switch") if kind == "break" else ("loop",))
         if ctx is None:
             nid = self.node("proceso", kind, kind, st)
+            self.ps[nid] = [f"// {kind}"]
             self.link(exits, nid)
             return SSeq([SNode(nid)]), [(nid, None, "normal")]
         retagged = [(src, label, "salto") for src, label, _ in exits]
@@ -999,6 +1057,7 @@ class FlowBuilder:
         nid = self.node(
             "proceso", f"Lanza excepción: {easy_expr(shown, lang)}", _tech(self.text(st)), st
         )
+        self.ps[nid] = [f"// lanza un error: {pseudo.expr(shown, lang)}"]
         self.link(exits, nid)
         ctx = self._innermost(("try",))
         if ctx is not None and ctx.catch_labels:
@@ -1035,6 +1094,7 @@ class FlowBuilder:
             nid = self.node(
                 info.kind, info.easy, tech, st, st.start_point[0] + 1, info.call_id, info.target
             )
+        self.ps[nid] = [f"// con {pseudo.expr(self.text(header), self.lang)}:"]
         self.link(exits, nid)
         seq, ex = self.block(
             self.statements(st.child_by_field_name("body")), [(nid, None, "normal")]
@@ -1057,11 +1117,15 @@ def build_flow(
     result = builder.build(func)
     if len(result.graph.nodes) <= max_nodes:
         return result
+    full_pseudo = result.pseudo  # el texto no tiene límite de tamaño: va completo
     for limit in range(builder.max_depth - 1, -1, -1):
-        b = FlowBuilder(spec, hooks, src, path, symbol, calls, depth_limit=limit)
+        b = FlowBuilder(
+            spec, hooks, src, path, symbol, calls, depth_limit=limit, want_pseudo=False
+        )
         result = b.build(func)
         if len(result.graph.nodes) <= max_nodes:
             break
+    result.pseudo = full_pseudo
     graph = result.graph
     result.graph = FlowGraph(graph.symbol_id, graph.nodes, graph.edges, truncated=True)
     return result

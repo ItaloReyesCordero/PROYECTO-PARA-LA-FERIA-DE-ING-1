@@ -144,6 +144,25 @@ que conviene conocer (y explicar en la feria) en vez de esconder.
   de 12 componentes en una columna, el resto va a «Otros (N)»; en diagramas muy
   conectados se dibuja el esqueleto de relaciones más fuertes.
 
+## Pseudocódigo
+- Es una **traducción del texto**, no una ejecución: cada sentencia se reescribe con las
+  palabras de PSeInt. Lo que PSeInt no tiene se deja como comentario `//` y el resultado
+  puede no comportarse igual: un `return` a mitad de la función se escribe como
+  `resultado <- valor  // y termina la función`, pero PSeInt sigue con la línea siguiente;
+  `break`, `continue`, `try` y las excepciones son solo comentarios.
+- Objetos, listas, diccionarios y llamadas a bibliotecas (`lista.append(x)`,
+  `new Factura(…)`) se copian casi igual: PSeInt no los entiende. Está pensado para
+  programas de consola sencillos (lo típico de un curso de C, Python o Java); no se prueba
+  de forma automática en PSeInt, así que conviene abrir el `.psc` y revisarlo.
+- `Para … Hasta` solo se usa cuando el `for` tiene una variable que avanza de a pasos
+  fijos (`i++`, `i += 2`, `range(a, b)`); si el cuerpo cambia esa variable, PSeInt no
+  daría lo mismo. Cualquier otro `for` se escribe como `Mientras`.
+- Los arreglos de C y Java empiezan en 0 y los índices se copian tal cual; en PSeInt eso
+  depende del perfil de lenguaje elegido (en sus opciones se puede usar base 0).
+- `Definir` solo aparece en lenguajes con tipos (C, C++, Java, C#, Go) y para los tipos
+  que PSeInt tiene: Entero, Real, Caracter, Logico.
+- El archivo `.psc` se guarda en UTF-8.
+
 ## Diagrama de clases
 - Los **tipos** son los que el código escribe. En lenguajes sin tipos (Python, Ruby,
   JavaScript) solo se conoce el de un atributo que se crea con `Clase()`, `Clase.new` o

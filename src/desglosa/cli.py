@@ -204,6 +204,10 @@ def _pick_one(analysis, name: str, kinds=None):
 def _file_flows(analysis, sym, args: argparse.Namespace) -> None:
     """Dibuja solo los flujos del archivo de `sym` (no los de todo el proyecto): en Django
     eso evita cargar 1 700 archivos de flujos para una consulta."""
+    _path_flows(analysis, sym.file, args)
+
+
+def _path_flows(analysis, path: str, args: argparse.Namespace) -> None:
     from desglosa.flows_stage import build_file_flows, make_tasks
 
     # Todos los símbolos: una llamada a otro archivo tiene que verse como subproceso.
@@ -215,7 +219,7 @@ def _file_flows(analysis, sym, args: argparse.Namespace) -> None:
         args.max_flow_nodes,
         args.flow_max_height,
     )
-    for task in (t for t in tasks if t.path == sym.file):
+    for task in (t for t in tasks if t.path == path):
         for out in build_file_flows(task):
             analysis.flows[out.graph.symbol_id] = out
 
@@ -318,6 +322,62 @@ def cmd_mermaid(args: argparse.Namespace) -> int:
     _write_text(args.output, text)
     if args.output != "-":
         print(f"Mermaid escrito en {args.output}")
+    return EXIT_OK
+
+
+def _project_file(analysis, name: str) -> str | None:
+    """`gps.c` o `src/gps.c` → la ruta del archivo en el proyecto, si es uno solo."""
+    wanted = name.replace("\\", "/").strip("/")
+    paths = [f.path for f in analysis.project.files if f.skipped_reason is None]
+    if wanted in paths:
+        return wanted
+    found = [p for p in paths if p.endswith("/" + wanted)]
+    return found[0] if len(found) == 1 else None
+
+
+def cmd_pseudo(args: argparse.Namespace) -> int:
+    from desglosa.pseudo import is_main
+
+    analysis, code = _run_analysis(args, flows=False)
+    if analysis is None:
+        return code
+    path = _project_file(analysis, args.name)
+    if path is None:  # una función
+        sym, code = _pick_one(analysis, args.name, ("function", "method"))
+        if sym is None:
+            return code
+        _file_flows(analysis, sym, args)
+        flow = analysis.flows.get(sym.id)
+        text = flow.pseudocode() if flow is not None else None
+        if not text:
+            print(f"{sym.qualname} no tiene cuerpo para traducir.", file=sys.stderr)
+            return EXIT_NOT_FOUND
+        text = f"// {sym.qualname} ({sym.file}:{sym.line_start}), escrito por Desglosa\n" + text
+    else:  # un archivo entero: sus funciones y, al final, main como Algoritmo
+        _path_flows(analysis, path, args)
+        syms = sorted((s for s in analysis.project.symbols
+                       if s.file == path and s.kind in ("function", "method")),
+                      key=lambda s: (is_main(s.name), s.line_start, s.id))
+        counts: dict[str, int] = {}
+        for s in syms:
+            counts[s.name] = counts.get(s.name, 0) + 1
+        blocks = []
+        for s in syms:
+            flow = analysis.flows.get(s.id)
+            body = flow.pseudocode() if flow is not None else None
+            if not body:
+                continue
+            if counts[s.name] > 1 and not is_main(s.name):  # `Circulo.area` y `Cuadrado.area`
+                unique = s.qualname.replace(".", "_")
+                body = body.replace(f"{s.name}(", f"{unique}(", 1)
+            blocks.append(body)
+        if not blocks:
+            print(f"{path} no tiene funciones para traducir.", file=sys.stderr)
+            return EXIT_NOT_FOUND
+        text = f"// {path}, escrito por Desglosa\n\n" + "\n".join(blocks)
+    _write_text(args.output, text)
+    if args.output != "-":
+        print(f"Pseudocódigo escrito en {args.output}")
     return EXIT_OK
 
 
@@ -724,6 +784,17 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("-o", "--output", default="-", help="archivo .mmd ('-' = pantalla)")
     _add_flow_args(p)
     p.set_defaults(func=cmd_mermaid)
+
+    p = sub.add_parser(
+        "pseudo", aliases=["pseudocodigo"],
+        help="pseudocódigo estilo PSeInt de una función o de un archivo entero",
+    )
+    _add_analysis_args(p)
+    p.add_argument("name", metavar="nombre",
+                   help="Clase.metodo, funcion, archivo:Nombre o un archivo (p. ej. gps.c)")
+    p.add_argument("-o", "--output", default="-", help="archivo .psc ('-' = pantalla)")
+    _add_flow_args(p)
+    p.set_defaults(func=cmd_pseudo)
 
     p = sub.add_parser(
         "clases", aliases=["classes"], help="diagrama de clases UML de una carpeta"

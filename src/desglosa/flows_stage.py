@@ -41,6 +41,7 @@ class FlowOutput:
     warnings: list[str] = field(default_factory=list)
     struct: SSeq | None = None
     view: dict | None = None  # el flujo ya en el formato del HTML
+    pseudo: str | None = None  # pseudocódigo estilo PSeInt (también va en view["ps"])
 
     def payload(self) -> dict:
         """El flujo listo para el HTML (se calcula una vez y se reutiliza)."""
@@ -48,7 +49,12 @@ class FlowOutput:
             if self.layout is None:
                 raise ValueError("flujo sin layout ni vista")
             self.view = flow_payload(self.graph, self.layout)
+            if self.pseudo:
+                self.view["ps"] = self.pseudo
         return self.view
+
+    def pseudocode(self) -> str | None:
+        return self.pseudo or (self.view or {}).get("ps")
 
 
 def _function_nodes(root: Node, types: set[str]) -> dict[tuple[int, int], list[Node]]:
@@ -91,7 +97,8 @@ def build_file_flows(task: FlowTask) -> list[FlowOutput]:
                 FlowOutput(FlowGraph(sym.id, (), (), True), _empty_layout(sym.id), [out_warn])
             )
             continue
-        out.append(FlowOutput(result.graph, layout, result.warnings, result.struct))
+        out.append(FlowOutput(result.graph, layout, result.warnings, result.struct,
+                              pseudo=result.pseudo or None))
     return out
 
 

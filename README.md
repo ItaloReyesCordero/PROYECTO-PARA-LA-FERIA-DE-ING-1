@@ -162,6 +162,9 @@ uv run desglosa sql examples/laravel-mini -o er.html
 # El flujo de una función en Mermaid (para un README, Notion o mermaid.live)
 uv run desglosa mermaid examples/laravel-mini FacturacionService.emitir
 
+# Pseudocódigo estilo PSeInt de una función o de un archivo entero (.psc)
+uv run desglosa pseudo examples/gps-c gps.c -o gps.psc
+
 # Diagrama de clases UML de una carpeta (o en Mermaid con --mermaid)
 uv run desglosa clases examples/laravel-mini --carpeta app/Services -o clases.html
 
@@ -181,6 +184,7 @@ uv run desglosa dibujar examples/dibujo/cajero.mmd -o cajero.html
 | `path <ruta> <desde> <hasta>` | el camino de llamadas más corto entre dos funciones |
 | `buscar <ruta> "texto"` | busca funciones y clases por palabras (nombre, descripción, archivo) |
 | `mermaid <ruta> <nombre>` | el flujo (o con `--secuencia`, la secuencia) de una función en Mermaid |
+| `pseudo <ruta> <nombre>` | pseudocódigo estilo PSeInt de una función, o de todo un archivo (`gps.c`) |
 | `clases <ruta>` | diagrama de clases UML de una carpeta (`--carpeta`, `--mermaid`) |
 | `dibujar <archivo.mmd>` | dibuja un diagrama de flujo de Mermaid con el estilo de Desglosa (ver abajo) |
 | `export-ir <ruta>` | el modelo intermedio en JSON (ver [docs/IR.md](https://github.com/ItaloReyesCordero/PROYECTO-PARA-LA-FERIA-DE-ING-1/blob/main/docs/IR.md)) |
@@ -253,7 +257,11 @@ ignoran: el estilo lo pone Desglosa. Ejemplo completo en `examples/dibujo/cajero
   items") o el código literal.
 - `/` buscar · `Esc` subir · `+` `−` `0` zoom · `F` encuadrar · `T` tema · `S` estilo ·
   `N` minimapa · `?` ayuda.
-- Pestañas **Mapa · Arquitectura · Galaxia · Entidad-relación**. En la arquitectura, pasa
+- Cada función tiene las pestañas **Flujo · Secuencia · Pseudocódigo · Código**. El
+  pseudocódigo está escrito como en PSeInt (`Si … Entonces`, `Mientras … Hacer`,
+  `Para i <- 0 Hasta n - 1`, `Escribir`, `Leer`) y se copia o descarga como `.psc`.
+- Pestañas **Mapa · Arquitectura · Clases · Galaxia · Entidad-relación**. En «Clases», el
+  diagrama UML de cada carpeta; el clic en una clase gris lleva a la carpeta donde está. En la arquitectura, pasa
   el mouse por un componente para ver *por qué* está en esa capa. En la galaxia, el clic
   en un subsistema de la leyenda lo resalta; el clic en un archivo abre su lugar en el
   mapa y Alt+clic lo enfoca con sus conexiones.

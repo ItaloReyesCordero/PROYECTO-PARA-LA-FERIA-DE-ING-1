@@ -30,6 +30,8 @@ resultado sale por la salida estándar y los avisos por la de errores.
 | Cómo se llega de `A` a `B`                   | `desglosa path RUTA A B --json`                            |
 | Dónde se hace algo descrito con palabras     | `desglosa buscar RUTA "calcular total" --json`             |
 | Un diagrama para mostrar en tu respuesta     | `desglosa mermaid RUTA X` (o `--secuencia`)                |
+| Las clases de una carpeta (UML)              | `desglosa clases RUTA --carpeta C --mermaid`               |
+| El algoritmo de `X` en pseudocódigo          | `desglosa pseudo RUTA X`                                   |
 | Un HTML interactivo para el usuario          | `desglosa analyze RUTA -o desglosa.html`                   |
 | Un resumen en Markdown                       | `desglosa analyze RUTA -o desglosa.html --report reporte.md` |
 

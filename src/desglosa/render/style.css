@@ -394,6 +394,13 @@ button, input, select { font: inherit; color: inherit; }
   border-radius: 6px; padding: 8px; resize: vertical; }
 .acciones-dialogo { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 10px; }
 
+/* Pseudocódigo (PSeInt): palabras clave, cadenas y comentarios. */
+.codigo.pseudo { font-size: 13.5px; line-height: 1.55; }
+.ps-kw { color: var(--acento); font-weight: 600; }
+.ps-val { color: var(--texto); font-style: italic; }
+.ps-cad { color: var(--texto-suave); }
+.ps-com { color: var(--texto-suave); font-style: italic; opacity: .85; }
+
 /* Diagrama de clases (UML). */
 .uml-estereotipo { fill: var(--texto-suave); font: italic 11px var(--sans); }
 .uml-nombre { fill: var(--texto); font: 600 13px var(--mono); }
