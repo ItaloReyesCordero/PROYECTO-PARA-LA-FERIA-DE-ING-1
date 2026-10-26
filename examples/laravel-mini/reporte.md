@@ -107,6 +107,12 @@ Bases de datos y servicios externos (por sus imports):
 |---|---|
 | Base de datos SQL | `app/Repositories/MySqlFacturaRepository.php` |
 
+## Dependencias entre módulos
+
+Un archivo depende de otro si llama a sus funciones (llamadas exactas o probables), hereda de sus clases o las usa como tipo. `desglosa check` falla en CI cuando aparece un ciclo nuevo.
+
+Sin ciclos entre carpetas ni entre archivos.
+
 ## Notas en el código
 
 No hay comentarios TODO, FIXME, HACK, XXX, BUG, NOTE ni WHY.

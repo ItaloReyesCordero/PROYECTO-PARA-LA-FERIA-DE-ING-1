@@ -526,3 +526,85 @@ uv run desglosa mermaid examples/laravel-mini FacturacionService.emitir
 uv run desglosa dibujar examples/dibujo/cajero.mmd -o cajero.html
 ```
 Y abre `examples/gps-c/desglosa.html`, entra a `main()` y pulsa **▶ Recorrer**.
+
+## Bloque 4 — Para la clase de programación: UML, pseudocódigo, dependencias y versiones ✅
+
+**Qué se hizo**
+- **Diagrama de clases UML** (pestaña «Clases», `desglosa clases`): atributos y métodos
+  con visibilidad (`+ - # ~`), tipos en notación UML (`nombre: Tipo`), estáticos
+  subrayados y abstractos en cursiva; herencia, implementación y asociación. Un diagrama
+  por carpeta; las clases relacionadas de otras carpetas salen en gris y llevan a la suya.
+  Los 12 lenguajes con su regla de visibilidad, los atributos declarados en el constructor
+  (PHP 8, TypeScript, Kotlin) y el tipo de `new Punto()` / `Punto.new` / `Punto()`.
+  Exporta `classDiagram` de Mermaid.
+- **Pseudocódigo estilo PSeInt** (pestaña «Pseudocódigo», `desglosa pseudo`):
+  `Algoritmo`/`Funcion`, `Si`, `Mientras`, `Repetir … Hasta Que`, `Segun`, `Para … Hasta
+  … Con Paso` cuando el `for` cuenta de a pasos fijos (también `range`, `until`, `..`),
+  `Para Cada`, `Definir`/`Dimension` en lenguajes con tipos y `Escribir`/`Leer` desde
+  `printf`, `print`, f-strings, `console.log`, `cout`, `scanf`, `input`… Se copia o
+  descarga como `.psc`; un archivo entero sale con sus funciones y `main` al final.
+- **Dependencias** (pestaña «Dependencias», `desglosa check`, sección del reporte): ciclos
+  entre carpetas y entre archivos con el camino más corto y la llamada que sostiene cada
+  paso; llamadas de la entrada directo a un repositorio que un servicio ya usa (punteadas
+  en Arquitectura). `check` sale con código 5 si aparece un ciclo nuevo; `--aceptar`
+  guarda los de hoy en `.desglosa-check.json`. La Action acepta `check: true`.
+- **Comparar dos versiones** (`desglosa comparar`, entre dos carpetas o desde un commit de
+  git): funciones nuevas, eliminadas y cambiadas con su complejidad antes y después; el
+  HTML abre en «Cambios» y muestra los dos flujos lado a lado, con lo agregado en verde y
+  lo quitado en rojo.
+
+**Qué falló / encontré (y se corrigió)**
+- UML: los parámetros salían como en Java (`String nombre`); ahora en notación UML. En
+  Laravel-mini el diagrama no tenía ninguna relación: PHP 8 declara los atributos en el
+  constructor (`private FacturacionService $servicio`) y no se leían. En el Mermaid, los
+  parámetros largos se cortaban (`impuest_`) y las clases de otras carpetas salían con
+  todos sus miembros.
+- Pseudocódigo:
+  - En el visor se perdían los espacios y la sangría (las líneas son `flex`).
+  - `return true` convertía `Verdadero` en el nombre del resultado.
+  - Quitar `self.`/`this.` dejaba constructores absurdos (`cliente <- cliente`).
+  - Un `printf` que llama a una función del proyecto no se traducía.
+  - `println!` de Rust guardaba sus argumentos en un solo texto recortado.
+  - En Kotlin salía `Leer val`.
+- Dependencias, con proyectos reales:
+  - Petclinic marcaba controladores «sin pasar por Lógica» aunque ningún servicio usa esos
+    repositorios. Ahora solo se marca si existe ese servicio.
+  - En Django aparecía un ciclo por `match.groups()`, adivinado por el nombre del método.
+  - Las migraciones de Django heredaban de la migración vecina (`class
+    Migration(migrations.Migration)`); el error también estaba en el diagrama de clases.
+  - El filtro de esas llamadas tardaba 17–21 s; con un conjunto de palabras por archivo,
+    2–3 s.
+- Dos veces un parche con `\` dentro de un heredoc no se aplicó o rompió una línea; lo
+  detectaron `ruff` o el propio script y se rehízo con el editor.
+- La primera medición dio Laravel 95 s de análisis: corría junto con los tests. Aislada:
+  ver la tabla de rendimiento del README.
+
+**Decisiones (revísalas)**
+1. **Pseudocódigo**: lo que PSeInt no tiene va como comentario `//` y no reescribo el
+   algoritmo. Un `return` a mitad queda `resultado <- x  // y termina la función`, pero
+   PSeInt seguiría con la línea siguiente. Los índices de arreglos se copian tal cual
+   (base 0). No pude probar los `.psc` en PSeInt: no está instalado aquí.
+2. El pseudocódigo se genera en Python y viaja en el HTML para todas las funciones (+6 %
+   de tamaño en Laravel y Django), en vez de traducirlo en el navegador: así hay una sola
+   traducción para la consola y el visor.
+3. **Dependencias**: una llamada probable a un método solo cuenta si el archivo que llama
+   nombra esa clase. `check` falla solo por ciclos nuevos; las capas que se saltan solo con
+   `--capas`. Usar un modelo (Active Record) desde un controlador no se marca. Agregué el
+   código de salida 5.
+4. **Comparar** usa el programa `git` (si está instalado) con `git archive`; no es una
+   dependencia de Python nueva. El commit se extrae en una carpeta temporal que se borra,
+   sin enlaces ni rutas fuera de ella. Una función renombrada o movida a otro archivo
+   aparece como eliminada y nueva.
+5. **UML**: Go no declara qué interfaces implementa un tipo, así que no se dibuja esa
+   flecha. En C++ y Python, una clase abstracta pura se dibuja como herencia (no hay
+   interfaces).
+
+**Probar**
+```powershell
+uv run desglosa analyze examples/laravel-mini -o demo.html     # pestañas Clases y Dependencias; Pseudocódigo en cada función
+uv run desglosa pseudo examples/gps-c gps.c -o gps.psc
+uv run desglosa clases examples/laravel-mini --carpeta app/Services --mermaid
+uv run desglosa check tests/fixtures/deps                       # sale con código 5: hay un ciclo
+uv run desglosa comparar tests/fixtures/comparar/antes tests/fixtures/comparar/despues -o cambios.html
+uv run desglosa comparar . --desde HEAD~5 -o cambios.html       # con git
+```

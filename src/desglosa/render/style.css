@@ -403,7 +403,8 @@ button, input, select { font: inherit; color: inherit; }
 
 /* Dependencias: un documento con ciclos y capas que se saltan. */
 .documento { position: absolute; inset: 0; overflow: auto; padding: 18px 28px 40px;
-  color: var(--texto); line-height: 1.5; max-width: 980px; }
+  color: var(--texto); line-height: 1.5; background: var(--fondo); }
+.documento > * { max-width: 980px; }
 .documento h2 { font-size: 16px; margin: 22px 0 8px; }
 .resumen-deps { display: flex; gap: 12px; flex-wrap: wrap; }
 .tarjeta { display: flex; align-items: baseline; gap: 8px; padding: 10px 16px;

@@ -26,6 +26,17 @@ detalle:
 6. **Arquitectura**: las capas del programa (rutas → controladores → servicios → datos →
    base de datos) y lo que usa de afuera (MySQL, Redis, correo, APIs…), detectado por
    nombres, carpetas e imports.
+7. **Diagrama de clases UML** de cada carpeta: atributos y métodos con su visibilidad,
+   herencia, interfaces y asociaciones.
+
+Para la clase de programación:
+
+- **Pseudocódigo estilo PSeInt** de cada función (`Si … Entonces`, `Mientras … Hacer`,
+  `Para i <- 1 Hasta n`), para copiar o descargar como `.psc`.
+- **Comparar dos versiones** (dos carpetas o un commit de git): qué funciones cambiaron,
+  con su diagrama de flujo de antes y de después lado a lado.
+- **Dependencias**: ciclos entre carpetas o archivos y capas que se saltan;
+  `desglosa check` lo revisa en cada push y falla si aparece un ciclo nuevo.
 
 Y para explicarlo:
 
@@ -67,6 +78,14 @@ Todo sale de **análisis estático**: Desglosa lee el código con
 | Diagrama escrito en Mermaid, dibujado en estilo clásico |
 |---|
 | ![Cajero automático dibujado desde Mermaid](https://raw.githubusercontent.com/ItaloReyesCordero/PROYECTO-PARA-LA-FERIA-DE-ING-1/main/docs/img/dibujo-clasico.png) |
+
+| Diagrama de clases UML | Pseudocódigo estilo PSeInt del `main()` del GPS |
+|---|---|
+| ![Diagrama de clases](https://raw.githubusercontent.com/ItaloReyesCordero/PROYECTO-PARA-LA-FERIA-DE-ING-1/main/docs/img/clases.png) | ![Pseudocódigo](https://raw.githubusercontent.com/ItaloReyesCordero/PROYECTO-PARA-LA-FERIA-DE-ING-1/main/docs/img/pseudocodigo.png) |
+
+| Antes y después de una función que cambió | Dependencias: ciclos y capas que se saltan |
+|---|---|
+| ![Comparar versiones](https://raw.githubusercontent.com/ItaloReyesCordero/PROYECTO-PARA-LA-FERIA-DE-ING-1/main/docs/img/comparar.png) | ![Dependencias](https://raw.githubusercontent.com/ItaloReyesCordero/PROYECTO-PARA-LA-FERIA-DE-ING-1/main/docs/img/dependencias.png) |
 
 ## Instalación
 
@@ -341,20 +360,21 @@ simple. Detalles por lenguaje en [docs/ADDING_A_LANGUAGE.md](https://github.com/
 
 Probado con proyectos reales de GitHub, en un portátil con Windows 11 y 8 núcleos
 (Python 3.14), comando `analyze` completo y sin caché (medido el 2026-10-26, con todas las
-vistas del Bloque 3):
+vistas del Bloque 4: clases, pseudocódigo y dependencias incluidos):
 
 | Proyecto | Líneas | Análisis | Total | HTML | Abre en el navegador |
 |---|---|---|---|---|---|
 | `examples/laravel-mini` | 260 | 0,1 s | 2 s | 0,2 MB | al instante |
-| [Spring Petclinic](https://github.com/spring-projects/spring-petclinic) (Java) | 4 300 | 1 s | 3 s | 0,4 MB | al instante |
-| [Express](https://github.com/expressjs/express) (JavaScript) | 22 000 | 4 s | 6 s | 0,5 MB | al instante |
-| [Laravel](https://github.com/laravel/framework) (PHP) | 581 000 | 30 s | 82 s | 55 MB | 1,1 s |
-| [Django](https://github.com/django/django) (Python) | 530 000 | 34 s | 106 s | 74 MB | 1,4 s |
+| [Spring Petclinic](https://github.com/spring-projects/spring-petclinic) (Java) | 4 300 | 1 s | 2 s | 0,5 MB | al instante |
+| [Express](https://github.com/expressjs/express) (JavaScript) | 22 000 | 1 s | 3 s | 0,5 MB | al instante |
+| [Laravel](https://github.com/laravel/framework) (PHP) | 581 000 | 32 s | 91 s | 58 MB | 1,1 s |
+| [Django](https://github.com/django/django) (Python) | 530 000 | 37 s | 119 s | 78 MB | 1,4 s |
 
 "Análisis" es lo que imprime la consola; "Total" incluye generar el HTML. La SPEC pedía
 1 000 archivos en menos de 2 minutos: Laravel tiene 3 030 y Django 2 968. El visor en sí
-ocupa unos 140 KB de cada HTML; el resto son los datos del proyecto. Lo que más tarda al
-generar el HTML son las secuencias (Laravel tiene 23 000).
+ocupa unos 175 KB de cada HTML; el resto son los datos del proyecto. Lo que más tarda al
+generar el HTML son las secuencias (Laravel tiene 23 000). El Bloque 4 agregó un 6 % al
+tamaño (el pseudocódigo de cada función) y unos 10 s al total (clases y dependencias).
 
 - **Con caché**, si cambias un archivo de un proyecto de 200 000 líneas, el análisis baja
   de 13 s a unos 6 s.

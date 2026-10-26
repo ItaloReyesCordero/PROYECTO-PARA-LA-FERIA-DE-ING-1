@@ -403,6 +403,67 @@ button, input, select { font: inherit; color: inherit; }
   border-radius: 6px; padding: 8px; resize: vertical; }
 .acciones-dialogo { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 10px; }
 
+/* Pseudocódigo (PSeInt): palabras clave, cadenas y comentarios. */
+.codigo.pseudo { font-size: 13.5px; line-height: 1.55; }
+.ps-kw { color: var(--acento); font-weight: 600; }
+.ps-val { color: var(--texto); font-style: italic; }
+.ps-cad { color: var(--texto-suave); }
+.ps-com { color: var(--texto-suave); font-style: italic; opacity: .85; }
+
+/* Dependencias: un documento con ciclos y capas que se saltan. */
+.documento { position: absolute; inset: 0; overflow: auto; padding: 18px 28px 40px;
+  color: var(--texto); line-height: 1.5; background: var(--fondo); }
+.documento > * { max-width: 980px; }
+.documento h2 { font-size: 16px; margin: 22px 0 8px; }
+.resumen-deps { display: flex; gap: 12px; flex-wrap: wrap; }
+.tarjeta { display: flex; align-items: baseline; gap: 8px; padding: 10px 16px;
+  border: 1px solid var(--borde); border-radius: 10px; background: var(--superficie-2); }
+.tarjeta .cifra { font-size: 26px; font-weight: 700; }
+.tarjeta.mal .cifra { color: var(--c-excepcion); }
+.tarjeta.aviso .cifra { color: var(--foco); }
+.tarjeta.bien .cifra { color: var(--acento); }
+.lista-deps { padding-left: 22px; }
+.lista-deps > li { margin: 10px 0; }
+.camino-dep { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.chip-dep { font-family: var(--mono); font-size: 12.5px; padding: 2px 8px; border-radius: 6px;
+  border: 1px solid var(--borde); background: var(--superficie-2); }
+.flecha-dep { color: var(--texto-suave); }
+.nivel-dep { font-size: 11px; text-transform: uppercase; letter-spacing: .04em;
+  color: var(--texto-suave); margin-right: 4px; }
+.pasos-dep { margin: 6px 0 0; padding-left: 18px; color: var(--texto-suave); }
+.pasos-dep li { margin: 2px 0; }
+.dep-lugar { font-size: 12px; color: var(--texto-suave); }
+.nota-deps { color: var(--texto-suave); }
+.arista.salta-capa { stroke: var(--foco); stroke-dasharray: 2 4; stroke-width: 2.2; }
+
+/* Comparar versiones: lo nuevo en verde, lo quitado en rojo y punteado. */
+.nodo.agregado .forma { stroke: var(--c-entrada); stroke-width: 3; }
+.nodo.quitado .forma { stroke: var(--c-excepcion); stroke-width: 2.5; stroke-dasharray: 5 3; }
+.nodo.quitado text { opacity: .75; }
+.titulo-version { fill: var(--texto); font: 600 14px var(--sans); }
+.separador-version { stroke: var(--borde); stroke-dasharray: 4 6; }
+.lista-cambios { list-style: none; padding-left: 4px; }
+.lista-cambios li { margin: 4px 0; font-family: var(--mono); font-size: 13px; }
+.marca-cambio { display: inline-block; min-width: 74px; font: 600 11px var(--sans);
+  text-transform: uppercase; letter-spacing: .04em; }
+.cambio-nueva .marca-cambio { color: var(--c-entrada); }
+.cambio-eliminada .marca-cambio { color: var(--c-excepcion); }
+.cambio-cambiada .marca-cambio { color: var(--foco); }
+
+/* Diagrama de clases (UML). */
+.uml-estereotipo { fill: var(--texto-suave); font: italic 11px var(--sans); }
+.uml-nombre { fill: var(--texto); font: 600 13px var(--mono); }
+.nodo .uml-miembro { font: 12px var(--mono); }
+.uml-nombre.abstracto, .nodo .uml-miembro.abstracto { font-style: italic; }
+.nodo .uml-miembro.estatico { text-decoration: underline; }
+.uml-fantasma .forma { stroke-dasharray: 4 3; fill-opacity: .04; }
+.uml-fantasma .uml-nombre { fill: var(--texto-suave); font-weight: 400; }
+.arista.uml-implementa { stroke-dasharray: 6 4; }
+.uml-punta-hueca { fill: var(--superficie); stroke: var(--linea); stroke-width: 1.4; }
+.uml-punta-abierta { fill: none; stroke: var(--linea); stroke-width: 1.4; }
+.selector-carpeta { background: var(--superficie-2); border: 1px solid var(--borde);
+  border-radius: 6px; padding: 2px 6px; max-width: min(420px, 60vw); }
+
 /* Minimapa: esquina inferior derecha, con el rectángulo de lo que se ve. */
 .minimapa { position: absolute; right: 12px; bottom: 12px; padding: 4px; border-radius: 8px;
   background: var(--superficie); border: 1px solid var(--borde); z-index: 4; }
@@ -480,6 +541,7 @@ button, input, select { font: inherit; color: inherit; }
   // Los flujos, secuencias y el código de cada archivo vienen comprimidos (zlib + base64)
   // y se abren solo cuando hacen falta: así un proyecto grande abre rápido.
   const PACKS = {};
+  const FUNC_VIEWS = ["flujo", "secuencia", "pseudo", "codigo"]; // vistas de una función
   const loading = {};
 
   function hasFlow(sid) {
@@ -550,6 +612,10 @@ button, input, select { font: inherit; color: inherit; }
     otros: "Agrupados",
     tabla: "Tabla",
     bd: "Base de datos",
+    "uml-hereda": "Hereda de (▷ la base)",
+    "uml-implementa": "Implementa (▷ la interfaz)",
+    "uml-asociacion": "Asociación: un atributo de ese tipo",
+    "salta-capa": "Se salta una capa (ver Dependencias)",
   };
   const CONF_NAMES = {
     exacta: "Relación exacta",
@@ -682,7 +748,7 @@ button, input, select { font: inherit; color: inherit; }
     state.keepTransform = sameView;
     state.view = view;
     state.id = id;
-    if (["flujo", "secuencia", "codigo"].includes(view) && id) updateTrail(id);
+    if (FUNC_VIEWS.includes(view) && id) updateTrail(id);
     if (!sameView) { state.selectedNode = null; state.routeStep = null; }
     if (view !== "ruta") { stopRoutePlay(); state.route = null; }
     if (state.walk && !(view === "flujo" && id === state.walk.sid)) stopWalk();
@@ -694,7 +760,7 @@ button, input, select { font: inherit; color: inherit; }
 
     renderToolbar();
     // Vistas de una función: primero se abre el paquete de su archivo.
-    const file = ["flujo", "secuencia", "codigo"].includes(view) && SYMBOLS[id] ? SYMBOLS[id].file : null;
+    const file = FUNC_VIEWS.includes(view) && SYMBOLS[id] ? SYMBOLS[id].file : null;
     if (file && !PACKS[file]) {
       renderCrumbs();
       showEmpty("Cargando " + file + "…");
@@ -711,11 +777,16 @@ button, input, select { font: inherit; color: inherit; }
     else if (view === "flujo") renderFlow(id);
     else if (view === "secuencia") renderSequence(id);
     else if (view === "codigo") renderCodeView(id);
+    else if (view === "pseudo") renderPseudoView(id);
     else if (view === "er") renderER();
     else if (view === "galaxia") renderGalaxy();
     else if (view === "arquitectura") renderArch();
     else if (view === "ruta") renderRoute(id);
     else if (view === "dibujo") renderDrawing();
+    else if (view === "clases") renderClasses(id);
+    else if (view === "dependencias") renderDeps();
+    else if (view === "cambios") renderChanges();
+    else if (view === "comparar") renderCompare(id);
     else renderMap(null);
     renderCrumbs();
     tourHook();
@@ -777,6 +848,7 @@ button, input, select { font: inherit; color: inherit; }
     ["Trazar ruta", "Botón del panel de una función: el camino de llamadas hasta otra función o la base de datos"],
     ["←  →  espacio", "En «Trazar ruta»: paso anterior, siguiente y reproducir"],
     ["R", "En un flujo: recorrerlo paso a paso, como una prueba de escritorio"],
+    ["Pseudocódigo", "Pestaña de cada función: el algoritmo estilo PSeInt, para copiar o descargar (.psc)"],
     ["P", "Presentación guiada del proyecto (con avance automático para un stand)"],
     ["T", "Tema claro u oscuro"],
     ["S", "Estilo: moderno, clásico (blanco y negro), pizarra o alto contraste"],
@@ -830,6 +902,10 @@ button, input, select { font: inherit; color: inherit; }
     else if (state.view === "arquitectura") renderArch();
     else if (state.view === "ruta") renderRoute(state.id);
     else if (state.view === "dibujo") renderDrawing();
+    else if (state.view === "clases") renderClasses(state.id);
+    else if (state.view === "dependencias") renderDeps();
+    else if (state.view === "cambios") renderChanges();
+    else if (state.view === "comparar") renderCompare(state.id);
     state.selectedNode = keep;
     if (state.tour) paintTour();
   }
@@ -933,7 +1009,7 @@ button, input, select { font: inherit; color: inherit; }
         if (g === rootGid) continue;
         items.push({ label: MAP.groups[g].name, hash: buildHash("mapa", g) });
       }
-    } else if (["flujo", "secuencia", "codigo"].includes(state.view) && state.trail.length) {
+    } else if (FUNC_VIEWS.includes(state.view) && state.trail.length) {
       const base = state.trail[0];
       const owner = MAP && MAP.owner ? MAP.owner[base] : null;
       for (const g of groupChain(owner)) {
@@ -953,6 +1029,14 @@ button, input, select { font: inherit; color: inherit; }
       items.push({ label: "Arquitectura", hash: buildHash("arquitectura", null) });
     } else if (state.view === "ruta") {
       items.push({ label: "Trazar ruta", hash: buildHash("ruta", state.id) });
+    } else if (state.view === "clases") {
+      items.push({ label: "Clases" + (state.id && state.id !== "." ? ": " + state.id : ""), hash: buildHash("clases", state.id) });
+    } else if (state.view === "dependencias") {
+      items.push({ label: "Dependencias", hash: buildHash("dependencias", null) });
+    } else if (state.view === "cambios" || state.view === "comparar") {
+      items.push({ label: "Cambios", hash: buildHash("cambios", null) });
+      const row = state.view === "comparar" ? compareRows()[Number(state.id)] : null;
+      if (row) items.push({ label: row[2], hash: buildHash("comparar", state.id) });
     }
     items.forEach((it, i) => {
       if (i > 0) nav.appendChild(h("span", { class: "sep", "aria-hidden": "true" }, "›"));
@@ -966,7 +1050,7 @@ button, input, select { font: inherit; color: inherit; }
   }
 
   function goUp() {
-    if (["flujo", "secuencia", "codigo"].includes(state.view)) {
+    if (FUNC_VIEWS.includes(state.view)) {
       if (state.trail.length > 1) {
         const prev = state.trail.slice(0, -1);
         go(state.view, prev[prev.length - 1], { trail: prev });
@@ -987,7 +1071,8 @@ button, input, select { font: inherit; color: inherit; }
       else go("mapa", null);
       return;
     }
-    if (["er", "galaxia", "arquitectura"].includes(state.view)) go("mapa", null);
+    if (state.view === "comparar") { go("cambios", null); return; }
+    if (["er", "galaxia", "arquitectura", "clases", "dependencias", "cambios"].includes(state.view)) go("mapa", null);
   }
 
   // ------------------------------------------------------------------ pestañas e info
@@ -997,9 +1082,16 @@ button, input, select { font: inherit; color: inherit; }
     clear(tabs);
     if (!sid) {
       const hasER = DATA.er && DATA.er.tables && DATA.er.tables.length;
-      if (hasER || DATA.galaxy || DATA.arch) {
+      const hasUml = DATA.uml && Object.keys(DATA.uml).length;
+      if (hasER || DATA.galaxy || DATA.arch || hasUml || DATA.deps || DATA.compare) {
+        if (DATA.compare) tabs.appendChild(tabButton("Cambios (" + DATA.compare.funciones.length + ")", state.view === "cambios" || state.view === "comparar", () => go("cambios", null)));
         tabs.appendChild(tabButton("Mapa", state.view === "mapa" || !state.view, () => go("mapa", null)));
         if (DATA.arch) tabs.appendChild(tabButton("Arquitectura", state.view === "arquitectura", () => go("arquitectura", null)));
+        if (hasUml) tabs.appendChild(tabButton("Clases", state.view === "clases", () => go("clases", null)));
+        if (DATA.deps) {
+          const n = DATA.deps.n_ciclos;
+          tabs.appendChild(tabButton("Dependencias" + (n ? " (" + n + ")" : ""), state.view === "dependencias", () => go("dependencias", null)));
+        }
         if (DATA.galaxy) tabs.appendChild(tabButton("Galaxia", state.view === "galaxia", () => go("galaxia", null)));
         if (hasER) tabs.appendChild(tabButton("Entidad-relación", state.view === "er", () => go("er", null)));
       }
@@ -1007,6 +1099,8 @@ button, input, select { font: inherit; color: inherit; }
     }
     tabs.appendChild(tabButton("Flujo", state.view === "flujo", () => go("flujo", sid, { trail: state.trail })));
     tabs.appendChild(tabButton("Secuencia", state.view === "secuencia", () => go("secuencia", sid, { trail: state.trail })));
+    const flow = flowOf(sid);
+    if (flow && flow.ps) tabs.appendChild(tabButton("Pseudocódigo", state.view === "pseudo", () => go("pseudo", sid, { trail: state.trail })));
     tabs.appendChild(tabButton("Código", state.view === "codigo", () => go("codigo", sid, { trail: state.trail })));
   }
 
@@ -1119,7 +1213,12 @@ button, input, select { font: inherit; color: inherit; }
     return s("defs", null,
       marker("punta", "punta"),
       marker("punta-exc", "punta-exc"),
-      marker("punta-foco", "punta-foco"));
+      marker("punta-foco", "punta-foco"),
+      // UML: triángulo hueco (herencia, implementación) y flecha abierta (asociación).
+      s("marker", { id: "uml-triangulo", viewBox: "0 0 12 12", refX: "11", refY: "6", markerWidth: "12", markerHeight: "12", orient: "auto-start-reverse", markerUnits: "userSpaceOnUse" },
+        s("path", { d: "M0,0 L11,6 L0,12 z", class: "uml-punta-hueca" })),
+      s("marker", { id: "uml-flecha", viewBox: "0 0 12 12", refX: "11", refY: "6", markerWidth: "12", markerHeight: "12", orient: "auto-start-reverse", markerUnits: "userSpaceOnUse" },
+        s("path", { d: "M0,0 L11,6 L0,12", class: "uml-punta-abierta" })));
   }
 
   function marker(id, cls) {
@@ -1212,7 +1311,9 @@ button, input, select { font: inherit; color: inherit; }
     const box = h("div", { class: "leyenda", role: "list", "aria-label": "Leyenda" });
     for (const k of kinds) {
       const icon = s("svg", { viewBox: "0 0 26 16", "aria-hidden": "true" });
-      if (CONF_NAMES[k]) {
+      if (k.startsWith("uml-") || k === "salta-capa") {
+        icon.appendChild(s("line", { x1: 1, y1: 8, x2: 25, y2: 8, class: "arista " + k }));
+      } else if (CONF_NAMES[k]) {
         icon.appendChild(s("line", { x1: 1, y1: 8, x2: 25, y2: 8, class: "arista c-" + k }));
       } else if (k === "excepcion") {
         icon.appendChild(s("line", { x1: 1, y1: 8, x2: 25, y2: 8, class: "arista k-excepcion" }));
@@ -1243,6 +1344,8 @@ button, input, select { font: inherit; color: inherit; }
     const infoParts = [h("code", null, sym.signature), "  ·  " + sym.file + ":" + sym.line_start];
     if (sym.doc) infoParts.push(h("div", { class: "doc" }, sym.doc));
     if (flow && flow.truncated) infoParts.push(h("div", null, "Función muy grande: algunos bloques se muestran colapsados (clic para ver el código)."));
+    const changed = DATA.compare ? compareIndexOf(sid) : -1;
+    if (changed >= 0) infoParts.push(h("div", { class: "acciones-flujo" }, h("a", { class: "boton", href: buildHash("comparar", String(changed)) }, "Ver antes y después (" + DATA.compare.antes + ")")));
     if (flow && flow.edges && flow.edges.length) {
       infoParts.push(h("div", { class: "acciones-flujo" },
         h("button", { class: "boton", type: "button", id: "boton-recorrer", title: "Animación paso a paso, como una prueba de escritorio (r)", onclick: () => (state.walk ? stopWalk() : walkStart(sid, false)) }, state.walk && state.walk.sid === sid ? "✕ Terminar recorrido" : "▶ Recorrer")));
@@ -1450,6 +1553,86 @@ button, input, select { font: inherit; color: inherit; }
     lienzo.appendChild(pre);
   }
 
+  // ------------------------------------------------------------------ vista: pseudocódigo (PSeInt)
+
+  const PS_KEYWORDS = new Set([
+    "Algoritmo", "FinAlgoritmo", "Funcion", "FinFuncion", "SubProceso", "FinSubProceso",
+    "Si", "Entonces", "SiNo", "FinSi", "Mientras", "Hacer", "FinMientras", "Para", "Hasta",
+    "Con", "Paso", "FinPara", "Cada", "de", "Repetir", "Que", "Segun", "FinSegun", "De", "Otro",
+    "Modo", "Escribir", "Sin", "Saltar", "Leer", "Definir", "Como", "Dimension", "Esperar",
+    "Tecla", "Y", "O", "NO", "MOD",
+  ]);
+  const PS_VALUES = new Set(["Entero", "Real", "Caracter", "Logico", "Verdadero", "Falso"]);
+  const PS_TOKEN = /(\/\/.*$)|("[^"]*"|'[^']*')|([A-Za-zÁÉÍÓÚÜáéíóúüÑñ_][\wÁÉÍÓÚÜáéíóúüÑñ]*)|(<-)/g;
+
+  /** Una línea coloreada, solo con nodos de texto: el contenido viene del código analizado. */
+  function psLine(text) {
+    const out = [];
+    let pos = 0;
+    let m;
+    PS_TOKEN.lastIndex = 0;
+    while ((m = PS_TOKEN.exec(text))) {
+      if (m.index > pos) out.push(text.slice(pos, m.index));
+      if (m[1]) out.push(h("span", { class: "ps-com" }, m[1]));
+      else if (m[2]) out.push(h("span", { class: "ps-cad" }, m[2]));
+      else if (m[3]) out.push(PS_KEYWORDS.has(m[3]) ? h("span", { class: "ps-kw" }, m[3]) : PS_VALUES.has(m[3]) ? h("span", { class: "ps-val" }, m[3]) : m[3]);
+      else out.push(h("span", { class: "ps-kw" }, m[4]));
+      pos = PS_TOKEN.lastIndex;
+    }
+    if (pos < text.length) out.push(text.slice(pos));
+    return out;
+  }
+
+  function psFileName(sym) {
+    return String(sym.qualname).replace(/[^\w.-]+/g, "_") + ".psc";
+  }
+
+  function copyText(text, status) {
+    const done = () => { status.textContent = "Copiado."; };
+    const fallback = () => {
+      const area = h("textarea", { "aria-hidden": "true", style: "position:fixed;left:-9999px;" });
+      area.value = text;
+      document.body.appendChild(area);
+      area.select();
+      document.execCommand("copy");
+      area.remove();
+      done();
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, fallback);
+    else fallback();
+  }
+
+  function renderPseudoView(sid) {
+    renderTabs(sid);
+    const sym = SYMBOLS[sid];
+    if (!sym) { showEmpty("No se encontró la función."); return; }
+    renderPanel(sid);
+    const flow = flowOf(sid);
+    const text = flow && flow.ps;
+    if (!text) {
+      renderInfo([h("strong", null, "Pseudocódigo"), "  ·  " + sym.qualname]);
+      showEmpty("Esta función no tiene cuerpo para traducir.");
+      return;
+    }
+    const status = h("span", { class: "nota", "aria-live": "polite" });
+    const copy = h("button", { class: "boton", type: "button", onclick: () => copyText(text, status) }, "Copiar");
+    const save = h("button", { class: "boton", type: "button", title: "Archivo para abrir en PSeInt", onclick: () => download(psFileName(sym), new Blob([text], { type: "text/plain" })) }, "Descargar .psc");
+    renderInfo([
+      h("strong", null, "Pseudocódigo"), "  ·  estilo PSeInt  ·  ", copy, " ", save, " ", status,
+      h("div", { class: "pista" }, "Traducido del código sin ejecutarlo. Lo que PSeInt no tiene (retornar a mitad, break, try, objetos) va como comentario //."),
+    ]);
+    const lienzo = $("lienzo");
+    clear(lienzo);
+    minimap = null;
+    currentGroup = null;
+    const pre = h("div", { class: "codigo pseudo", style: "position:absolute;inset:0;", role: "region", "aria-label": "Pseudocódigo de " + sym.qualname });
+    text.replace(/\n$/, "").split("\n").forEach((ln, i) => {
+      // Un solo <span> por línea: en una fila flex los espacios sueltos se perderían.
+      pre.appendChild(h("div", { class: "ln" }, h("span", { class: "num" }, String(i + 1)), h("span", null, psLine(ln))));
+    });
+    lienzo.appendChild(pre);
+  }
+
   // ------------------------------------------------------------------ vista: mapa
 
   function renderMap(gid) {
@@ -1464,6 +1647,7 @@ button, input, select { font: inherit; color: inherit; }
     }
     const id = gid && MAP.groups[gid] ? gid : MAP.root;
     const group = MAP.groups[id];
+    state.lastMapPath = group.path !== undefined ? group.path : group.kind === "proyecto" ? null : state.lastMapPath;
     const lay = group.layout;
     const focus = lay && state.focus && lay.nodes.some((n) => n[0] === state.focus) ? state.focus : null;
     const infoParts = [h("strong", null, group.name), group.summary ? "  ·  " + group.summary : ""];
@@ -1661,13 +1845,18 @@ button, input, select { font: inherit; color: inherit; }
       g.appendChild(s("text", { class: "columna-sub", x: cx, y: 40, "text-anchor": "middle" }, count));
     }
     const lit = focus ? neighborhood(arch.edges, focus) : null;
+    // Llamadas que se saltan una capa (pestaña Dependencias): origen\u0000destino → texto.
+    const skips = new Map((DATA.deps ? DATA.deps.capas : []).map((c) => [c[4] + "\u0000" + c[5], c[0]]));
+    const legend = (arch.legend || []).slice();
     for (const [src, dst, pts, conf, label, lx, ly, lw, lh, mix, back, text] of arch.edges) {
       const dim = lit && !(lit.has(src) && lit.has(dst)) ? " atenuado" : "";
       const lightEdge = lit && !dim ? " resaltada" : "";
+      const skip = skips.get(src + "\u0000" + dst);
+      if (skip && !legend.includes("salta-capa")) legend.push("salta-capa");
       const parts = [];
       for (const k of ["exacta", "probable", "ambigua"]) if (mix && mix[k]) parts.push(mix[k] + " " + MIX_NAMES[k][mix[k] === 1 ? 0 : 1]);
-      const tip = names[src] + " → " + names[dst] + (text ? "\n" + text : "") + (parts.length ? "\n" + parts.join(" · ") : "") + (back ? "\nVa hacia una capa anterior" : "");
-      g.appendChild(s("path", { class: "arista c-" + conf + dim + lightEdge + (back ? " hacia-atras" : ""), d: pathFrom(pts), "marker-end": lightEdge ? "url(#punta-foco)" : "url(#punta)" }));
+      const tip = names[src] + " → " + names[dst] + (text ? "\n" + text : "") + (parts.length ? "\n" + parts.join(" · ") : "") + (back ? "\nVa hacia una capa anterior" : "") + (skip ? "\nSe salta una capa: " + skip : "");
+      g.appendChild(s("path", { class: "arista c-" + conf + dim + lightEdge + (back ? " hacia-atras" : "") + (skip ? " salta-capa" : ""), d: pathFrom(pts), "marker-end": lightEdge ? "url(#punta-foco)" : "url(#punta)" }));
       g.appendChild(s("path", { class: "arista-hit", d: pathFrom(pts) }, s("title", null, tip)));
       if (label) {
         const lg = drawLabel(label, lx, ly, lw, lh, dim.trim());
@@ -1694,7 +1883,7 @@ button, input, select { font: inherit; color: inherit; }
       });
       g.appendChild(ng);
     }
-    mount(svg, g, arch.w, arch.h, arch.legend || []);
+    mount(svg, g, arch.w, arch.h, legend);
   }
 
   // ------------------------------------------------------------------ vista: trazar una ruta
@@ -2497,6 +2686,12 @@ button, input, select { font: inherit; color: inherit; }
     if (v === "flujo" && state.id) return mermaidFlow(state.id);
     if (v === "secuencia" && state.id) return mermaidSequence(state.id);
     if (v === "dibujo" && DATA.drawing) return DATA.drawing.source;
+    if (v === "clases") {
+      const index = DATA.uml || {};
+      const folder = state.id === null || state.id === undefined ? umlDefaultFolder() : state.id === "." ? "" : state.id;
+      const d = PACKS["@uml/" + folder];
+      return d ? d.mermaid : null;
+    }
     if (v === "arquitectura" && DATA.arch) return mermaidBoxes("Arquitectura de " + ((DATA.meta && DATA.meta.name) || "proyecto"), DATA.arch.nodes, DATA.arch.edges, DATA.arch.columns);
     if (v === "mapa" && MAP) {
       const gid = state.id && MAP.groups[state.id] ? state.id : MAP.root;
@@ -2525,11 +2720,335 @@ button, input, select { font: inherit; color: inherit; }
       h("h2", { id: "mermaid-titulo" }, "Esta vista en Mermaid"),
       h("p", null, text
         ? "Pégalo en un README de GitHub, en mermaid.live o en Notion. Pantalla, teclado y documento usan las formas de Mermaid 11.3 o más nuevo."
-        : "Esta vista no tiene exportación a Mermaid. Prueba en un flujo, una secuencia, el mapa, la arquitectura o un dibujo."),
+        : "Esta vista no tiene exportación a Mermaid. Prueba en un flujo, una secuencia, el mapa, la arquitectura, las clases o un dibujo."),
       text ? area : null,
       h("div", { class: "acciones-dialogo" }, copy, save, close, status));
     document.body.appendChild(mermaidDialog);
     mermaidDialog.showModal();
+  }
+
+  // ------------------------------------------------------------------ vista: diagrama de clases (UML)
+
+  const UML_LINE = 16;
+  const UML_HEAD = 34;
+  const UML_PAD = 8;
+
+  /** Carpeta que se abre por defecto: la del nivel del mapa en que estabas, o la que
+   * tiene más clases. */
+  function umlDefaultFolder() {
+    const index = DATA.uml || {};
+    const folders = Object.keys(index);
+    const fromMap = state.lastMapPath;
+    if (fromMap !== undefined && fromMap !== null && index[fromMap]) return fromMap;
+    folders.sort((a, b) => index[b].clases - index[a].clases || a.localeCompare(b));
+    return folders[0];
+  }
+
+  function renderClasses(id) {
+    renderTabs(null);
+    hidePanel();
+    const index = DATA.uml || {};
+    const folders = Object.keys(index);
+    if (!folders.length) { renderInfo([]); showEmpty("El proyecto no tiene clases."); return; }
+    let folder = id === null || id === undefined ? umlDefaultFolder() : id === "." ? "" : id;
+    if (!(folder in index)) folder = umlDefaultFolder();
+    const key = "@uml/" + folder;
+    if (!PACKS[key]) {
+      showEmpty("Cargando el diagrama de clases…");
+      const want = location.hash;
+      loadPack(key).then(() => { if (location.hash === want) renderClasses(id); },
+        (err) => showEmpty(err && err.message === "navegador-antiguo" ? OLD_BROWSER : "No se pudo abrir el diagrama."));
+      return;
+    }
+    const d = PACKS[key];
+    // Selector de carpeta: las que tienen más clases primero.
+    const sorted = folders.slice().sort((a, b) => index[b].clases - index[a].clases || a.localeCompare(b));
+    const select = h("select", { class: "selector-carpeta", "aria-label": "Carpeta del diagrama de clases",
+      onchange: (e) => go("clases", e.target.value === "" ? "." : e.target.value) });
+    for (const f of sorted) {
+      const opt = h("option", { value: f }, (f || "(raíz)") + " — " + index[f].clases + (index[f].clases === 1 ? " clase" : " clases"));
+      if (f === folder) opt.selected = true;
+      select.appendChild(opt);
+    }
+    const info = [h("strong", null, "Diagrama de clases"), "  ·  ", select];
+    info.push(h("div", { class: "pista" }, "UML: + público, − privado, # protegido, ~ paquete; subrayado = estático, cursiva = abstracto. Las clases en gris son de otra carpeta (clic para ir a la suya)."));
+    if (d.hidden) info.push(h("div", { class: "pista" }, "Carpeta grande: se dibujan las " + (d.classes.filter((c) => !c[10]).length) + " clases más relacionadas; " + d.hidden + " no se muestran."));
+    renderInfo(info);
+    const svg = s("svg", { role: "img", "aria-label": "Diagrama de clases de " + (folder || "la raíz") });
+    svg.appendChild(markers());
+    const g = s("g", { class: "vista" });
+    const kinds = new Set();
+    for (const [, , pts, kind, label, lx, ly, lw, lh] of d.edges) {
+      kinds.add("uml-" + kind);
+      g.appendChild(s("path", { class: "arista uml-" + kind, d: pathFrom(pts),
+        "marker-end": kind === "asociacion" ? "url(#uml-flecha)" : "url(#uml-triangulo)" }));
+      if (label) g.appendChild(drawLabel(label, lx, ly, lw, lh));
+    }
+    for (const [cid, kind, x, y, w, hh, stereo, name, attrs, methods, ghost, ghostFolder, link, abstract, where] of d.classes) {
+      const nk = kind === "interface" ? "interfaz" : "clase";
+      kinds.add(nk);
+      const target = ghost ? null : link;
+      const cg = s("g", { class: "nodo k-" + nk + " uml-clase" + (ghost ? " uml-fantasma clicable" : link ? " clicable" : ""), "data-id": cid, tabindex: "0", role: "button",
+        "aria-label": (stereo ? stereo + " " : "") + name });
+      cg.appendChild(s("rect", { class: "forma", x, y, width: w, height: hh, rx: 3 }));
+      const cx = x + w / 2;
+      if (ghost) {
+        cg.appendChild(s("text", { class: "uml-nombre", x: cx, y: y + hh / 2 + 1, "text-anchor": "middle" }, name));
+      } else {
+        if (stereo) cg.appendChild(s("text", { class: "uml-estereotipo", x: cx, y: y + 12, "text-anchor": "middle" }, stereo));
+        cg.appendChild(s("text", { class: "uml-nombre" + (abstract || kind === "interface" ? " abstracto" : ""), x: cx, y: y + (stereo ? 26 : 19), "text-anchor": "middle" }, name));
+        let ty = y + UML_HEAD;
+        cg.appendChild(s("line", { class: "linea-interna", x1: x, y1: ty, x2: x + w, y2: ty }));
+        ty += UML_PAD / 2;
+        const block = (lines) => {
+          if (!lines.length) { ty += UML_LINE; return; }
+          for (const [text, flags] of lines) {
+            ty += UML_LINE;
+            cg.appendChild(s("text", { class: "uml-miembro" + (flags.includes("s") ? " estatico" : "") + (flags.includes("a") ? " abstracto" : ""), x: x + UML_PAD, y: ty - 4 }, text));
+          }
+        };
+        block(attrs);
+        ty += UML_PAD / 2;
+        cg.appendChild(s("line", { class: "linea-interna", x1: x, y1: ty, x2: x + w, y2: ty }));
+        ty += UML_PAD / 2;
+        block(methods);
+      }
+      cg.appendChild(s("title", null, (stereo ? stereo + " " : "") + name + "\n" + where + (ghost ? "\nDe la carpeta " + (ghostFolder || "(raíz)") + ": clic para ver su diagrama" : target ? "\nClic: verla en el mapa" : "")));
+      const open = () => {
+        if (ghost) go("clases", ghostFolder === "" ? "." : ghostFolder);
+        else if (target) location.hash = withParams(target);
+      };
+      cg.addEventListener("click", (e) => { if (state.dragged) return; e.stopPropagation(); open(); });
+      cg.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); open(); } });
+      g.appendChild(cg);
+    }
+    const order = ["clase", "interfaz", "uml-hereda", "uml-implementa", "uml-asociacion"];
+    mount(svg, g, d.w, d.h, order.filter((k) => kinds.has(k)));
+  }
+
+  // ------------------------------------------------------------------ vista: dependencias
+
+  /** Un paso de una dependencia: "archivo:línea  motivo", con enlace a la función. */
+  function depStep(why, at, sid) {
+    const sym = sid ? SYMBOLS[sid] : null;
+    const text = sym && hasFlow(sid) ? h("a", { href: buildHash("flujo", sid) }, why) : why;
+    return h("li", null, h("code", { class: "dep-lugar" }, at), " ", text);
+  }
+
+  function renderDeps() {
+    renderTabs(null);
+    hidePanel();
+    const d = DATA.deps;
+    if (!d) { renderInfo([]); showEmpty("No hay dependencias entre archivos para revisar."); return; }
+    renderInfo([
+      h("strong", null, "Dependencias"), "  ·  " + d.archivos + " archivos, " + d.relaciones + " relaciones",
+      h("div", { class: "pista" }, "Un archivo depende de otro si llama a sus funciones, hereda de sus clases o las usa como tipo. Solo cuentan las llamadas exactas o probables."),
+    ]);
+    const lienzo = $("lienzo");
+    clear(lienzo);
+    minimap = null;
+    currentGroup = null;
+    const doc = h("div", { class: "documento", role: "region", "aria-label": "Dependencias" });
+    const okCycles = !d.n_ciclos;
+    doc.appendChild(h("div", { class: "resumen-deps" },
+      h("div", { class: "tarjeta " + (okCycles ? "bien" : "mal") },
+        h("span", { class: "cifra" }, String(d.n_ciclos)),
+        h("span", null, d.n_ciclos === 1 ? "ciclo" : "ciclos")),
+      h("div", { class: "tarjeta " + (d.n_capas ? "aviso" : "bien") },
+        h("span", { class: "cifra" }, String(d.n_capas)),
+        h("span", null, d.n_capas === 1 ? "capa que se salta" : "capas que se saltan"))));
+
+    doc.appendChild(h("h2", null, "Ciclos"));
+    if (okCycles) {
+      doc.appendChild(h("p", null, "No hay ciclos: ninguna carpeta ni archivo depende, dando la vuelta, de sí mismo. Se puede entender (y probar) cada parte empezando por las de abajo."));
+    } else {
+      doc.appendChild(h("p", { class: "nota-deps" }, "En un ciclo, A depende de B y B (directa o indirectamente) de A: no se puede cambiar ni probar una sin la otra. Se rompe moviendo lo que comparten a un tercer lugar o invirtiendo una dependencia (una interfaz)."));
+      const list = h("ol", { class: "lista-deps" });
+      for (const c of d.ciclos) {
+        const chips = [];
+        c.camino.forEach((p, i) => {
+          if (i) chips.push(h("span", { class: "flecha-dep", "aria-hidden": "true" }, "→"));
+          chips.push(h("span", { class: "chip-dep" }, p || "(raíz)"));
+        });
+        const extra = c.nudo > c.camino.length - 1 ? h("span", { class: "nota" }, " · el nudo completo tiene " + c.nudo + (c.nivel === "carpeta" ? " carpetas" : " archivos")) : null;
+        list.appendChild(h("li", null,
+          h("div", { class: "camino-dep" }, h("span", { class: "nivel-dep" }, c.nivel === "carpeta" ? "carpetas" : "archivos"), chips, extra),
+          h("ul", { class: "pasos-dep" }, c.pasos.map(([why, at, sid]) => depStep(why, at, sid)))));
+      }
+      doc.appendChild(list);
+      if (d.n_ciclos > d.ciclos.length) doc.appendChild(h("p", { class: "nota" }, "… y " + (d.n_ciclos - d.ciclos.length) + " más (desglosa check --json los lista todos)."));
+    }
+
+    doc.appendChild(h("h2", null, "Capas que se saltan"));
+    if (!d.n_capas) {
+      doc.appendChild(h("p", null, "Ninguna. Cuando la entrada (un controlador) llama directo al acceso a datos aunque exista un servicio que ya lo usa, aparece aquí."));
+    } else {
+      const list = h("ul", { class: "lista-deps" });
+      for (const [text, why, at, sid] of d.capas) list.appendChild(h("li", null, h("div", null, text), h("ul", { class: "pasos-dep" }, depStep(why, at, sid))));
+      doc.appendChild(list);
+      if (DATA.arch) doc.appendChild(h("p", { class: "nota" }, "En la pestaña Arquitectura se ven como flechas punteadas de color."));
+    }
+    doc.appendChild(h("h2", null, "En integración continua"));
+    doc.appendChild(h("p", null, "desglosa check RUTA falla (código 5) si aparece un ciclo nuevo. Con --aceptar se guardan los de hoy como aceptados en .desglosa-check.json."));
+    lienzo.appendChild(doc);
+  }
+
+  // ------------------------------------------------------------------ vista: comparar versiones
+
+  // Fila: [estado, archivo, nombre, id antes, id después, líneas antes, líneas después,
+  //        complejidad antes, complejidad después]
+  function compareRows() {
+    return DATA.compare ? DATA.compare.funciones : [];
+  }
+
+  function compareIndexOf(sid) {
+    return compareRows().findIndex((r) => r[0] === "cambiada" && r[4] === sid);
+  }
+
+  function ccText(a, b) {
+    if (a === null || a === undefined || b === null || b === undefined || a === b) return "";
+    return "complejidad " + a + " → " + b;
+  }
+
+  function renderChanges() {
+    renderTabs(null);
+    hidePanel();
+    const c = DATA.compare;
+    if (!c) { renderInfo([]); showEmpty("Este HTML no es una comparación (usa desglosa comparar)."); return; }
+    renderInfo([
+      h("strong", null, "Cambios"), "  ·  de " + c.antes + " a " + c.despues,
+      h("div", { class: "pista" }, "Una función cambió si cambió su texto (moverla no cuenta). Clic en una cambiada: su diagrama de antes y de después, lado a lado."),
+    ]);
+    const lienzo = $("lienzo");
+    clear(lienzo);
+    minimap = null;
+    currentGroup = null;
+    const rows = compareRows();
+    const count = (st) => rows.filter((r) => r[0] === st).length;
+    const card = (n, label, cls) => h("div", { class: "tarjeta " + cls }, h("span", { class: "cifra" }, String(n)), h("span", null, label));
+    const files = c.archivos;
+    const doc = h("div", { class: "documento", role: "region", "aria-label": "Cambios entre versiones" });
+    doc.appendChild(h("div", { class: "resumen-deps" },
+      card(count("cambiada"), "cambiadas", "aviso"),
+      card(count("nueva"), "nuevas", "bien"),
+      card(count("eliminada"), "eliminadas", "mal"),
+      card(files.cambiados.length + files.nuevos.length + files.eliminados.length, "archivos tocados", "")));
+    if (!rows.length) doc.appendChild(h("p", null, "Ninguna función cambió entre las dos versiones."));
+    const byFile = new Map();
+    rows.forEach((r, i) => {
+      if (!byFile.has(r[1])) byFile.set(r[1], []);
+      byFile.get(r[1]).push([r, i]);
+    });
+    const tag = { nueva: "nueva", eliminada: "eliminada", cambiada: "cambiada" };
+    for (const [file, list] of byFile) {
+      const state_ = files.nuevos.includes(file) ? " (archivo nuevo)" : files.eliminados.includes(file) ? " (archivo eliminado)" : "";
+      doc.appendChild(h("h2", null, h("code", null, file), state_));
+      const ul = h("ul", { class: "lista-cambios" });
+      for (const [r, i] of list) {
+        const [st, , name, , after, , , ccA, ccD] = r;
+        let label = name;
+        if (st === "nueva" && after && SYMBOLS[after] && hasFlow(after)) label = h("a", { href: buildHash("flujo", after) }, name);
+        else if (st !== "nueva") label = h("a", { href: buildHash("comparar", String(i)) }, name);
+        const extra = ccText(ccA, ccD);
+        ul.appendChild(h("li", { class: "cambio-" + st }, h("span", { class: "marca-cambio" }, tag[st]), " ", label, extra ? h("span", { class: "nota" }, "  · " + extra) : null));
+      }
+      doc.appendChild(ul);
+    }
+    lienzo.appendChild(doc);
+  }
+
+  /** Dibuja un flujo ya armado (sin clics); `mark(tech)` dice si un nodo es nuevo o se quitó. */
+  function drawFlowGroup(flow, mark) {
+    const g = s("g");
+    const lay = flow.layout;
+    for (const [pts, kind, arrow] of lay.lines) {
+      g.appendChild(s("path", { class: "arista k-" + kind, d: pathFrom(pts), "marker-end": arrow ? (kind === "excepcion" ? "url(#punta-exc)" : "url(#punta)") : null }));
+    }
+    for (const [text, x, y, w, hh] of lay.labels) g.appendChild(drawLabel(text, x, y, w, hh));
+    for (const [nid, x, y, w, hh, easy, tech] of lay.nodes) {
+      const info = flow.nodes[nid];
+      const extra = mark(info.tech);
+      const ng = s("g", { class: "nodo k-" + info.kind + (extra ? " " + extra : "") });
+      appendAll(ng, flowShape(info.kind, x, y, w, hh));
+      ng.appendChild(textBlock(state.mode === "facil" ? easy : tech, x + w / 2, y + hh / 2 + textOffset(info.kind)));
+      ng.appendChild(s("title", null, info.tech + (extra === "agregado" ? "\nNuevo en esta versión" : extra === "quitado" ? "\nYa no está en la versión nueva" : "")));
+      g.appendChild(ng);
+    }
+    for (const [label, cx, cy, r] of lay.connectors) {
+      const cg = s("g", { class: "nodo k-conector" }, s("circle", { class: "forma", cx, cy, r }));
+      cg.appendChild(s("text", { x: cx, y: cy + 0.5, "text-anchor": "middle" }, label));
+      g.appendChild(cg);
+    }
+    return g;
+  }
+
+  function techCounts(flow) {
+    const out = new Map();
+    if (!flow) return out;
+    for (const id of Object.keys(flow.nodes)) {
+      const t = flow.nodes[id].tech;
+      out.set(t, (out.get(t) || 0) + 1);
+    }
+    return out;
+  }
+
+  function renderCompare(id) {
+    renderTabs(null);
+    hidePanel();
+    const rows = compareRows();
+    const row = rows[Number(id)];
+    if (!row) { renderInfo([]); showEmpty("No se encontró ese cambio."); return; }
+    const [st, file, name, before, after, linesA, linesD, ccA, ccD] = row;
+    const need = [];
+    if (before && !PACKS["@antes/" + file]) need.push("@antes/" + file);
+    if (after && !PACKS[file]) need.push(file);
+    if (need.length) {
+      showEmpty("Cargando las dos versiones…");
+      const want = location.hash;
+      Promise.all(need.map((k) => loadPack(k))).then(() => { if (location.hash === want) renderCompare(id); },
+        (err) => showEmpty(err && err.message === "navegador-antiguo" ? OLD_BROWSER : "No se pudo abrir la comparación."));
+      return;
+    }
+    const fb = before && PACKS["@antes/" + file] ? (PACKS["@antes/" + file].flows || {})[before] : null;
+    const fa = after ? flowOf(after) : null;
+    const c = DATA.compare;
+    const info = [h("strong", null, name), "  ·  " + file];
+    const extra = ccText(ccA, ccD);
+    if (extra) info.push("  ·  " + extra);
+    if (linesA && linesD && linesA !== linesD) info.push("  ·  " + linesA + " → " + linesD + " líneas");
+    info.push(h("div", { class: "pista" }, st === "eliminada"
+      ? "Esta función ya no existe en " + c.despues + ". Así era en " + c.antes + "."
+      : "Izquierda: " + c.antes + ". Derecha: " + c.despues + ". En verde los pasos nuevos; en rojo, punteados, los que se quitaron."));
+    if (after && SYMBOLS[after]) info.push(h("div", { class: "acciones-flujo" }, h("a", { class: "boton", href: buildHash("flujo", after) }, "Abrir el flujo actual")));
+    renderInfo(info);
+    if (!fb && !fa) { showEmpty("Ninguna de las dos versiones tiene cuerpo para dibujar."); return; }
+    const inA = techCounts(fb);
+    const inD = techCounts(fa);
+    const gap = 90;
+    const top = 44;
+    const wB = fb ? fb.layout.w : 0;
+    const wA = fa ? fa.layout.w : 0;
+    const svg = s("svg", { role: "img", "aria-label": "Antes y después de " + name });
+    svg.appendChild(markers());
+    const g = s("g", { class: "vista comparacion" });
+    let x = 0;
+    if (fb) {
+      g.appendChild(s("text", { class: "titulo-version", x: wB / 2, y: 24, "text-anchor": "middle" }, "Antes · " + c.antes));
+      const gb = drawFlowGroup(fb, (t) => (inD.has(t) ? "" : "quitado"));
+      gb.setAttribute("transform", "translate(0," + top + ")");
+      g.appendChild(gb);
+      x = wB + gap;
+    }
+    if (fa) {
+      g.appendChild(s("text", { class: "titulo-version", x: x + wA / 2, y: 24, "text-anchor": "middle" }, "Después · " + c.despues));
+      const ga = drawFlowGroup(fa, (t) => (!fb || inA.has(t) ? "" : "agregado"));
+      ga.setAttribute("transform", "translate(" + x + "," + top + ")");
+      g.appendChild(ga);
+    }
+    if (fb && fa) g.appendChild(s("line", { class: "separador-version", x1: wB + gap / 2, y1: 8, x2: wB + gap / 2, y2: top + Math.max(fb.layout.h, fa.layout.h) }));
+    const kinds = new Set([...((fb && fb.layout.legend) || []), ...((fa && fa.layout.legend) || [])]);
+    const h_ = top + Math.max(fb ? fb.layout.h : 0, fa ? fa.layout.h : 0);
+    mount(svg, g, x + wA || wB, h_, [...kinds]);
   }
 
   // ------------------------------------------------------------------ vista: entidad-relación
@@ -2707,6 +3226,10 @@ button, input, select { font: inherit; color: inherit; }
       case "flujo": return sym ? "Diagrama de flujo · " + sym.qualname + " · " + sym.file + ":" + sym.line_start : name;
       case "secuencia": return sym ? "Diagrama de secuencia · " + sym.qualname : name;
       case "codigo": return sym ? sym.qualname : name;
+      case "dependencias": return "Dependencias · " + name;
+      case "cambios": return "Cambios · " + name;
+      case "comparar": return "Antes y después · " + ((compareRows()[Number(state.id)] || [])[2] || name);
+      case "pseudo": return sym ? "Pseudocódigo · " + sym.qualname : name;
       case "arquitectura": return "Arquitectura · " + name;
       case "galaxia": return "Galaxia · " + name;
       case "er": return "Entidad-relación · " + name;

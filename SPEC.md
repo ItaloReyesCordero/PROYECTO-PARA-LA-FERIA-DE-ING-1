@@ -407,6 +407,10 @@ M = imprescindible · S = debería · C = opcional
 | RF-16 | S | Rutas de Laravel como puntos de entrada. | Fixture `routes/web.php`. |
 | RF-17 | C | `export-ir` JSON. | Golden. |
 | RF-18 | C | Export de un flujo/secuencia a Mermaid. | Hecho en el Bloque 3: `desglosa mermaid` y botón del visor; golden y prueba de ida y vuelta. |
+| RF-19 | C | Diagrama de clases UML por carpeta (visibilidad, estáticos, abstractos, herencia, implementación, asociación). | Bloque 4: `desglosa clases`, pestaña «Clases»; fixture `tests/fixtures/uml/` en los 12 lenguajes y golden de Mermaid. |
+| RF-20 | C | Pseudocódigo estilo PSeInt de una función o un archivo (`.psc`). | Bloque 4: `desglosa pseudo`, pestaña «Pseudocódigo»; goldens `tests/golden/pseudo/`. |
+| RF-21 | C | Ciclos de dependencias y capas que se saltan; `check` para CI. | Bloque 4: `desglosa check` (código 5), pestaña «Dependencias», sección del reporte; fixtures sin falsos positivos. |
+| RF-22 | C | Comparar dos versiones (carpetas o commit de git) con los flujos de antes y después. | Bloque 4: `desglosa comparar`, pestaña «Cambios»; test con un repositorio git temporal. |
 | RNF-01 | M | Cero IA y cero red en `analyze`. | Test que reemplaza `socket.socket` por uno que lanza excepción durante `analyze`. |
 | RNF-02 | M | Determinista. | Dos ejecuciones → mismo SHA-256 del HTML. |
 | RNF-03 | M | Tolerante a errores de sintaxis y codificación. | Fixture roto no tumba el análisis. |
